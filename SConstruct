@@ -14,8 +14,10 @@ env = SConscript("godot-cpp/SConstruct")
 
 # tweak this if you want to use different folders, or more folders, to store your source code in.
 env.Append(CPPPATH=["src/"])
-sources = Glob("src/*.cpp")
+sources = Glob("src/*.cpp") + Glob("register_types.cpp")
 
+if env.debug_features:
+    env.Append(CPPDEFINES=["TOOLS_ENABLED"])
 
 def add_sources_recursively(dir: str, glob_sources):
     for f in os.listdir(dir):

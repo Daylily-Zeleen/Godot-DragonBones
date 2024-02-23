@@ -98,7 +98,8 @@ protected:
     static const char* COLOR;
 
     static const char* VERSION;
-    static const char* COMPATIBLE_VERSION;
+	static const char* COMPATIBLE_VERSION;
+	static const char* INFO;
     static const char* FRAME_RATE;
     static const char* TYPE;
     static const char* SUB_TYPE;

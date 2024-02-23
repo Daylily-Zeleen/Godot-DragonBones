@@ -11,12 +11,12 @@ void DragonBonesData::_onClear()
     {
         pair.second->returnToPool();
     }
-/*
+
     if (binary != nullptr)
     {
         delete binary;
     }
-*/
+
     if (userData != nullptr)
     {
         userData->returnToPool();

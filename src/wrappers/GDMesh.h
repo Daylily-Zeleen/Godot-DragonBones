@@ -1,51 +1,73 @@
 #pragma once
-
 #include "GDDisplay.h"
+#include "dragonBones/event/EventObject.h"
 #include "godot_cpp/classes/rendering_server.hpp"
-#include "godot_cpp/variant/rid.hpp"
-
 #include "godot_cpp/variant/utility_functions.hpp"
 
-DRAGONBONES_NAMESPACE_BEGIN
+namespace godot {
 
 class GDMesh : public GDDisplay {
-	GDCLASS(GDMesh, GDDisplay)
+	GDCLASS(GDMesh, Node2D)
+private:
+	GDMesh(const GDMesh &);
+
 protected:
 	static void _bind_methods() {}
 
-private:
-	using RS = godot::RenderingServer;
+public:
+	PackedInt32Array indices;
+	PackedColorArray verticesColor;
+	PackedVector2Array verticesUV;
+	PackedVector2Array verticesPos;
 
-	GDMesh(const GDMesh &);
+	Color col_debug{
+		static_cast<float>(UtilityFunctions::randf_range(0.5f, 1.0f)),
+		static_cast<float>(UtilityFunctions::randf_range(0.3f, 1.0f)),
+		static_cast<float>(UtilityFunctions::randf_range(0.3f, 1.0f)),
+		1
+	};
 
 public:
-	godot::PackedInt32Array indices;
-	godot::PackedColorArray verticesColor;
-	godot::PackedVector2Array verticesUV;
-	godot::PackedVector2Array verticesPos;
+	GDMesh() = default;
+	virtual ~GDMesh() = default;
 
-	godot::Color col_debug;
+	virtual Ref<CanvasItemMaterial> get_material_to_set_blend_mode(bool p_required) override {
+		if (get_use_parent_material()) {
+			auto parent = dynamic_cast<GDOwnerNode *>(get_parent());
+			if (parent) {
+				return parent->get_material_to_set_blend_mode(p_required);
+			}
+		}
 
-public:
-	GDMesh() :
-			col_debug{ godot::Color(
-					godot::UtilityFunctions::randf_range(0.5f, 1.f),
-					godot::UtilityFunctions::randf_range(0.3f, 1.f),
-					godot::UtilityFunctions::randf_range(0.3f, 1.f), 1) } {}
-	virtual ~GDMesh() {}
+		Ref<CanvasItemMaterial> ret = get_material();
+		if (ret.is_null() && p_required) {
+			ret.instantiate();
+			set_material(ret);
+		}
+		return ret;
+	}
 
-	static GDMesh *create() {
-		return memnew(GDMesh);
+	virtual void dispatch_event(const String &_str_type, const dragonBones::EventObject *_p_value) override {
+		if (p_owner) {
+			p_owner->dispatch_event(_str_type, _p_value);
+		}
+	}
+
+	virtual void dispatch_sound_event(const String &_str_type, const dragonBones::EventObject *_p_value) override {
+		if (p_owner) {
+			p_owner->dispatch_sound_event(_str_type, _p_value);
+		}
 	}
 
 	virtual void _draw() override {
 		if (indices.is_empty())
 			return;
 
-		if (texture.is_valid()) {
-			verticesColor.fill(get_modulate());
+		auto owner = static_cast<GDDisplay *>(p_owner);
+		const Ref<Texture2D> texture_to_draw = owner && owner->texture.is_valid() ? owner->texture : this->texture;
 
-			RS::get_singleton()->canvas_item_add_triangle_array(
+		if (texture_to_draw.is_valid()) {
+			RenderingServer::get_singleton()->canvas_item_add_triangle_array(
 					get_canvas_item(),
 					indices,
 					verticesPos,
@@ -53,20 +75,23 @@ public:
 					verticesUV,
 					{},
 					{},
-					texture.is_valid() ? texture->get_rid() : godot::RID(),
+					texture_to_draw.is_valid() ? texture_to_draw->get_rid() : RID(),
 					-1);
 		}
 
-		if (b_debug || !texture.is_valid()) {
-			for (size_t idx = 0; idx < indices.size(); idx += 3) {
-				col_debug.a = get_modulate().a;
-
-				RS::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx]], verticesPos[indices[idx + 1]], col_debug, 1.0);
-				RS::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx + 1]], verticesPos[indices[idx + 2]], col_debug, 1.0);
-				RS::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx + 2]], verticesPos[indices[idx]], col_debug, 1.0);
+		if (b_debug || texture_to_draw.is_null()) {
+			for (int idx = 0; idx < indices.size(); idx += 3) {
+				RenderingServer::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx]], verticesPos[indices[idx + 1]], col_debug, 1.0);
+				RenderingServer::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx + 1]], verticesPos[indices[idx + 2]], col_debug, 1.0);
+				RenderingServer::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx + 2]], verticesPos[indices[idx]], col_debug, 1.0);
 			}
 		}
 	}
+
+	virtual void update_modulate(const Color &p_modulate) override {
+		set_modulate(p_modulate);
+		verticesColor.fill(p_modulate);
+	}
 };
 
-DRAGONBONES_NAMESPACE_END
+} //namespace godot
