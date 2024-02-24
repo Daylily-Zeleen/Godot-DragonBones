@@ -13,3 +13,6 @@ project/bin
 .vscode/
 
 project/
+
+# Cmake
+build/
