@@ -1,4 +1,4 @@
-#include "dragon_bones_registration.h"
+#include <dragonbones_registration.h>
 
 #include "dragonbones.h"
 #include "godot_cpp/classes/editor_plugin_registration.hpp"

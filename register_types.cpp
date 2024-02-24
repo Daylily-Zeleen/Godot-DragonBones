@@ -1,4 +1,4 @@
-#include "src/dragon_bones_registration.h"
+#include "src/dragonbones_registration.h"
 
 #include <godot_cpp/core/class_db.hpp>
 

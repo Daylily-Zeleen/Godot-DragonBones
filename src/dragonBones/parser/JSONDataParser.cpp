@@ -577,9 +577,14 @@ DisplayData* JSONDataParser::_parseDisplay(const rapidjson::Value& rawData)
             }
             break;
         }
-    }
+		case DisplayType::Path:
+        {
+            // TODO: What?
+			break;
+        }
+	}
 
-    if (display != nullptr && rawData.HasMember(TRANSFORM))
+	if (display != nullptr && rawData.HasMember(TRANSFORM))
     {
         _parseTransform(rawData[TRANSFORM], display->transform, _armature->scale);
     }
