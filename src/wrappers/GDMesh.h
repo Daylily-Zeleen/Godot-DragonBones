@@ -3,6 +3,7 @@
 #include "dragonBones/event/EventObject.h"
 #include "godot_cpp/classes/rendering_server.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
+#include <godot_cpp/classes/engine.hpp>
 
 namespace godot {
 
@@ -79,7 +80,7 @@ public:
 					-1);
 		}
 
-		if (b_debug || texture_to_draw.is_null()) {
+		if (b_debug || (texture_to_draw.is_null() && Engine::get_singleton()->is_editor_hint())) {
 			for (int idx = 0; idx < indices.size(); idx += 3) {
 				RenderingServer::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx]], verticesPos[indices[idx + 1]], col_debug, 1.0);
 				RenderingServer::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx + 1]], verticesPos[indices[idx + 2]], col_debug, 1.0);
