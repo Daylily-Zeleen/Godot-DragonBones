@@ -76,23 +76,17 @@ static Error set_import_config_to_json_type(const String &p_src_file, const Stri
 	cfg.instantiate();
 
 	auto cfg_file = p_src_file + String(".import");
-	ERR_FAIL_COND_V(!FileAccess::file_exists(cfg_file), ERR_FILE_NOT_FOUND);
 
-	Error err = cfg->load(cfg_file);
-	if (err != OK) {
-		return err;
-	}
-	cfg->set_value("remap", "type", "JSON");
-	cfg->erase_section_key("remap", "path");
-	cfg->erase_section_key("deps", "dest_files");
+	cfg->set_value("remap", "importer", "keep");
 
-	err = cfg->save(cfg_file);
+	Error err = cfg->save(cfg_file);
 	if (err != OK) {
 		return err;
 	}
 
 	//
 	const auto save_res_file = p_save_path + String(".") + DragonBonesFactory::SAVED_EXT;
+
 	if (FileAccess::file_exists(save_res_file)) {
 		err = DirAccess::remove_absolute(save_res_file);
 	}
@@ -117,9 +111,10 @@ Error DragonBonesImportPlugin::_import(const String &p_source_file, const String
 
 	String base_path = p_source_file.get_basename();
 	if (!base_path.ends_with("_ske")) {
-		Ref<DragonBonesFactory> res;
-		res.instantiate();
-		ResourceSaver::get_singleton()->save(res, save_path);
+		if (ext_low != "json") {
+			return ERR_FILE_UNRECOGNIZED;
+		}
+
 		callable_mp_static(&set_import_config_to_json_type).call_deferred(p_source_file, p_save_path);
 		// 非龙骨文件
 		return OK;
