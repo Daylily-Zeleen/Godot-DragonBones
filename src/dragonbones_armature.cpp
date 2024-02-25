@@ -79,6 +79,7 @@ void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_bone", "bone_name"), &DragonBonesArmature::get_bone);
 
 	ClassDB::bind_method(D_METHOD("advance", "delta", "recursively"), &DragonBonesArmature::advance, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("get_rect"), &DragonBonesArmature::get_rect);
 
 	ClassDB::bind_method(D_METHOD("set_debug", "debug", "recursively"), &DragonBonesArmature::set_debug, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("set_active", "active", "recursively"), &DragonBonesArmature::set_active, DEFVAL(false));
@@ -216,6 +217,16 @@ PackedStringArray DragonBonesArmature::get_animations() {
 	}
 
 	return animations;
+}
+
+Rect2 DragonBonesArmature::get_rect() const {
+	const auto &aabb = p_armature->getArmatureData()->aabb;
+	return {
+		aabb.x,
+		aabb.y,
+		aabb.width,
+		aabb.height,
+	};
 }
 
 void DragonBonesArmature::advance(float p_delta, bool p_recursively) {

@@ -101,6 +101,9 @@ public:
 		for (auto slot : getArmature()->getSlots()) {
 			if (slot->getDisplayList().size() == 0)
 				continue;
+			if (slot->getDisplayIndex() < 0) {
+				slot->setDisplayIndex(0);
+			}
 			auto display = slot->getDisplayList()[slot->getDisplayIndex()];
 			if (display.second == dragonBones::DisplayType::Armature) {
 				dragonBones::Armature *armature = static_cast<dragonBones::Armature *>(display.first);
@@ -179,6 +182,7 @@ public:
 	Dictionary get_bones();
 	Ref<DragonBonesBone> get_bone(const String &name);
 
+	Rect2 get_rect() const;
 	void advance(float p_delta, bool p_recursively = false);
 
 	// setget
