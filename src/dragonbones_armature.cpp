@@ -157,6 +157,7 @@ void DragonBonesArmature::_bind_methods() {
 	}
 
 	storage_properties.emplace_back(StoragedProperty{ "use_parent_material", false });
+	storage_properties.emplace_back(StoragedProperty{ "current_animation", String() });
 	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "use_parent_material"));
 
 	memdelete(tmp_obj);
