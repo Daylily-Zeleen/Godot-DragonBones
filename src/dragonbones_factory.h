@@ -11,6 +11,8 @@ namespace godot {
 class DragonBonesFactory : public Resource, private dragonBones::BaseFactory {
 	GDCLASS(DragonBonesFactory, Resource)
 
+	class DragonBonesArmature *building_main_armature{};
+
 protected:
 	// dragonBones::BaseFactory 成员
 	void set_building_dragon_bones(dragonBones::DragonBones *p_building_instance) { _dragonBones = p_building_instance; }

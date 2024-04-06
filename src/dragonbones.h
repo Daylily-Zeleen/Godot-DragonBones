@@ -5,8 +5,6 @@
 #include "dragonbones_factory.h"
 #include "wrappers/GDDisplay.h"
 
-#define COMPATIBILITY_ENABLED
-
 namespace godot {
 /// TODO: 修改dragonBones库的new delete,供给Godot追踪内存
 class DragonBones : public GDOwnerNode, public dragonBones::IEventDispatcher {
@@ -60,10 +58,10 @@ protected:
 #endif // TOOLS_ENABLED
 
 public:
-	DragonBones() = default;
-	~DragonBones() { _cleanup(); }
+	DragonBones();
+	~DragonBones() { _cleanup(true); }
 
-	void _cleanup();
+	void _cleanup(bool p_for_destructor = false);
 
 	// to initial pose current animation
 	void _reset();

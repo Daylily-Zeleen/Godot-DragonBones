@@ -99,8 +99,9 @@ public:
 	template <typename Func, typename std::enable_if<std::is_invocable_v<Func, DragonBonesArmature *>>::type *_dummy = nullptr>
 	void for_each_armature(Func &&p_action) {
 		for (auto slot : getArmature()->getSlots()) {
-			if (slot->getDisplayList().size() == 0)
+			if (slot->getDisplayList().size() == 0) {
 				continue;
+			}
 			if (slot->getDisplayIndex() < 0) {
 				slot->setDisplayIndex(0);
 			}
@@ -134,6 +135,8 @@ public:
 	}
 
 public:
+	bool is_initialized() const { return p_armature; }
+
 	/* METHOD BINDINGS */
 	static void _bind_methods();
 

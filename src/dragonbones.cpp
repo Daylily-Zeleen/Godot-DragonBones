@@ -11,16 +11,16 @@ using namespace godot;
 #define SNAME(sn) ([] {static const StringName ret{sn};return ret; }())
 
 /////////////////////////////////////////////////////////////////
-void DragonBones::_cleanup() {
+void DragonBones::_cleanup(bool p_for_destructor) {
 	b_inited = false;
 
-	if (p_armature) {
-		if (p_armature->get_parent() == this) {
-			remove_child(p_armature);
+	if (!p_for_destructor) {
+		// 析构时子节点已被释放
+		if (p_armature) {
 			p_armature->dispose(true);
+		} else {
+			ERR_PRINT("Unreachable case.");
 		}
-		p_armature->queue_free();
-		p_armature = nullptr;
 	}
 
 	if (p_instance) {
@@ -66,24 +66,24 @@ void DragonBones::dispatch_event(const String &_str_type, const dragonBones::Eve
 	DragonBonesArmature *armature_proxy = static_cast<DragonBonesArmature *>(_p_value->getArmature()->getDisplay());
 	String anim_name = _p_value->animationState->name.c_str();
 
-	if (_str_type == EventObject::START)
+	if (_str_type == EventObject::START) {
 		emit_signal("start", armature_proxy, anim_name);
-	else if (_str_type == EventObject::LOOP_COMPLETE)
+	} else if (_str_type == EventObject::LOOP_COMPLETE) {
 		emit_signal("loop_completed", armature_proxy, anim_name);
-	else if (_str_type == EventObject::COMPLETE)
+	} else if (_str_type == EventObject::COMPLETE) {
 		emit_signal("completed", armature_proxy, anim_name);
-	else if (_str_type == EventObject::FADE_IN)
+	} else if (_str_type == EventObject::FADE_IN) {
 		emit_signal("fade_in_start", armature_proxy, anim_name);
-	else if (_str_type == EventObject::FADE_IN_COMPLETE)
+	} else if (_str_type == EventObject::FADE_IN_COMPLETE) {
 		emit_signal("fade_in_completed", armature_proxy, anim_name);
-	else if (_str_type == EventObject::FADE_OUT)
+	} else if (_str_type == EventObject::FADE_OUT) {
 		emit_signal("fade_out_start", armature_proxy, anim_name);
-	else if (_str_type == EventObject::FADE_OUT_COMPLETE)
+	} else if (_str_type == EventObject::FADE_OUT_COMPLETE) {
 		emit_signal("fade_out_completed", armature_proxy, anim_name);
-	else if (_str_type == EventObject::FRAME_EVENT) {
+	} else if (_str_type == EventObject::FRAME_EVENT) {
 		String event_name = _p_value->name.c_str();
 		Ref<DragonBonesUserData> user_data{ memnew(DragonBonesUserData(_p_value->getData())) };
-		// TODO:: 是否需要包装 EventObje 与 ActionData？
+		// TODO:: 是否需要包装 EventObj 与 ActionData？
 		emit_signal("frame_event", armature_proxy, anim_name, event_name, user_data);
 	}
 }
@@ -97,7 +97,7 @@ void DragonBones::_on_resource_changed() {
 	set_factory({});
 	set_factory(to_set);
 #ifdef TOOLS_ENABLED
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		set_armature_settings(armatures_settings);
 	}
 #endif // TOOLS_ENABLED
@@ -105,10 +105,11 @@ void DragonBones::_on_resource_changed() {
 
 void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 	using namespace dragonBones;
-	if (m_res == _p_data)
+	if (m_res == _p_data) {
 		return;
+	}
 
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		p_armature->stop_all_animations(false, true);
 	}
 
@@ -118,7 +119,7 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 		m_res->disconnect(sn, cb);
 	}
 
-	_cleanup();
+	_cleanup(false);
 	m_res = _p_data;
 
 	if (m_res.is_null()) {
@@ -136,18 +137,13 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 
 	// build Armature display
 	p_instance = m_res->create_dragon_bones(this, p_armature, instantiate_dragon_bones_data_name, instantiate_skin_name);
-	ERR_FAIL_NULL(p_armature);
-
-	// add children armature
-	p_armature->p_owner = this;
+	ERR_FAIL_COND(!p_armature->is_initialized());
 
 	// update flip
 	set_flip_x(b_flip_x);
 	set_flip_y(b_flip_y);
 
 	p_armature->setup_recursively(b_debug);
-	// add main armature
-	add_child(p_armature);
 
 	b_inited = true;
 
@@ -169,7 +165,7 @@ Ref<DragonBonesFactory> DragonBones::get_factory() const {
 
 void DragonBones::set_inherit_material(bool _b_enable) {
 	armatures_inherite_material = _b_enable;
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		p_armature->update_material_inheritance_recursively(armatures_inherite_material);
 	}
 }
@@ -180,7 +176,7 @@ bool DragonBones::is_material_inherited() const {
 
 void DragonBones::set_active(bool _b_active) {
 	b_active = _b_active;
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		p_armature->set_active(_b_active, true);
 	}
 }
@@ -191,7 +187,7 @@ bool DragonBones::is_active() const {
 
 void DragonBones::set_debug(bool _b_debug) {
 	b_debug = _b_debug;
-	if (b_inited) {
+	if (b_inited && p_armature->is_initialized()) {
 		p_armature->set_debug(b_debug, true);
 	}
 }
@@ -245,7 +241,7 @@ String DragonBones::get_instantiate_skin_name() const {
 
 void DragonBones::set_callback_mode_process(DragonBonesArmature::AnimationCallbackModeProcess _mode) {
 	callback_mode_process = _mode;
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		p_armature->set_callback_mode_process(_mode, true);
 	}
 }
@@ -267,12 +263,16 @@ void DragonBones::set_animation_loop(int p_animation_loop) {
 }
 
 void DragonBones::_reset() {
-	ERR_FAIL_NULL(p_armature);
+	ERR_FAIL_COND(!p_armature->is_initialized());
 	p_armature->reset(true);
 }
 
 DragonBonesArmature *DragonBones::get_armature() {
-	return p_armature;
+	if (p_armature->is_initialized()) {
+		// Only return armature when it is initialized.
+		return p_armature;
+	}
+	return nullptr;
 }
 
 void DragonBones::set_armature(DragonBonesArmature *) const {
@@ -281,7 +281,7 @@ void DragonBones::set_armature(DragonBonesArmature *) const {
 
 void DragonBones::set_flip_x(bool _b_flip) {
 	b_flip_x = _b_flip;
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		p_armature->set_flip_x(_b_flip, true);
 	}
 }
@@ -292,7 +292,7 @@ bool DragonBones::is_fliped_x() const {
 
 void DragonBones::set_flip_y(bool _b_flip) {
 	b_flip_y = _b_flip;
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		p_armature->set_flip_y(_b_flip, true);
 	}
 }
@@ -306,7 +306,7 @@ void DragonBones::fade_in(const String &_name_anim, float _time, int _loop, int 
 	WARN_DEPRECATED;
 	// setup speed
 	set_speed_scale(f_speed);
-	ERR_FAIL_NULL(p_armature);
+	ERR_FAIL_COND(!p_armature->is_initialized());
 	p_armature->fade_in(_name_anim, _time, _loop, _layer, _group, _fade_out_mode);
 	if (p_armature->is_playing()) {
 		b_playing = true;
@@ -315,9 +315,10 @@ void DragonBones::fade_in(const String &_name_anim, float _time, int _loop, int 
 
 void DragonBones::fade_out(const String &_name_anim) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL(p_armature);
-	if (!p_armature->is_playing() || !p_armature->has_animation(_name_anim))
+	ERR_FAIL_COND(!p_armature->is_initialized());
+	if (!p_armature->is_playing() || !p_armature->has_animation(_name_anim)) {
 		return;
+	}
 	p_armature->stop(_name_anim);
 	b_playing = false;
 	_reset();
@@ -325,61 +326,61 @@ void DragonBones::fade_out(const String &_name_anim) {
 
 void DragonBones::set_slot_display_index(const String &_slot_name, int _index) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL(p_armature);
+	ERR_FAIL_COND(!p_armature->is_initialized());
 	p_armature->set_slot_display_index(_slot_name, _index);
 }
 
 void DragonBones::set_slot_by_item_name(const String &_slot_name, const String &_item_name) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL(p_armature);
+	ERR_FAIL_COND(!p_armature->is_initialized());
 	p_armature->set_slot_by_item_name(_slot_name, _item_name);
 }
 
 void DragonBones::set_all_slots_by_item_name(const String &_item_name) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL(p_armature);
+	ERR_FAIL_COND(!p_armature->is_initialized());
 	p_armature->set_all_slots_by_item_name(_item_name);
 }
 
 int DragonBones::get_slot_display_index(const String &_slot_name) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL_V(p_armature, -1);
+	ERR_FAIL_COND_V(!p_armature->is_initialized(), -1);
 	return p_armature->get_slot_display_index(_slot_name);
 }
 
 int DragonBones::get_total_items_in_slot(const String &_slot_name) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL_V(p_armature, -1);
+	ERR_FAIL_COND_V(!p_armature->is_initialized(), -1);
 	return p_armature->get_total_items_in_slot(_slot_name);
 }
 
 bool DragonBones::has_slot(const String &_slot_name) const {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL_V(p_armature, false);
+	ERR_FAIL_COND_V(!p_armature->is_initialized(), false);
 	return p_armature->has_slot(_slot_name);
 }
 
 void DragonBones::cycle_next_item_in_slot(const String &_slot_name) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL(p_armature);
+	ERR_FAIL_COND(!p_armature->is_initialized());
 	p_armature->cycle_next_item_in_slot(_slot_name);
 }
 
 void DragonBones::cycle_previous_item_in_slot(const String &_slot_name) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL(p_armature);
+	ERR_FAIL_COND(!p_armature->is_initialized());
 	p_armature->cycle_next_item_in_slot(_slot_name);
 }
 
 Color DragonBones::get_slot_display_color_multiplier(const String &_slot_name) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL_V((p_armature), (Color(-1.0, -1.0, -1.0, -1.0)));
+	ERR_FAIL_COND_V(!p_armature->is_initialized(), (Color(-1.0, -1.0, -1.0, -1.0)));
 	return p_armature->get_slot_display_color_multiplier(_slot_name);
 }
 
 void DragonBones::set_slot_display_color_multiplier(const String &_slot_name, const Color &_color) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL(p_armature);
+	ERR_FAIL_COND(!p_armature->is_initialized());
 	p_armature->set_slot_display_color_multiplier(_slot_name, _color);
 }
 
@@ -393,7 +394,7 @@ void DragonBones::play(bool _b_play) {
 
 	// setup speed
 	set_speed_scale(f_speed);
-	if (p_armature && p_armature->has_animation(str_curr_anim)) {
+	if (p_armature->is_initialized() && p_armature->has_animation(str_curr_anim)) {
 		p_armature->play(str_curr_anim, c_loop);
 		b_try_playing = false;
 	} else {
@@ -407,7 +408,7 @@ void DragonBones::play(bool _b_play) {
 void DragonBones::play_from_time(float _f_time) {
 	WARN_DEPRECATED;
 	play();
-	if (b_playing && p_armature) {
+	if (b_playing && p_armature->is_initialized()) {
 		p_armature->getAnimation()->gotoAndPlayByTime(str_curr_anim.ascii().get_data(), _f_time, c_loop);
 	}
 }
@@ -415,7 +416,7 @@ void DragonBones::play_from_time(float _f_time) {
 void DragonBones::play_from_progress(float _f_progress) {
 	WARN_DEPRECATED;
 	play();
-	if (b_playing && p_armature) {
+	if (b_playing && p_armature->is_initialized()) {
 		p_armature->getAnimation()->gotoAndPlayByProgress(str_curr_anim.ascii().get_data(), CLAMP(_f_progress, 0, 1.f), c_loop);
 	}
 }
@@ -453,30 +454,31 @@ void DragonBones::play_new_animation(const String &_str_anim, int _num_times) {
 
 bool DragonBones::has_anim(const String &_str_anim) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL_V(p_armature, false);
+	ERR_FAIL_COND_V(!p_armature->is_initialized(), false);
 	return p_armature->has_animation(_str_anim);
 }
 
 void DragonBones::stop(bool _b_all) {
-	if (!b_inited)
+	if (!b_inited) {
 		return;
+	}
 
 	b_playing = false;
 
-	if (p_armature && p_armature->is_playing()) {
+	if (p_armature->is_initialized() && p_armature->is_playing()) {
 		p_armature->stop(_b_all ? String("") : str_curr_anim, true, _b_all ? true : false);
 	}
 }
 
 float DragonBones::tell() {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL_V(p_armature, 0.0f);
+	ERR_FAIL_COND_V(!p_armature->is_initialized(), 0.0f);
 	return p_armature->tell_animation(str_curr_anim);
 }
 
 void DragonBones::seek(float _f_p) {
 	WARN_DEPRECATED;
-	ERR_FAIL_NULL(p_armature);
+	ERR_FAIL_COND(!p_armature->is_initialized());
 	b_playing = false;
 	f_progress = _f_p;
 	p_armature->seek_animation(str_curr_anim, _f_p);
@@ -484,7 +486,7 @@ void DragonBones::seek(float _f_p) {
 
 float DragonBones::get_progress() const {
 	WARN_DEPRECATED;
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		return p_armature->get_animation_progress();
 	}
 	return f_progress;
@@ -492,7 +494,7 @@ float DragonBones::get_progress() const {
 
 bool DragonBones::is_playing() const {
 	WARN_DEPRECATED;
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		return p_armature->is_playing();
 	}
 	return false;
@@ -500,7 +502,7 @@ bool DragonBones::is_playing() const {
 
 String DragonBones::get_current_animation() const {
 	WARN_DEPRECATED;
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		return p_armature->get_current_animation();
 	}
 	return {};
@@ -508,7 +510,7 @@ String DragonBones::get_current_animation() const {
 
 String DragonBones::get_current_animation_on_layer(int _layer) const {
 	WARN_DEPRECATED;
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		return p_armature->get_current_animation_on_layer(_layer);
 	}
 	return {};
@@ -516,7 +518,7 @@ String DragonBones::get_current_animation_on_layer(int _layer) const {
 #endif
 
 void DragonBones::set_armature_settings(const Dictionary &p_settings) const {
-	if (p_armature) {
+	if (p_armature->is_initialized()) {
 		p_armature->set_settings(p_settings);
 	} else {
 		WARN_PRINT_ED("p_armature is invalid, can't set armature settings.");
@@ -524,7 +526,7 @@ void DragonBones::set_armature_settings(const Dictionary &p_settings) const {
 }
 
 Dictionary DragonBones::get_armature_settings() const {
-	if (!p_armature) {
+	if (!p_armature->is_initialized()) {
 		return {};
 	}
 #ifdef TOOLS_ENABLED
@@ -662,25 +664,19 @@ void DragonBones::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("has", "name"), &DragonBones::has_anim);
 	ClassDB::bind_method(D_METHOD("is_playing"), &DragonBones::is_playing);
 
-	ClassDB::bind_method(D_METHOD("set_animation_loop", "loop_count"), &DragonBones::set_animation_loop);
-	ClassDB::bind_method(D_METHOD("get_animation_loop"), &DragonBones::get_animation_loop);
-
 	ClassDB::bind_method(D_METHOD("get_current_animation"), &DragonBones::get_current_animation);
 	ClassDB::bind_method(D_METHOD("get_current_animation_on_layer"), &DragonBones::get_current_animation_on_layer);
 
 #endif
+
+	ClassDB::bind_method(D_METHOD("set_animation_loop", "loop_count"), &DragonBones::set_animation_loop);
+	ClassDB::bind_method(D_METHOD("get_animation_loop"), &DragonBones::get_animation_loop);
+
 	ClassDB::bind_method(D_METHOD("set_speed_scale", "speed"), &DragonBones::set_speed_scale);
 	ClassDB::bind_method(D_METHOD("get_speed_scale"), &DragonBones::get_speed_scale);
 
 	ClassDB::bind_method(D_METHOD("get_armature"), &DragonBones::get_armature);
 	ClassDB::bind_method(D_METHOD("set_armature_readonly"), &DragonBones::set_armature);
-	/*
-		END OF BASE ARMATURE FUNCTIONS
-	*/
-
-	/*
-		Let's get into the business of playing with child armatures.
-	*/
 
 	ClassDB::bind_method(D_METHOD("set_active", "active"), &DragonBones::set_active);
 	ClassDB::bind_method(D_METHOD("is_active"), &DragonBones::is_active);
@@ -736,6 +732,13 @@ void DragonBones::_bind_methods() {
 	const auto user_data_prop = PropertyInfo(Variant::OBJECT, "event_data", PROPERTY_HINT_NONE, "", PROPERTY_HINT_NONE, DragonBonesUserData::get_class_static());
 	ADD_SIGNAL(MethodInfo("frame_event", armature_prop, anim_name_prop, event_name_prop, user_data_prop));
 	ADD_SIGNAL(MethodInfo("sound_event", armature_prop, anim_name_prop, event_name_prop, user_data_prop));
+}
+
+DragonBones::DragonBones() {
+	// 内部节点
+	p_armature = memnew(DragonBonesArmature);
+	add_child(p_armature);
+	p_armature->p_owner = this;
 }
 
 ////////////////

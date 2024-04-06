@@ -16,8 +16,9 @@ DragonBonesData *DragonBonesFactory::loadDragonBonesData(const char *_p_data_loa
 	if (!name.empty()) {
 		const auto existedData = getDragonBonesData(name);
 
-		if (existedData)
+		if (existedData) {
 			return existedData;
+		}
 	}
 	return parseDragonBonesData(_p_data_loaded, name, 1.0f);
 }
@@ -56,7 +57,15 @@ TextureAtlasData *DragonBonesFactory::_buildTextureAtlasData(TextureAtlasData *t
 
 Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPackage) const {
 	const auto armature = BaseObject::borrowObject<Armature>();
-	const auto armatureDisplay = memnew(DragonBonesArmature);
+	DragonBonesArmature *armatureDisplay{ nullptr };
+
+	if (building_main_armature && !building_main_armature->is_initialized()) {
+		// 主Armature作为内部节点将被重用
+		armatureDisplay = building_main_armature;
+	} else {
+		armatureDisplay = memnew(DragonBonesArmature);
+	}
+
 	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
 	armatureDisplay->set_name(armature->getName().c_str());
 	return armature;
@@ -100,7 +109,7 @@ Armature *DragonBonesFactory::_buildChildArmature(const BuildArmaturePackage *da
 	childArmature->set_z_index(slot->_zOrder);
 	childArmature->getArmature()->setFlipY(true);
 	childArmature->hide();
-	proxy->add_child(childArmature);
+	proxy->add_child(childArmature, false, Node::INTERNAL_MODE_BACK);
 
 	return childArmature->getArmature();
 }
@@ -360,7 +369,10 @@ dragonBones::DragonBones *DragonBonesFactory::create_dragon_bones(
 	set_building_dragon_bones(ret);
 
 	const auto armature_name = dragon_bones_data->getArmatureNames()[0];
+
+	building_main_armature = r_main_armature;
 	r_main_armature = buildArmatureDisplay(armature_name, dragon_bones_data->name, p_skin_name.ascii().get_data());
+	building_main_armature = nullptr;
 
 	return ret;
 }

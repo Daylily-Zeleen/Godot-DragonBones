@@ -4,6 +4,7 @@
 #include "godot_cpp/classes/ref.hpp"
 
 #include "dragonbones.h"
+#include <wrappers/GDMesh.h>
 
 using namespace godot;
 using namespace dragonBones;
@@ -15,8 +16,6 @@ DragonBonesArmature::DragonBonesArmature() {
 }
 
 DragonBonesArmature::~DragonBonesArmature() {
-	_bones.clear();
-	_slots.clear();
 	dispose(true);
 }
 
@@ -117,7 +116,7 @@ void DragonBonesArmature::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug"), "set_debug_", "is_debug");
 
 	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "current_animation", PROPERTY_HINT_ENUM, "", PROPERTY_USAGE_EDITOR), "set_current_animation", "get_current_animation");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "animation_progress", PROPERTY_HINT_RANGE, "0.0,1.0,0.0001"), "set_animation_progress", "get_animation_progress");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "animation_progress", PROPERTY_HINT_RANGE, "0.0,1.0,0.0001", PROPERTY_USAGE_EDITOR), "set_animation_progress", "get_animation_progress");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "active"), "set_active_", "is_active");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "slots_inherit_material"), "set_slots_inherit_material_", "is_slots_inherit_material");
 
@@ -147,7 +146,7 @@ void DragonBonesArmature::_bind_methods() {
 	auto tmp_obj = memnew(DragonBonesArmature);
 	for (size_t i = 0; i < props.size(); ++i) {
 		Dictionary prop = props[i];
-		if ((uint32_t)prop["usage"] & PROPERTY_USAGE_STORAGE) {
+		if ((((uint32_t)prop["usage"]) & PROPERTY_USAGE_STORAGE) != 0) {
 			storage_properties.emplace_back(StoragedProperty{ prop["name"], tmp_obj->get(prop["name"]) });
 		}
 
@@ -179,13 +178,15 @@ void DragonBonesArmature::for_each_armature_recursively_(const Callable &p_actio
 }
 
 void DragonBonesArmature::set_debug(bool _b_debug, bool p_recursively) {
-	if (!p_armature)
+	if (!p_armature) {
 		return;
+	}
 
 	b_debug = _b_debug;
 	for (Slot *slot : p_armature->getSlots()) {
-		if (!slot)
+		if (!slot) {
 			continue;
+		}
 
 		if (p_recursively) {
 			for_each_armature([_b_debug](DragonBonesArmature *p_child_armature) {
@@ -255,14 +256,16 @@ void DragonBonesArmature::set_current_animation(const String &p_animation) {
 }
 
 String DragonBonesArmature::get_current_animation() const {
-	if (!p_armature || !getAnimation())
+	if (!p_armature || !getAnimation()) {
 		return {};
+	}
 	return getAnimation()->getLastAnimationName().c_str();
 }
 
 String DragonBonesArmature::get_current_animation_on_layer(int _layer) const {
-	if (!getAnimation())
+	if (!getAnimation()) {
 		return {};
+	}
 
 	std::vector<AnimationState *> states = p_armature->getAnimation()->getStates();
 
@@ -276,9 +279,9 @@ String DragonBonesArmature::get_current_animation_on_layer(int _layer) const {
 }
 
 String DragonBonesArmature::get_current_animation_in_group(const String &_group_name) const {
-	if (!getAnimation())
+	if (!getAnimation()) {
 		return {};
-
+	}
 	std::vector<AnimationState *> states = getAnimation()->getStates();
 
 	for (AnimationState *state : states) {
@@ -293,8 +296,9 @@ String DragonBonesArmature::get_current_animation_in_group(const String &_group_
 float DragonBonesArmature::tell_animation(const String &_animation_name) const {
 	if (has_animation(_animation_name)) {
 		AnimationState *animation_state = getAnimation()->getState(_animation_name.ascii().get_data());
-		if (animation_state)
+		if (animation_state) {
 			return animation_state->getCurrentTime() / animation_state->getTotalTime();
+		}
 	}
 	return 0.0f;
 }
@@ -303,8 +307,9 @@ void DragonBonesArmature::seek_animation(const String &_animation_name, float pr
 	if (has_animation(_animation_name)) {
 		stop(_animation_name, true);
 		auto current_progress = Math::fmod(progress, 1.0f);
-		if (current_progress == 0 && progress != 0)
+		if (current_progress == 0 && progress != 0) {
 			current_progress = 1.0f;
+		}
 		p_armature->getAnimation()->gotoAndStopByProgress(_animation_name.ascii().get_data(), current_progress < 0 ? 1. + current_progress : current_progress);
 	}
 }
@@ -643,20 +648,45 @@ void DragonBonesArmature::dbUpdate() {
 }
 
 void DragonBonesArmature::dispose(bool _disposeProxy) {
+	_bones.clear();
+	_slots.clear();
+
 	if (p_armature) {
 		p_armature->dispose();
 		p_armature = nullptr;
 	}
+
+	int32_t idx = 0;
+	while (idx < get_child_count(true)) {
+		Node *child = get_child(idx, true);
+		if (GDMesh *mesh = cast_to<GDMesh>(child)) {
+			// Donothing
+		} else if (DragonBonesArmature *sub_armature = cast_to<DragonBonesArmature>(child)) {
+			// Dispose and deinitialize sub armatures.
+			sub_armature->dispose(_disposeProxy);
+			sub_armature->p_owner = nullptr;
+		} else {
+			// Other child node should be skiped.
+			++idx;
+			continue;
+		}
+
+		// Remove ande queue free dragonbones nodes.
+		remove_child(child);
+		child->queue_free();
+	}
 }
 
 void DragonBonesArmature::setup_recursively(bool _b_debug) {
-	if (!p_armature)
+	if (!p_armature) {
 		return;
+	}
 
 	b_debug = _b_debug;
 	for (Slot *slot : p_armature->getSlots()) {
-		if (!slot)
+		if (!slot) {
 			continue;
+		}
 
 		for_each_armature([this](DragonBonesArmature *p_child_armature) {
 			p_child_armature->p_owner = p_owner;
@@ -664,7 +694,7 @@ void DragonBonesArmature::setup_recursively(bool _b_debug) {
 		});
 
 		if (auto display = static_cast<GDDisplay *>(slot->getRawDisplay())) {
-			add_child(display);
+			add_child(display, false, Node::INTERNAL_MODE_BACK);
 			display->p_owner = this;
 			display->b_debug = _b_debug;
 		}
@@ -672,32 +702,38 @@ void DragonBonesArmature::setup_recursively(bool _b_debug) {
 }
 
 void DragonBonesArmature::update_childs(bool _b_color, bool _b_blending) {
-	if (!p_armature)
+	if (!p_armature) {
 		return;
+	}
 
 	for (Slot *slot : p_armature->getSlots()) {
-		if (!slot)
+		if (!slot) {
 			continue;
+		}
 
-		if (_b_color)
+		if (_b_color) {
 			slot->_colorDirty = true;
+		}
 
-		if (_b_blending)
+		if (_b_blending) {
 			slot->invalidUpdate();
+		}
 
 		slot->update(0);
 	}
 }
 
 void DragonBonesArmature::set_slots_inherit_material(bool p_slots_inherit_material, bool p_recursively) {
-	if (!p_armature)
+	if (!p_armature) {
 		return;
+	}
 
 	slots_inherit_material = p_slots_inherit_material;
 
 	for (Slot *slot : p_armature->getSlots()) {
-		if (!slot)
+		if (!slot) {
 			continue;
+		}
 
 		if (auto display = static_cast<GDDisplay *>(slot->getRawDisplay())) {
 			display->set_use_parent_material(p_slots_inherit_material);
@@ -716,12 +752,14 @@ bool DragonBonesArmature::is_slots_inherit_material() const {
 }
 
 void DragonBonesArmature::update_texture_atlas(const Ref<Texture> &_m_texture_atlas) {
-	if (!p_armature)
+	if (!p_armature) {
 		return;
+	}
 
 	for (Slot *slot : p_armature->getSlots()) {
-		if (!slot)
+		if (!slot) {
 			continue;
+		}
 		if (auto display = static_cast<GDDisplay *>(slot->getRawDisplay())) {
 			display->texture = _m_texture_atlas;
 			display->queue_redraw();
@@ -854,13 +892,14 @@ void DragonBonesArmature::_notification(int p_what) {
 			}
 		} break;
 		case NOTIFICATION_INTERNAL_PROCESS: {
-			if (active && callback_mode_process == DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_IDLE)
+			if (active && callback_mode_process == DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_IDLE) {
 				advance(get_process_delta_time());
+			}
 		} break;
-
 		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS: {
-			if (active && callback_mode_process == DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS)
+			if (active && callback_mode_process == DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS) {
 				advance(get_physics_process_delta_time());
+			}
 		} break;
 	}
 }
@@ -939,7 +978,7 @@ Dictionary DragonBonesArmature::get_settings() const {
 std::vector<PropertyInfo> DragonBonesArmatureProxy::armature_property_list{};
 
 bool DragonBonesArmatureProxy::_set(const StringName &p_name, const Variant &p_val) {
-	if (!armature_node) {
+	if (!armature_node || !armature_node->is_initialized()) {
 		return false;
 	}
 
@@ -959,7 +998,7 @@ bool DragonBonesArmatureProxy::_set(const StringName &p_name, const Variant &p_v
 }
 
 bool DragonBonesArmatureProxy::_get(const StringName &p_name, Variant &r_val) const {
-	if (!armature_node) {
+	if (!armature_node || !armature_node->is_initialized()) {
 		return false;
 	}
 
@@ -979,7 +1018,7 @@ bool DragonBonesArmatureProxy::_get(const StringName &p_name, Variant &r_val) co
 }
 
 void DragonBonesArmatureProxy::_get_property_list(List<PropertyInfo> *p_list) const {
-	if (!armature_node) {
+	if (!armature_node || !armature_node->is_initialized()) {
 		return;
 	}
 

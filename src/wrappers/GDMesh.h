@@ -61,8 +61,9 @@ public:
 	}
 
 	virtual void _draw() override {
-		if (indices.is_empty())
+		if (indices.is_empty()) {
 			return;
+		}
 
 		auto owner = static_cast<GDDisplay *>(p_owner);
 		const Ref<Texture2D> texture_to_draw = owner && owner->texture.is_valid() ? owner->texture : this->texture;
