@@ -557,6 +557,15 @@ bool DragonBones::_get(const StringName &_str_name, Variant &_r_ret) const {
 	}
 #ifdef TOOLS_ENABLED
 	else if (_str_name == SNAME("main_armature")) {
+		// Avoid instantiation when getting default value.
+		if (p_armature && p_armature->is_initialized() && main_armature_ref.is_null()) {
+			main_armature_ref.instantiate();
+		}
+
+		if (main_armature_ref.is_valid()) {
+			main_armature_ref->armature_node = p_armature;
+		}
+
 		_r_ret = main_armature_ref;
 		return true;
 	}
@@ -566,14 +575,11 @@ bool DragonBones::_get(const StringName &_str_name, Variant &_r_ret) const {
 
 void DragonBones::_get_property_list(List<PropertyInfo> *_p_list) const {
 	_p_list->push_back(PropertyInfo(Variant::DICTIONARY, "armature_settings", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_STORAGE));
+
 #ifdef TOOLS_ENABLED
 	if (p_armature && Engine::get_singleton()->is_editor_hint()) {
-		if (main_armature_ref.is_null()) {
-			main_armature_ref.instantiate();
-		}
-		main_armature_ref->armature_node = p_armature;
 		_p_list->push_back(PropertyInfo(
-				Variant::OBJECT, "main_armature", PROPERTY_HINT_RESOURCE_TYPE, DragonBonesArmatureProxy::get_class_static(), PROPERTY_USAGE_EDITOR, DragonBonesArmatureProxy::get_class_static()));
+				Variant::OBJECT, "main_armature", PROPERTY_HINT_RESOURCE_TYPE, DragonBonesArmatureProxy::get_class_static(), PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT, DragonBonesArmatureProxy::get_class_static()));
 	}
 #endif // TOOLS_ENABLED
 }
