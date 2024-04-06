@@ -226,6 +226,7 @@ if(CMAKE_VERSION VERSION_GREATER "3.13")
 	target_link_directories(${PROJECT_NAME}
 		PRIVATE
 		${CPP_BINDINGS_BUILD_PATH}/bin/
+		${CPP_BINDINGS_BUILD_PATH}/bin/${BUILD_TYPE}/
 	)
 
 	target_link_libraries(${PROJECT_NAME}
