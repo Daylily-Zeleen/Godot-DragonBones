@@ -16,3 +16,6 @@ project/
 
 # Cmake
 build/
+
+# scons
+bin/

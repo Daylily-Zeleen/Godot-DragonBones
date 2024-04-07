@@ -9,7 +9,7 @@
 
 using namespace godot;
 
-void initialize_dragonbones_module(godot::ModuleInitializationLevel p_level) {
+void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	if (p_level == MODULE_INITIALIZATION_LEVEL_EDITOR) {
 		GDREGISTER_INTERNAL_CLASS(DragonBonesImportPlugin);
 		GDREGISTER_INTERNAL_CLASS(DragonBonesEditorPlugin);
@@ -33,7 +33,7 @@ void initialize_dragonbones_module(godot::ModuleInitializationLevel p_level) {
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesUserData);
 }
 
-void uninitialize_dragonbones_module(godot::ModuleInitializationLevel p_level) {
+void uninitialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	if (p_level == MODULE_INITIALIZATION_LEVEL_EDITOR) {
 		EditorPlugins::remove_by_type<DragonBonesEditorPlugin>();
 	}

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import os
-import sys
+import shutil
 
 env = SConscript("godot-cpp/SConstruct")
-
+lib_name = "libgddragonbones"
 # For the reference:
 # - CCFLAGS are compilation flags shared between C and C++
 # - CFLAGS are for C-specific compilation flags
@@ -16,8 +16,14 @@ env = SConscript("godot-cpp/SConstruct")
 env.Append(CPPPATH=["src/"])
 sources = Glob("src/*.cpp") + Glob("register_types.cpp")
 
+
+output_bin_folder = "./bin"
+plugin_folder = "./demo/addons/gddragonbones"
+plugin_bin_folder = f"{plugin_folder}/bin"
+
 if env.debug_features:
     env.Append(CPPDEFINES=["TOOLS_ENABLED"])
+
 
 def add_sources_recursively(dir: str, glob_sources):
     for f in os.listdir(dir):
@@ -31,30 +37,56 @@ add_sources_recursively("src/", sources)
 
 if env["platform"] == "macos":
     library = env.SharedLibrary(
-        "project/bin/libgddragonbones.{}.{}.framework/libgddragonbones.{}.{}".format(
-            env["platform"], env["target"], env["platform"], env["target"]
-        ),
+        f'{output_bin_folder}/{lib_name}.{env["platform"]}.{env["target"]}.framework/{lib_name}.{env["platform"]}.{env["target"]}',
         source=sources,
     )
 elif env["platform"] == "ios":
     if env["ios_simulator"]:
         library = env.StaticLibrary(
-            "project/bin/libgddragonbones.{}.{}.simulator.a".format(
-                env["platform"], env["target"]
-            ),
+            f'{output_bin_folder}/{lib_name}.{env["platform"]}.{env["target"]}.simulator.a',
             source=sources,
         )
     else:
         library = env.StaticLibrary(
-            "project/bin/libgddragonbones.{}.{}.a".format(
-                env["platform"], env["target"]
-            ),
+            f'{output_bin_folder}/{lib_name}.{env["platform"]}.{env["target"]}.a',
             source=sources,
         )
 else:
     library = env.SharedLibrary(
-        "project/bin/libgddragonbones{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+        f'{output_bin_folder}/{lib_name}{env["suffix"]}{env["SHLIBSUFFIX"]}',
         source=sources,
     )
 
-Default(library)
+platform = env["platform"]
+compile_target = env["target"]
+suffix = env["suffix"]
+
+
+def copy_file(from_path, to_path):
+    if not os.path.exists(os.path.dirname(to_path)):
+        os.makedirs(os.path.dirname(to_path))
+    shutil.copyfile(from_path, to_path)
+
+
+def on_complete(target, source, env):
+    if platform == "macos":
+        copy_file(
+            f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.framework/{lib_name}.{platform}.{compile_target}",
+            f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.framework/{lib_name}.{platform}.{compile_target}",
+        )
+    else:
+        copy_file(
+            f"{output_bin_folder}/{lib_name}{suffix}{env['SHLIBSUFFIX']}",
+            f"{plugin_bin_folder}/{lib_name}{suffix}{env['SHLIBSUFFIX']}",
+        )
+
+    copy_file("README.md", os.path.join(plugin_folder, "README.md"))
+    copy_file("LICENSE", os.path.join(plugin_folder, "LICENSE"))
+
+
+# Disable scons cache for source files
+NoCache(sources)
+
+complete_command = Command("complete", library, on_complete)
+Depends(complete_command, library)
+Default(complete_command)
