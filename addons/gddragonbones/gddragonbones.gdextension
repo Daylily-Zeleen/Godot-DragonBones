@@ -24,6 +24,8 @@ android.debug.x86_32 = "bin/libgddragonbones.android.template_debug.x86_32.so"
 android.release.x86_32 = "bin/libgddragonbones.android.template_release.x86_32.so"
 ios.debug = "bin/libgddragonbones.ios.template_debug.xcframework"
 ios.release = "bin/libgddragonbones.ios.template_release.xcframework"
+web.debug.wasm32 = "bin/libgddragonbones.web.template_debug.wasm32.wasm"
+web.release.wasm32 = "bin/libgddragonbones.web.template_release.wasm32.wasm"
 
 
 [dependencies]
