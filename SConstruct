@@ -61,6 +61,8 @@ platform = env["platform"]
 compile_target = env["target"]
 suffix = env["suffix"]
 ios_simulator = env["ios_simulator"]
+share_lib_suffix = env["SHLIBSUFFIX"]
+
 
 def copy_file(from_path, to_path):
     if not os.path.exists(os.path.dirname(to_path)):
@@ -87,8 +89,8 @@ def on_complete(target, source, env):
             )
     else:
         copy_file(
-            f"{output_bin_folder}/{lib_name}{suffix}{env['SHLIBSUFFIX']}",
-            f"{plugin_bin_folder}/{lib_name}{suffix}{env['SHLIBSUFFIX']}",
+            f"{output_bin_folder}/{lib_name}{suffix}{share_lib_suffix}",
+            f"{plugin_bin_folder}/{lib_name}{suffix}{share_lib_suffix}",
         )
 
     copy_file("README.md", os.path.join(plugin_folder, "README.md"))
