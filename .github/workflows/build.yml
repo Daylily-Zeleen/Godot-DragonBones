@@ -16,154 +16,120 @@ jobs:
                       name: 🐧 Linux x64 Debug
                       runner: ubuntu-20.04
                       target: template_debug
-                      dev_build: yes
                       platform: linux
                       arch: x86_64
                     - identifier: linux-x64-release
                       name: 🐧Linux x64 Release
                       runner: ubuntu-20.04
                       target: template_release
-                      dev_build: no
                       platform: linux
                       arch: x86_64
                     - identifier: linux-x86-debug
                       name: 🐧 Linux x86 Debug
                       runner: ubuntu-20.04
                       target: template_debug
-                      dev_build: yes
                       platform: linux
                       arch: x86_32
                     - identifier: linux-x86-release
                       name: 🐧Linux x86 Release
                       runner: ubuntu-20.04
                       target: template_release
-                      dev_build: no
                       platform: linux
                       arch: x86_32
                     - identifier: macos-universal-debug
                       name: 🍎 macOS (universal) Debug
                       runner: macos-latest
                       target: template_debug
-                      dev_build: yes
                       platform: macos
                       arch: universal
                     - identifier: macos-universal-release
                       name: 🍎 macOS (universal) Release
                       runner: macos-latest
                       target: template_release
-                      dev_build: no
                       platform: macos
                       arch: universal
                     - identifier: ios-arm64-debug
                       name: 🍏 ios arm64 Debug
-                      runner: macos-latest
+                      runner: macos-11
                       target: template_debug
-                      dev_build: yes
                       platform: ios
                       arch: arm64
-                    - identifier: ios-x86_64-release
+                    - identifier: ios-arm64-release
                       name: 🍏 ios arm64 Release
-                      runner: macos-latest
+                      runner: macos-11
                       target: template_release
-                      dev_build: no
                       platform: ios
                       arch: arm64
-                    - identifier: ios-x64-debug
-                      name: 🍏 ios x86_64 Debug
-                      runner: macos-latest
-                      target: template_debug
-                      dev_build: yes
-                      platform: ios
-                      arch: x86_64
-                    - identifier: ios-x64-release
-                      name: 🍏 ios x86_64 Release
-                      runner: macos-latest
-                      target: template_release
-                      dev_build: no
-                      platform: ios
-                      arch: x86_64
                     - identifier: windows-x64-debug
                       name: 🏁 Windows x64 Debug
                       runner: windows-latest
                       target: template_debug
-                      dev_build: yes
                       platform: windows
                       arch: x86_64
                     - identifier: windows-x64-release
                       name: 🏁 Windows x64 Release
                       runner: windows-latest
                       target: template_debug
-                      dev_build: no
                       platform: windows
                       arch: x86_64
                     - identifier: windows-x86-debug
                       name: 🏁 Windows x86 Debug
                       runner: windows-latest
                       target: template_debug
-                      dev_build: yes
                       platform: windows
                       arch: x86_32
                     - identifier: windows-x86-release
                       name: 🏁 Windows x86 Release
                       runner: windows-latest
                       target: template_debug
-                      dev_build: no
                       platform: windows
                       arch: x86_32
                     - identifier: android-arm64-debug
                       name: 🤖 Android arm64 Debug
                       runner: ubuntu-20.04
                       target: template_debug
-                      dev_build: yes
                       platform: android
                       arch: arm64
                     - identifier: android-arm64-release
                       name: 🤖 Android arm64 Release
                       runner: ubuntu-20.04
                       target: template_release
-                      dev_build: no
                       platform: android
                       arch: arm64
                     - identifier: android-x86_64-debug
                       name: 🤖 Android x86_64 Debug
                       runner: ubuntu-20.04
                       target: template_debug
-                      dev_build: yes
                       platform: android
                       arch: x86_64
                     - identifier: android-x86_64-release
                       name: 🤖 Android x86_64 Release
                       runner: ubuntu-20.04
                       target: template_release
-                      dev_build: no
                       platform: android
                       arch: x86_64
                     - identifier: android-arm32-debug
                       name: 🤖 Android arm32 Debug
                       runner: ubuntu-20.04
                       target: template_debug
-                      dev_build: yes
                       platform: android
                       arch: arm32
                     - identifier: android-arm32-release
                       name: 🤖 Android arm32 Release
                       runner: ubuntu-20.04
                       target: template_release
-                      dev_build: no
                       platform: android
                       arch: arm32
                     - identifier: android-x86_32-debug
                       name: 🤖 Android x86_32 Debug
                       runner: ubuntu-20.04
                       target: template_debug
-                      dev_build: yes
                       platform: android
                       arch: x86_32
                     - identifier: android-x86_32-release
                       name: 🤖 Android x86_32 Release
                       runner: ubuntu-20.04
                       target: template_release
-                      dev_build: no
                       platform: android
                       arch: x86_32
 
@@ -227,12 +193,25 @@ jobs:
               continue-on-error: true
 
             - name: Compile extension
+              if: ${{ matrix.platform != 'ios' }}
               shell: sh
               env:
                   SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
                   SCONS_CACHE_LIMIT: 7168
               run: |
-                  scons target='${{ matrix.target }}' platform='${{ matrix.platform }}' arch='${{ matrix.arch }}' dev_build='${{ matrix.dev_build }}'
+                  scons target='${{ matrix.target }}' platform='${{ matrix.platform }}' arch='${{ matrix.arch }}'
+
+            - name: Generate xcframework for ios
+              if: ${{ matrix.platform == 'ios' }}
+              shell: sh
+              env:
+                  SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
+                  SCONS_CACHE_LIMIT: 7168
+              run: |
+                  scons arch=universal ios_simulator=yes platform=ios target='${{ matrix.target }}'
+                  scons arch=arm64 ios_simulator=no platform=ios target='${{ matrix.target }}'
+                  xcodebuild -create-xcframework -library ./demo/addons/gddragonbones/bin/libgddragonbones.ios.'${{ matrix.target }}'.a -library ./demo/addons/gddragonbones/bin/libgddragonbones.ios.'${{ matrix.target }}'.simulator.a -output ./demo/addons/gddragonbones/bin/libgddragonbones.ios.'${{ matrix.target }}'.xcframework
+                  xcodebuild -create-xcframework -library ./godot-cpp/bin/libgodot-cpp.ios.'${{ matrix.target }}'.arm64.a -library ./godot-cpp/bin/libgodot-cpp.ios.'${{ matrix.target }}'.universal.simulator.a  -output ./demo/addons/gddragonbones/bin/libgodot-cpp.ios.'${{ matrix.target }}'.xcframework
 
             - name: Create artifact folder
               shell: sh

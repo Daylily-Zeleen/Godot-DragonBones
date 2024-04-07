@@ -177,6 +177,7 @@ private:
 class DragonBonesUserData : public RefCounted {
 	GDCLASS(DragonBonesUserData, RefCounted)
 
+	using v_size_t = int64_t;
 private:
 	dragonBones::UserData *user_data{ nullptr };
 
@@ -199,13 +200,13 @@ public:
 	PackedStringArray get_strings() const;
 	void set_strings(const PackedStringArray &); // readonly
 
-	int get_int(size_t p_index = 0) const;
-	float get_float(size_t p_index = 0) const;
-	String get_string(size_t p_index = 0) const;
+	int get_int(v_size_t p_index = 0) const;
+	float get_float(v_size_t p_index = 0) const;
+	String get_string(v_size_t p_index = 0) const;
 
-	size_t get_ints_size() const;
-	size_t get_floats_size() const;
-	size_t get_strings_size() const;
+	v_size_t get_ints_size() const;
+	v_size_t get_floats_size() const;
+	v_size_t get_strings_size() const;
 };
 
 } //namespace godot

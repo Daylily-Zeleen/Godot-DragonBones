@@ -60,7 +60,7 @@ else:
 platform = env["platform"]
 compile_target = env["target"]
 suffix = env["suffix"]
-
+ios_simulator = env["ios_simulator"]
 
 def copy_file(from_path, to_path):
     if not os.path.exists(os.path.dirname(to_path)):
@@ -74,6 +74,17 @@ def on_complete(target, source, env):
             f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.framework/{lib_name}.{platform}.{compile_target}",
             f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.framework/{lib_name}.{platform}.{compile_target}",
         )
+    elif platform == "ios":
+        if ios_simulator:
+            copy_file(
+                f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a",
+                f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a",
+            )
+        else:
+            copy_file(
+                f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.a",
+                f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.a",
+            )
     else:
         copy_file(
             f"{output_bin_folder}/{lib_name}{suffix}{env['SHLIBSUFFIX']}",

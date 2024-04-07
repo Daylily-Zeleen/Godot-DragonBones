@@ -803,7 +803,7 @@ void DragonBonesUserData::set_strings(const PackedStringArray &) {
 	ERR_FAIL_MSG("\"strings\" is readonly.");
 }
 
-int DragonBonesUserData::get_int(size_t p_index) const {
+int DragonBonesUserData::get_int(DragonBonesUserData::v_size_t p_index) const {
 	if (!user_data) {
 		return {};
 	}
@@ -811,7 +811,7 @@ int DragonBonesUserData::get_int(size_t p_index) const {
 	return user_data->ints[p_index];
 }
 
-float DragonBonesUserData::get_float(size_t p_index) const {
+float DragonBonesUserData::get_float(DragonBonesUserData::v_size_t p_index) const {
 	if (!user_data) {
 		return {};
 	}
@@ -819,7 +819,7 @@ float DragonBonesUserData::get_float(size_t p_index) const {
 	return user_data->floats[p_index];
 }
 
-String DragonBonesUserData::get_string(size_t p_index) const {
+String DragonBonesUserData::get_string(DragonBonesUserData::v_size_t p_index) const {
 	if (!user_data) {
 		return {};
 	}
@@ -827,19 +827,19 @@ String DragonBonesUserData::get_string(size_t p_index) const {
 	return user_data->strings[p_index].c_str();
 }
 
-size_t DragonBonesUserData::get_ints_size() const {
+DragonBonesUserData::v_size_t DragonBonesUserData::get_ints_size() const {
 	if (!user_data) {
 		return {};
 	}
 	return user_data->ints.size();
 }
-size_t DragonBonesUserData::get_floats_size() const {
+DragonBonesUserData::v_size_t DragonBonesUserData::get_floats_size() const {
 	if (!user_data) {
 		return {};
 	}
 	return user_data->floats.size();
 }
-size_t DragonBonesUserData::get_strings_size() const {
+DragonBonesUserData::v_size_t DragonBonesUserData::get_strings_size() const {
 	if (!user_data) {
 		return {};
 	}
