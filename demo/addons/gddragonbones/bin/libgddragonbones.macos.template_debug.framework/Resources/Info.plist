@@ -5,7 +5,7 @@
 	<key>CFBundleExecutable</key>
 	<string>libgddragonbones.macos.template_debug</string>
 	<key>CFBundleIdentifier</key>
-	<string>org.daylily-zeleen.gdeos</string>
+	<string>org.daylily-zeleen.gddragonbones</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
