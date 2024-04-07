@@ -37,24 +37,23 @@ Ref<CanvasItemMaterial> DragonBonesArmature::get_material_to_set_blend_mode(bool
 
 void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("for_each_armature", "action"), &DragonBonesArmature::for_each_armature_);
-	ClassDB::bind_method(D_METHOD("for_each_armature_recursively_", "action", "current_depth"), &DragonBonesArmature::for_each_armature_recursively_, DEFVAL(0));
+	ClassDB::bind_method(D_METHOD("for_each_armature_recursively", "action", "current_depth"), &DragonBonesArmature::for_each_armature_recursively_, DEFVAL(0));
 
 	ClassDB::bind_method(D_METHOD("has_animation", "animation_name"), &DragonBonesArmature::has_animation);
 	ClassDB::bind_method(D_METHOD("get_animations"), &DragonBonesArmature::get_animations);
-
 	ClassDB::bind_method(D_METHOD("is_playing"), &DragonBonesArmature::is_playing);
 
 	ClassDB::bind_method(D_METHOD("tell_animation", "animation_name"), &DragonBonesArmature::tell_animation);
 	ClassDB::bind_method(D_METHOD("seek_animation", "animation_name", "progress"), &DragonBonesArmature::seek_animation);
 
-	ClassDB::bind_method(D_METHOD("play", "animation_name", "loop_count"), &DragonBonesArmature::play);
-	ClassDB::bind_method(D_METHOD("play_from_time", "animation_name", "f_time", "loop_count"), &DragonBonesArmature::play_from_time);
-	ClassDB::bind_method(D_METHOD("play_from_progress", "animation_name", "f_progress", "loop_count"), &DragonBonesArmature::play_from_progress);
-	ClassDB::bind_method(D_METHOD("stop", "animation_name", "b_reset"), &DragonBonesArmature::stop);
-	ClassDB::bind_method(D_METHOD("stop_all_animations", "reset", "recursively"), &DragonBonesArmature::stop_all_animations);
-	ClassDB::bind_method(D_METHOD("fade_in"), &DragonBonesArmature::fade_in);
+	ClassDB::bind_method(D_METHOD("play", "animation_name", "loop_count"), &DragonBonesArmature::play, DEFVAL(-1));
+	ClassDB::bind_method(D_METHOD("play_from_time", "animation_name", "time", "loop_count"), &DragonBonesArmature::play_from_time, DEFVAL(-1));
+	ClassDB::bind_method(D_METHOD("play_from_progress", "animation_name", "progress", "loop_count"), &DragonBonesArmature::play_from_progress, DEFVAL(-1));
+	ClassDB::bind_method(D_METHOD("stop", "animation_name", "reset", "recursively"), &DragonBonesArmature::stop, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("stop_all_animations", "reset", "recursively"), &DragonBonesArmature::stop_all_animations, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("fade_in", "animation_name", "time", "loop", "layer", "group", "fade_out_mode"), &DragonBonesArmature::fade_in);
 
-	ClassDB::bind_method(D_METHOD("reset", "recurisively"), &DragonBonesArmature::reset);
+	ClassDB::bind_method(D_METHOD("reset", "recursively"), &DragonBonesArmature::reset, DEFVAL(false));
 
 	ClassDB::bind_method(D_METHOD("has_slot", "slot_name"), &DragonBonesArmature::has_slot);
 	ClassDB::bind_method(D_METHOD("get_slot", "slot_name"), &DragonBonesArmature::get_slot);
@@ -72,7 +71,7 @@ void DragonBonesArmature::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("get_ik_constraints"), &DragonBonesArmature::get_ik_constraints);
 	ClassDB::bind_method(D_METHOD("set_ik_constraint", "constraint_name", "new_position"), &DragonBonesArmature::set_ik_constraint);
-	ClassDB::bind_method(D_METHOD("set_ik_constraint_bend_positive", "constraint_name", "is_positive"), &DragonBonesArmature::set_ik_constraint_bend_positive);
+	ClassDB::bind_method(D_METHOD("set_ik_constraint_bend_positive", "constraint_name", "bend_positive"), &DragonBonesArmature::set_ik_constraint_bend_positive);
 
 	ClassDB::bind_method(D_METHOD("get_bones"), &DragonBonesArmature::get_bones);
 	ClassDB::bind_method(D_METHOD("get_bone", "bone_name"), &DragonBonesArmature::get_bone);
@@ -83,7 +82,7 @@ void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_debug", "debug", "recursively"), &DragonBonesArmature::set_debug, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("set_active", "active", "recursively"), &DragonBonesArmature::set_active, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("set_callback_mode_process", "callback_mode_process", "recursively"), &DragonBonesArmature::set_callback_mode_process, DEFVAL(false));
-	ClassDB::bind_method(D_METHOD("set_slots_inherit_material", "slots_inherit_material", "recursively"), &DragonBonesArmature::set_slots_inherit_material);
+	ClassDB::bind_method(D_METHOD("set_slots_inherit_material", "slots_inherit_material", "recursively"), &DragonBonesArmature::set_slots_inherit_material, DEFVAL(false));
 
 	// Setter Getter
 	ClassDB::bind_method(D_METHOD("set_current_animation", "current_animation"), &DragonBonesArmature::set_current_animation);
@@ -130,16 +129,16 @@ void DragonBonesArmature::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "texture_override", PROPERTY_HINT_RESOURCE_TYPE, Texture2D::get_class_static()), "set_texture_override", "get_texture_override");
 
 	// Enum
-	BIND_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS);
-	BIND_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_IDLE);
-	BIND_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_MANUAL);
+	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS);
+	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_IDLE);
+	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_MANUAL);
 
-	BIND_CONSTANT(FADE_OUT_NONE);
-	BIND_CONSTANT(FADE_OUT_SAME_LAYER);
-	BIND_CONSTANT(FADE_OUT_SAME_GROUP);
-	BIND_CONSTANT(FADE_OUT_SAME_LAYER_AND_GROUP);
-	BIND_CONSTANT(FADE_OUT_ALL);
-	BIND_CONSTANT(FADE_OUT_SINGLE);
+	BIND_ENUM_CONSTANT(FADE_OUT_NONE);
+	BIND_ENUM_CONSTANT(FADE_OUT_SAME_LAYER);
+	BIND_ENUM_CONSTANT(FADE_OUT_SAME_GROUP);
+	BIND_ENUM_CONSTANT(FADE_OUT_SAME_LAYER_AND_GROUP);
+	BIND_ENUM_CONSTANT(FADE_OUT_ALL);
+	BIND_ENUM_CONSTANT(FADE_OUT_SINGLE);
 
 #ifdef TOOLS_ENABLED
 	auto props = ClassDB::class_get_property_list(get_class_static(), true);
