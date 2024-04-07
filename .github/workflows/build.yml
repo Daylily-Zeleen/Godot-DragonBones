@@ -26,6 +26,20 @@ jobs:
                       dev_build: no
                       platform: linux
                       arch: x86_64
+                    - identifier: linux-x86-debug
+                      name: 🐧 Linux x86 Debug
+                      runner: ubuntu-20.04
+                      target: template_debug
+                      dev_build: yes
+                      platform: linux
+                      arch: x86_32
+                    - identifier: linux-x86-release
+                      name: 🐧Linux x86 Release
+                      runner: ubuntu-20.04
+                      target: template_release
+                      dev_build: no
+                      platform: linux
+                      arch: x86_32
                     - identifier: macos-universal-debug
                       name: 🍎 macOS (universal) Debug
                       runner: macos-latest
@@ -40,6 +54,34 @@ jobs:
                       dev_build: no
                       platform: macos
                       arch: universal
+                    - identifier: ios-arm64-debug
+                      name: 🍏 ios arm64 Debug
+                      runner: macos-latest
+                      target: template_debug
+                      dev_build: yes
+                      platform: ios
+                      arch: arm64
+                    - identifier: ios-x86_64-release
+                      name: 🍏 ios arm64 Release
+                      runner: macos-latest
+                      target: template_release
+                      dev_build: no
+                      platform: ios
+                      arch: arm64
+                    - identifier: ios-x64-debug
+                      name: 🍏 ios x86_64 Debug
+                      runner: macos-latest
+                      target: template_debug
+                      dev_build: yes
+                      platform: ios
+                      arch: x86_64
+                    - identifier: ios-x64-release
+                      name: 🍏 ios x86_64 Release
+                      runner: macos-latest
+                      target: template_release
+                      dev_build: no
+                      platform: ios
+                      arch: x86_64
                     - identifier: windows-x64-debug
                       name: 🏁 Windows x64 Debug
                       runner: windows-latest
