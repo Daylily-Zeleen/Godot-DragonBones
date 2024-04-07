@@ -80,6 +80,7 @@ void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_rect"), &DragonBonesArmature::get_rect);
 
 	ClassDB::bind_method(D_METHOD("set_debug", "debug", "recursively"), &DragonBonesArmature::set_debug, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("set_time_scale", "time_scale", "recursively"), &DragonBonesArmature::set_time_scale, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("set_active", "active", "recursively"), &DragonBonesArmature::set_active, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("set_callback_mode_process", "callback_mode_process", "recursively"), &DragonBonesArmature::set_callback_mode_process, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("set_slots_inherit_material", "slots_inherit_material", "recursively"), &DragonBonesArmature::set_slots_inherit_material, DEFVAL(false));
@@ -106,6 +107,9 @@ void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_flip_y_", "flip_y"), &DragonBonesArmature::set_flip_y_);
 	ClassDB::bind_method(D_METHOD("is_flipped_y"), &DragonBonesArmature::is_flipped_y);
 
+	ClassDB::bind_method(D_METHOD("set_time_scale_", "time_scale"), &DragonBonesArmature::set_time_scale_);
+	ClassDB::bind_method(D_METHOD("get_time_scale"), &DragonBonesArmature::get_time_scale);
+
 	ClassDB::bind_method(D_METHOD("set_texture_override", "texture_override"), &DragonBonesArmature::set_texture_override);
 	ClassDB::bind_method(D_METHOD("get_texture_override"), &DragonBonesArmature::get_texture_override);
 
@@ -116,6 +120,7 @@ void DragonBonesArmature::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "current_animation", PROPERTY_HINT_ENUM, "", PROPERTY_USAGE_EDITOR), "set_current_animation", "get_current_animation");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "animation_progress", PROPERTY_HINT_RANGE, "0.0,1.0,0.0001", PROPERTY_USAGE_EDITOR), "set_animation_progress", "get_animation_progress");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "time_scale", PROPERTY_HINT_RANGE, "0,10.0,0.01"), "set_time_scale_", "get_time_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "active"), "set_active_", "is_active");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "slots_inherit_material"), "set_slots_inherit_material_", "is_slots_inherit_material");
 
@@ -558,6 +563,19 @@ void DragonBonesArmature::set_flip_y(bool p_flip_y, bool p_recursively) {
 	}
 }
 
+void DragonBonesArmature::set_time_scale(float p_time_scale, bool p_recursively) {
+	time_scale = p_time_scale < 0.0f ? 0.0 : p_time_scale;
+	if (p_recursively) {
+		for_each_armature([p_time_scale](DragonBonesArmature *p_child_armature) {
+			p_child_armature->set_time_scale(p_time_scale, true);
+		});
+	}
+}
+
+float DragonBonesArmature::get_time_scale() const {
+	return time_scale;
+}
+
 bool DragonBonesArmature::is_flipped_y() const {
 	if (!p_armature) {
 		return false;
@@ -892,12 +910,12 @@ void DragonBonesArmature::_notification(int p_what) {
 		} break;
 		case NOTIFICATION_INTERNAL_PROCESS: {
 			if (active && callback_mode_process == DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_IDLE) {
-				advance(get_process_delta_time());
+				advance(get_process_delta_time() * time_scale);
 			}
 		} break;
 		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS: {
 			if (active && callback_mode_process == DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS) {
-				advance(get_physics_process_delta_time());
+				advance(get_physics_process_delta_time() * time_scale);
 			}
 		} break;
 	}

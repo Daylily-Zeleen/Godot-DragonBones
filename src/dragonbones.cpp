@@ -142,6 +142,8 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 	// update flip
 	set_flip_x(b_flip_x);
 	set_flip_y(b_flip_y);
+	// Update time scale
+	set_time_scale(f_time_scale);
 
 	p_armature->setup_recursively(b_debug);
 
@@ -196,15 +198,15 @@ bool DragonBones::is_debug() const {
 	return b_debug;
 }
 
-void DragonBones::set_speed_scale(float _f_speed) {
-	f_speed = _f_speed;
-	if (b_inited) {
-		p_instance->getClock()->timeScale = _f_speed;
+void DragonBones::set_time_scale(float p_time_scale) {
+	f_time_scale = p_time_scale < 0.0 ? 0.0 : p_time_scale;
+	if (b_inited && p_armature->is_initialized()) {
+		p_armature->set_time_scale(f_time_scale, true);
 	}
 }
 
-float DragonBones::get_speed_scale() const {
-	return f_speed;
+float DragonBones::get_time_scale() const {
+	return f_time_scale;
 }
 
 void DragonBones::set_instantiate_dragon_bones_data_name(String p_name) {
@@ -305,7 +307,7 @@ bool DragonBones::is_fliped_y() const {
 void DragonBones::fade_in(const String &_name_anim, float _time, int _loop, int _layer, const String &_group, DragonBonesArmature::AnimFadeOutMode _fade_out_mode) {
 	WARN_DEPRECATED;
 	// setup speed
-	set_speed_scale(f_speed);
+	set_time_scale(f_speed);
 	ERR_FAIL_COND(!p_armature->is_initialized());
 	p_armature->fade_in(_name_anim, _time, _loop, _layer, _group, _fade_out_mode);
 	if (p_armature->is_playing()) {
@@ -393,7 +395,7 @@ void DragonBones::play(bool _b_play) {
 	}
 
 	// setup speed
-	set_speed_scale(f_speed);
+	set_time_scale(f_speed);
 	if (p_armature->is_initialized() && p_armature->has_animation(str_curr_anim)) {
 		p_armature->play(str_curr_anim, c_loop);
 		b_try_playing = false;
@@ -678,8 +680,8 @@ void DragonBones::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_animation_loop", "loop_count"), &DragonBones::set_animation_loop);
 	ClassDB::bind_method(D_METHOD("get_animation_loop"), &DragonBones::get_animation_loop);
 
-	ClassDB::bind_method(D_METHOD("set_speed_scale", "speed"), &DragonBones::set_speed_scale);
-	ClassDB::bind_method(D_METHOD("get_speed_scale"), &DragonBones::get_speed_scale);
+	ClassDB::bind_method(D_METHOD("set_time_scale", "speed_scale"), &DragonBones::set_time_scale);
+	ClassDB::bind_method(D_METHOD("get_time_scale"), &DragonBones::get_time_scale);
 
 	ClassDB::bind_method(D_METHOD("get_armature"), &DragonBones::get_armature);
 	ClassDB::bind_method(D_METHOD("set_armature_readonly"), &DragonBones::set_armature);
@@ -713,7 +715,7 @@ void DragonBones::_bind_methods() {
 
 	ADD_GROUP("Animation Settings", "animation_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "animation_loop", PROPERTY_HINT_RANGE, "0,100,1,or_greater"), "set_animation_loop", "get_animation_loop");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "animation_speed_scale", PROPERTY_HINT_RANGE, "-10,10,0.01"), "set_speed_scale", "get_speed_scale");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "animation_time_scale", PROPERTY_HINT_RANGE, "0,10,0.01"), "set_time_scale", "get_time_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "animation_callback_mode_process", PROPERTY_HINT_ENUM, "Physics,Idle,Manual"), "set_callback_mode_process", "get_callback_mode_process");
 
 	ADD_GROUP("Instantiate Settings", "instantiate_");

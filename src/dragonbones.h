@@ -29,7 +29,7 @@ private:
 	DragonBonesArmature::AnimationCallbackModeProcess callback_mode_process{ DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_IDLE };
 	String instantiate_dragon_bones_data_name{ "" };
 	String instantiate_skin_name{ "" };
-	float f_speed{ 1.0f };
+	float f_time_scale{ 1.0f };
 	float f_progress{ 0.0f };
 	int c_loop{ 0 };
 	bool b_active{ true };
@@ -80,8 +80,8 @@ public:
 	void set_active(bool _b_active);
 	bool is_active() const;
 
-	void set_speed_scale(float _f_speed);
-	float get_speed_scale() const;
+	void set_time_scale(float p_time_scale);
+	float get_time_scale() const;
 
 	void set_instantiate_dragon_bones_data_name(String p_name);
 	String get_instantiate_dragon_bones_data_name() const;

@@ -11,7 +11,6 @@
 
 namespace godot {
 
-// 同一个DragonBones中的Armature公用同一个时钟，不做特殊处理不能单独设置Armature的动画Speed
 class DragonBonesArmature : public GDDisplay, public dragonBones::IArmatureProxy {
 	GDCLASS(DragonBonesArmature, GDDisplay)
 public:
@@ -34,6 +33,7 @@ private:
 	AnimationCallbackModeProcess callback_mode_process{ ANIMATION_CALLBACK_MODE_PROCESS_IDLE };
 	bool active{ true };
 	bool processing{ false };
+	float time_scale{ 1.0f };
 
 	bool slots_inherit_material{ true };
 
@@ -214,6 +214,10 @@ public:
 	void set_flip_y_(bool p_flip_y) { set_flip_y(p_flip_y); }
 	void set_flip_y(bool p_flip_y, bool p_recursively = false);
 	bool is_flipped_y() const;
+
+	void set_time_scale_(float p_time_scale) { set_time_scale(p_time_scale); }
+	void set_time_scale(float p_time_scale, bool p_recursively = false);
+	float get_time_scale() const;
 
 	Ref<Texture2D> get_texture_override() const;
 	void set_texture_override(const Ref<Texture2D> &p_texture_override);
