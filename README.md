@@ -1,22 +1,33 @@
-# DragonBones Plugin
+# Godot-DragonBones Plugin
 
-A GDExtension plugin for Godot Game Engine to use DragonBones
+![image](demo/icon.png)
 
-## Links
+一个为 Godot 添加 DragonBones 功能的 GDExtension 插件。
 
-* Homepage Godot: <https://godotengine.org>
-* Homepage DragonBones: <http://dragonbones.com>
+## 相关连接
 
-#### Support Versions
+* Godot: <https://godotengine.org>
+* DragonBones: <http://dragonbones.com>
+
+## 支持的版本
 
 * Godot 4.2 以上(可以尝试切换子模块godot-cpp来编译4.1的gdextension)
 * DragonBones Pro 5.6
+
+## 获取插件
+
+1. 从发布页面下载最新的发布版。
+2. 克隆该仓库自行编译。
+
+## 运行示例项目
+
+如果不是自行编译，则需要从发布页面下载该插件并安装到"demo"项目中。
 
 ## 说明
 
 该仓库改进自[龙骨模块](https://github.com/sanja-sa/gddragonbones)。
 
-## 改进内容
+### 改进内容
 
 1. 改为4.x用的GDExtension。
 2. 实现编辑器导入插件以供自动导入龙骨相关文件。
