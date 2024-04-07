@@ -132,6 +132,23 @@ jobs:
                       target: template_release
                       platform: android
                       arch: x86_32
+                    - identifier: web-wasm32-debug
+                      name: 🌐 Web wasm32 Debug
+                      runner: ubuntu-20.04
+                      target: template_debug
+                      platform: web
+                      arch: wasm32
+                    - identifier: web-wasm32-release
+                      name: 🌐 Web wasm32 Release
+                      runner: ubuntu-20.04
+                      target: template_release
+                      platform: web
+                      arch: wasm32
+
+        env:
+          SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
+          EM_VERSION: 3.1.39
+          EM_CACHE_FOLDER: "emsdk-cache"
 
         steps:
             - name: Set up Python
@@ -180,6 +197,13 @@ jobs:
               with:
                 ndk-version: r23c
                 link-to-sdk: true
+
+            - name: (Web) Install dependencies
+              if: ${{ matrix.platform == 'web' }}
+              uses: mymindstorm/setup-emsdk@v13
+              with:
+                version: ${{env.EM_VERSION}}
+                actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
             - name: Setup build cache
               uses: actions/cache@v3
