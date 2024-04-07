@@ -11,8 +11,12 @@ config_version=5
 [application]
 
 config/name="Demo"
+run/main_scene="res://demo.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
-config/icon="res://icon.svg"
+
+[filesystem]
+
+import/blender/enabled=false
 
 [rendering]
 
