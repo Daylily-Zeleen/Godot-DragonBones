@@ -206,7 +206,7 @@ jobs:
                 actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
             - name: Setup build cache
-              uses: actions/cache@v3
+              uses: actions/cache@v4
               with:
                   path: ${{ github.workspace }}/.scons-cache/
                   key: ${{ matrix.identifier }}
