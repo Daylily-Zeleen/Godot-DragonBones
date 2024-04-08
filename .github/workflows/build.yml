@@ -269,7 +269,7 @@ jobs:
                   cp -n -r '${{ github.workspace }}/demo/addons' '${{ github.workspace }}/artifact/${{ github.event.repository.name }}/'
 
             - name: Upload artifact ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
                   name: ${{ github.event.repository.name }}-${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}-${{ env.BUILD_VERSION }}-${{ github.sha }}
                   path: |
@@ -277,7 +277,7 @@ jobs:
                   retention-days: 14
 
             - name: Upload artifact
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
                   name: ${{ github.event.repository.name }}-all-platforms-${{ env.BUILD_VERSION }}-${{ github.sha }}
                   path: |
