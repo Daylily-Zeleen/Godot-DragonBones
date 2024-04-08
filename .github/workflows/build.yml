@@ -69,7 +69,7 @@ jobs:
                     - identifier: windows-x64-release
                       name: 🏁 Windows x64 Release
                       runner: windows-latest
-                      target: template_debug
+                      target: template_release
                       platform: windows
                       arch: x86_64
                     - identifier: windows-x86-debug
@@ -81,7 +81,7 @@ jobs:
                     - identifier: windows-x86-release
                       name: 🏁 Windows x86 Release
                       runner: windows-latest
-                      target: template_debug
+                      target: template_release
                       platform: windows
                       arch: x86_32
                     - identifier: android-arm64-debug
@@ -149,6 +149,7 @@ jobs:
           SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
           EM_VERSION: 3.1.39
           EM_CACHE_FOLDER: "emsdk-cache"
+          BUILD_VERSION: "v0.0.0"
 
         steps:
             - name: Set up Python
@@ -209,11 +210,6 @@ jobs:
               run: |
                 python version.py >> $GITHUB_ENV
 
-            - name: Test version
-              run: |
-                  echo ${{env.BUILD_VERSION}}
-                  echo ${{env.EM_VERSION}}
-
             - name: Setup build cache
               uses: actions/cache@v4
               with:
@@ -246,20 +242,39 @@ jobs:
                   xcodebuild -create-xcframework -library ./demo/addons/gddragonbones/bin/libgddragonbones.ios.'${{ matrix.target }}'.a -library ./demo/addons/gddragonbones/bin/libgddragonbones.ios.'${{ matrix.target }}'.simulator.a -output ./demo/addons/gddragonbones/bin/libgddragonbones.ios.'${{ matrix.target }}'.xcframework
                   xcodebuild -create-xcframework -library ./godot-cpp/bin/libgodot-cpp.ios.'${{ matrix.target }}'.arm64.a -library ./godot-cpp/bin/libgodot-cpp.ios.'${{ matrix.target }}'.universal.simulator.a  -output ./demo/addons/gddragonbones/bin/libgodot-cpp.ios.'${{ matrix.target }}'.xcframework
 
-            - name: Create artifact folder
+            - name: Create artifact folder ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
+              shell: sh
+              run: |
+                  mkdir -p '${{ github.workspace }}/${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}/artifact/${{ github.event.repository.name }}/'
+
+            - name: Create artifact folder for all in one.
               shell: sh
               run: |
                   mkdir -p '${{ github.workspace }}/artifact/${{ github.event.repository.name }}/'
+
+            - name: Copy addons folder to artifact folder ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
+              shell: sh
+              run: |
+                  cp -n -r '${{ github.workspace }}/demo/addons' '${{ github.workspace }}/${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}/artifact/${{ github.event.repository.name }}/'
 
             - name: Copy addons folder to artifact folder
               shell: sh
               run: |
                   cp -n -r '${{ github.workspace }}/demo/addons' '${{ github.workspace }}/artifact/${{ github.event.repository.name }}/'
 
+            - name: Upload artifact ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
+              uses: actions/upload-artifact@v3
+              with:
+                  name: ${{ github.event.repository.name }}-${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}-${{ env.BUILD_VERSION }}-${{ github.sha }}
+                  path: |
+                      ${{ github.workspace }}/${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}/artifact/
+                  retention-days: 14
+
             - name: Upload artifact
               uses: actions/upload-artifact@v3
               with:
-                  name: ${{ github.event.repository.name }}-${{ github.sha }}
+                  name: ${{ github.event.repository.name }}-${{ env.BUILD_VERSION }}-${{ github.sha }}
                   path: |
-                      ${{ github.workspace }}/artifact/
+                      ${{ github.workspace }}/artifact
                   retention-days: 14
+                  if-no-files-found: error
