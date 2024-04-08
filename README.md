@@ -1,6 +1,8 @@
 # Godot-DragonBones Plugin
 
-![image](demo/icon.png)
+**This branch is created for submitting to Asset Library.**
+
+![image](icon.png)
 
 [点击查看中文说明](EADME.zh.md)。
 

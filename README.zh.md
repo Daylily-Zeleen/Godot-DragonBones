@@ -1,5 +1,7 @@
 # Godot-DragonBones Plugin
 
+**该分支仅用于向Asset Library 提交插件。**
+
 ![image](demo/icon.png)
 
 [Click here to refer English readme](EADME.md).
