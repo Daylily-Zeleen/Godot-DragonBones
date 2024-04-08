@@ -205,6 +205,15 @@ jobs:
                 version: ${{env.EM_VERSION}}
                 actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
+            - name: Setup version
+              run: |
+                python version.py >> $GITHUB_ENV
+
+            - name: Test version
+              run: |
+                  echo ${{env.BUILD_VERSION}}
+                  echo ${{env.EM_VERSION}}
+
             - name: Setup build cache
               uses: actions/cache@v4
               with:
