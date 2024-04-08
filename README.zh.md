@@ -2,29 +2,28 @@
 
 ![image](demo/icon.png)
 
-[点击查看中文说明](EADME.zh.md)。
+[Click here to refer English readme](EADME.md).
 
-A GDExtension plugin to add DragonBones for Godot.
+一个为 Godot 添加 DragonBones 功能的 GDExtension 插件。
 
-## Links
+## 相关连接
 
 * Godot: <https://godotengine.org>
 * DragonBones: <http://dragonbones.com>
 
-## Support Versions
+## 支持的版本
 
-* Godot 4.2 +
+* Godot 4.2 以上(可以尝试切换子模块godot-cpp来编译4.1的gdextension)
 * DragonBones Pro 5.6
 
-## Get plugin
+## 获取插件
 
-1. Download from [release page](https://github.com/Daylily-Zeleen/Godot-DragonBones/releases).
-2. Download from Assets Library.
-3. Clone this repo and compile by youself.
+1. 从发布页面下载最新的发布版。
+2. 克隆该仓库自行编译。
 
-## Run "demo" project
+## 运行示例项目
 
-If you are not compile by youself, you should download this plugin and plug it into "demo".
+如果不是自行编译，则需要从发布页面下载该插件并安装到"demo"项目中。
 
 ## 说明
 
