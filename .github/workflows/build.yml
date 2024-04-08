@@ -164,12 +164,12 @@ jobs:
                   scons --version
 
             - name: Checkout project
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
               with:
                   submodules: false
 
             - name: Checkout godot-cpp
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
               with:
                   repository: godotengine/godot-cpp
                   path: godot-cpp
