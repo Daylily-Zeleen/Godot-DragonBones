@@ -207,8 +207,14 @@ jobs:
                 actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
             - name: Setup version
+              if: ${{ matrix.platform != 'windows' }}
               run: |
                 python version.py >> $GITHUB_ENV
+
+            - name: Setup version (windows)
+              if: ${{ matrix.platform == 'windows' }}
+              run: |
+                python version.py >> $env:GITHUB_ENV
 
             - name: Setup build cache
               uses: actions/cache@v4
