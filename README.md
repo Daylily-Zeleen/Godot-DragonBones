@@ -2,7 +2,7 @@
 
 ![image](demo/icon.png)
 
-[点击查看中文说明](EADME.zh.md)。
+[点击查看中文说明](README.zh.md)。
 
 A GDExtension plugin to add DragonBones for Godot.
 

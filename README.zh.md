@@ -2,7 +2,7 @@
 
 ![image](demo/icon.png)
 
-[Click here to refer English readme](EADME.md).
+[Click here to refer English readme](README.md).
 
 一个为 Godot 添加 DragonBones 功能的 GDExtension 插件。
 
