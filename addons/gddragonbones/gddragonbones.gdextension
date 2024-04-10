@@ -1,3 +1,13 @@
+[infomation]
+name = "Godot-DragonBones"
+version = "v0.1.0"
+decription = "A DragonBones plugin for Godot."
+author = "忘忧の (Daylily Zeleen)"
+email = "daylily-zeleen@foxmail.com"
+support_link = "https://afdian.net/a/Daylily-Zeleen"
+repo = "https://github.com/Daylily-Zeleen/Godot-DragonBones"
+others = "诚接Godot游戏开发，欢迎邮件联系。/ Receive game development outsourcing, welcome to contact by email."
+
 [configuration]
 
 entry_symbol = "gddragonbones_library_init"
