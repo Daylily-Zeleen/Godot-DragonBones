@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import shutil
+import version
 
 env = SConscript("godot-cpp/SConstruct")
 lib_name = "libgddragonbones"
@@ -20,6 +21,8 @@ sources = Glob("src/*.cpp") + Glob("register_types.cpp")
 output_bin_folder = "./bin"
 plugin_folder = "./demo/addons/gddragonbones"
 plugin_bin_folder = f"{plugin_folder}/bin"
+
+extension_file = "demo/addons/gddragonbones/gddragonbones.gdextension"
 
 if env.debug_features:
     env.Append(CPPDEFINES=["TOOLS_ENABLED"])
@@ -95,6 +98,20 @@ def on_complete(target, source, env):
 
     copy_file("README.md", os.path.join(plugin_folder, "README.md"))
     copy_file("LICENSE", os.path.join(plugin_folder, "LICENSE"))
+
+    # 更新.gdextension中的版本信息
+    f = open(extension_file, "r", encoding="utf8")
+    lines = f.readlines()
+    f.close()
+
+    for i in range(len(lines)):
+        if lines[i].startswith('version = "') and lines[i].endswith('"\n'):
+            lines[i] = f'version = "{version.version}"\n'
+            break
+
+    f = open(extension_file, "w", encoding="utf8")
+    f.writelines(lines)
+    f.close()
 
 
 # Disable scons cache for source files
