@@ -21,6 +21,27 @@
 1. 从发布页面下载最新的发布版。
 2. 克隆该仓库自行编译。
 
+## 如何编译
+
+1. 与子模块一并克隆。
+2. 确保你的开发环境中有"python", "Scons",以及一个合适的c++编译器。
+3. 导航至本地仓库的根目录，运行编译命令，以下命令仅作参考:
+   Debug:
+
+   ```shell
+   scons target=template_debug debug_symbols=yes
+   ```
+
+   Release:
+
+   ```shell
+   scons target=template_release
+   ```
+
+   更多编译选项请参考[godot-cpp](https://github.com/godotengine/godot-cpp.git)的编译系统。
+
+4. 如果编译成功的话，你将可以在`demo/addons/gddragonbones`获取到编译好的插件。
+
 ## 运行示例项目
 
 如果不是自行编译，则需要从发布页面下载该插件并安装到"demo"项目中。
