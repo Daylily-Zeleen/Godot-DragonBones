@@ -50,6 +50,7 @@ private:
 	Slot_GD *slot{ nullptr }; // 生命周期由 dragonBones::ArmatureData 管理
 
 	friend class DragonBonesFactory;
+	friend class DragonBonesArmature;
 
 public:
 	DragonBonesSlot() = default;

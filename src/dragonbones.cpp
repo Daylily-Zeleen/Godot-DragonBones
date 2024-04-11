@@ -743,7 +743,7 @@ void DragonBones::_bind_methods() {
 DragonBones::DragonBones() {
 	// 内部节点
 	p_armature = memnew(DragonBonesArmature);
-	add_child(p_armature);
+	add_child(p_armature, false, Node::INTERNAL_MODE_BACK);
 	p_armature->p_owner = this;
 }
 

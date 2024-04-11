@@ -171,13 +171,11 @@ void Slot_GD::_updateFrame() {
 			auto verticesUV_ptr = frameDisplay->verticesUV.ptrw();
 			auto verticesPos_ptr = frameDisplay->verticesPos.ptrw();
 
-			Point2 __uv;
-			std::size_t iH;
-			float u, v;
 			for (std::size_t i = 0, l = (vertexCount << 1); i < l; i += 2) {
-				iH = i >> 1;
-				u = floatArray[uvOffset + i];
-				v = floatArray[uvOffset + i + 1];
+				std::size_t iH = i >> 1;
+				float u = floatArray[uvOffset + i];
+				float v = floatArray[uvOffset + i + 1];
+				Point2 __uv;
 				__get_uv_pt(__uv, currentTextureData->rotated, u, v, region, atlas);
 
 				verticesColor_ptr[iH] = Color(1, 1, 1, 1);

@@ -666,31 +666,27 @@ void DragonBonesArmature::dbUpdate() {
 
 void DragonBonesArmature::dispose(bool _disposeProxy) {
 	_bones.clear();
+
+	for (auto &kv : _slots) {
+		Ref<DragonBonesSlot> slot = kv.second;
+		if (auto display = static_cast<GDDisplay *>(slot->slot->getRawDisplay())) {
+			if (display->get_parent()) {
+				display->get_parent()->remove_child(display);
+			}
+
+			if (DragonBonesArmature *sub_armature = cast_to<DragonBonesArmature>(display)) {
+				sub_armature->dispose(_disposeProxy);
+				sub_armature->p_owner = nullptr;
+			}
+
+			display->queue_free();
+		}
+	}
 	_slots.clear();
 
 	if (p_armature) {
 		p_armature->dispose();
 		p_armature = nullptr;
-	}
-
-	int32_t idx = 0;
-	while (idx < get_child_count(true)) {
-		Node *child = get_child(idx, true);
-		if (GDMesh *mesh = cast_to<GDMesh>(child)) {
-			// Donothing
-		} else if (DragonBonesArmature *sub_armature = cast_to<DragonBonesArmature>(child)) {
-			// Dispose and deinitialize sub armatures.
-			sub_armature->dispose(_disposeProxy);
-			sub_armature->p_owner = nullptr;
-		} else {
-			// Other child node should be skiped.
-			++idx;
-			continue;
-		}
-
-		// Remove ande queue free dragonbones nodes.
-		remove_child(child);
-		child->queue_free();
 	}
 }
 

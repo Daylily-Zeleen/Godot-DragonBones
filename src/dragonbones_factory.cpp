@@ -84,6 +84,7 @@ Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, co
 
 	const auto proxy = static_cast<DragonBonesArmature *>(slot->getArmature()->getDisplay());
 	proxy->add_slot(slot->getName(), tree_slot);
+	wrapperDisplay->set_name(slot->getName().c_str());
 
 	return slot;
 }
