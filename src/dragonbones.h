@@ -178,6 +178,7 @@ class DragonBonesUserData : public RefCounted {
 	GDCLASS(DragonBonesUserData, RefCounted)
 
 	using v_size_t = int64_t;
+
 private:
 	dragonBones::UserData *user_data{ nullptr };
 

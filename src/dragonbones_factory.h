@@ -44,7 +44,7 @@ public:
 
 	bool can_create_dragon_bones_instance() const;
 
-	dragonBones::DragonBones *create_dragon_bones(dragonBones::IEventDispatcher *p_event_manager, DragonBonesArmature *&r_main_armature, const String &p_armature_data_name = "", const String &p_skin_name = "");
+	dragonBones::DragonBones *create_dragon_bones(dragonBones::IEventDispatcher *p_event_manager, DragonBonesArmature *p_main_armature, const String &p_armature_data_name = "", const String &p_skin_name = "");
 
 private:
 	//  Binding

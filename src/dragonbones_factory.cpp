@@ -351,7 +351,7 @@ bool DragonBonesFactory::can_create_dragon_bones_instance() const {
 }
 
 dragonBones::DragonBones *DragonBonesFactory::create_dragon_bones(
-		dragonBones::IEventDispatcher *p_event_manager, DragonBonesArmature *&r_main_armature, const String &p_armature_data_name, const String &p_skin_name) {
+		dragonBones::IEventDispatcher *p_event_manager, DragonBonesArmature *p_main_armature, const String &p_armature_data_name, const String &p_skin_name) {
 	const auto &dragon_bones_data_list = getAllDragonBonesData();
 	ERR_FAIL_COND_V(dragon_bones_data_list.size() <= 0, nullptr);
 	dragonBones::DragonBonesData *dragon_bones_data{ nullptr };
@@ -370,8 +370,8 @@ dragonBones::DragonBones *DragonBonesFactory::create_dragon_bones(
 
 	const auto armature_name = dragon_bones_data->getArmatureNames()[0];
 
-	building_main_armature = r_main_armature;
-	r_main_armature = buildArmatureDisplay(armature_name, dragon_bones_data->name, p_skin_name.ascii().get_data());
+	building_main_armature = p_main_armature;
+	p_main_armature = buildArmatureDisplay(armature_name, dragon_bones_data->name, p_skin_name.ascii().get_data());
 	building_main_armature = nullptr;
 
 	return ret;
