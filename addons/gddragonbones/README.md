@@ -2,53 +2,73 @@
 
 ![image](demo/icon.png)
 
-一个为 Godot 添加 DragonBones 功能的 GDExtension 插件。
+[点击查看中文说明](README.zh.md)。
 
-## 相关连接
+A GDExtension plugin to add DragonBones for Godot.
+
+## Links
 
 * Godot: <https://godotengine.org>
 * DragonBones: <http://dragonbones.com>
 
-## 支持的版本
+## Support Versions
 
-* Godot 4.2 以上(可以尝试切换子模块godot-cpp来编译4.1的gdextension)
+* Godot 4.2 +
 * DragonBones Pro 5.6
 
-## 获取插件
+## Get plugin
 
-1. 从发布页面下载最新的发布版。
-2. 克隆该仓库自行编译。
+1. Download from [release page](https://github.com/Daylily-Zeleen/Godot-DragonBones/releases).
+2. Download from Assets Library.
+3. Clone this repo and compile by youself.
 
-## 运行示例项目
+## How to compile
 
-如果不是自行编译，则需要从发布页面下载该插件并安装到"demo"项目中。
+1. Clone this repo with submodules.
+2. Ensure you have "python", "Scons", and a appropriate c++ compiler.
+3. Navigate to the root of local repo, run compile command, for example:
+   For debug:
 
-## 说明
+   ```shell
+   scons target=template_debug debug_symbols=yes
+   ```
 
-该仓库改进自[龙骨模块](https://github.com/sanja-sa/gddragonbones)。
+   For release:
 
-### 改进内容
+   ```shell
+   scons target=template_release
+   ```
 
-1. 改为4.x用的GDExtension。
-2. 实现编辑器导入插件以供自动导入龙骨相关文件。
-3. 导入资源为`DragonBonesFoctory`:
-   * 单个工厂资源可以指定多个龙骨数据和图集描述数据文件
-   * 可在`DragonBones`节点中指定要从`DragonBonesFoctory`实例化的龙骨数据名称和相应的皮肤名称
-4. `DragonBones`节点:
-   * 播放动画相关的方法只对主`DragonBonesArmature`进行操作，停止播放则递归对所有`DragonBonesArmature`操作
-   * 其他属性则对所有的`DragonBonesArmature`操作
-    由于龙骨对动画的操作粒度是针对某一个`Armature`，因此不建议直接对`DragonBones`进行动画相关的控制。
-5. `DragonBonesArmature`节点:
-   * **由`DragonBones`根据设定从`DragonBonesFoctory`进行实例化，不应该手动创建**。
-   * 在编辑器中,作为`DragonBones`的"main_armature"属性以`DragonBonesArmatureProxy`类型进行设置,如果有子Armature，则会用有一个"sub_armatures"属性可供编辑（所有一切编辑设置将会保存在场景数据中，实例化时将被正确设置倒相应的`DragonBonesArmature`上）。
-   * **千万不要手动释放！否则将导致崩溃！**
-6. `DragonBonesArmatureProxy`**仅供编辑器使用，不要自行实例化，也不要访问相关对象（如`DragonBones`的"main_armature"与`DragonBonesArmatureProxy`的"sub_armatures"属性。）**
-7. 可从`DragonBonesArmature`访问其中的`DragonBonesSlot`和`DragonBonesBone`进行一些高级操作（该部分没有测试，个人项目没有需求）。
-8. 没有时间编写更详细的说明，具体请翻看"src/"下的源码。
+   Please refer the build system system of [godot-cpp](https://github.com/godotengine/godot-cpp.git) for more compile options.
 
-## 其他
+4. If compileing is successully, you can get the compiled plugin in `demo/addons/gddragonbones`.
 
-该仓库为个人项目使用，反正龙骨也已经跑路了，仅供给想在Godot中使用现存龙骨资源的人。
-本人对龙骨中的概念也并不熟悉，是翻看源码一点改的，如果有些依赖关系搞混了也请多包涵。
-改进的内容也已经大大超出我个人所需了，应该不会再附加什么改进了。
-不过仍然欢迎提交修复和改进pr。
+## Run "demo" project
+
+If you are not compile by youself, you should download this plugin and plug it into "demo".
+
+## Contents
+
+This repository is improved from [gddragonbones](https://github.com/sanja-sa/gddragonbones).
+
+1. Change to GDExtension for Godot 4.x.
+2. Implement a import plugin to import DragonBones files automatically.
+3. Imported Resource is `DragonBonesFoctory`:
+   1. One factory can contain multi DragonBones data and Atlas data files.
+   2. Can select DragonBones data and skin which are in factory to instantiate in `DragonBones` node.
+4. `DragonBones` node:
+   1. Remove mostly methods, all operations are work with `DragonBonesArmature`.
+5. `DragonBonesArmature` node:
+   * **Instantiated by `DragonBones` node which accroding to `DragonBonesFoctory`, don't instantiate it by youself.**
+   * **Don't free by youself, it will lead to crash!!**
+   * In editor, a proxy property in `DragonBones` node, which it's type is `DragonBonesArmatureProxy`, name is "main_armature", will be indicated as the main `DragonBonesArmature` node. If main armature have child armatures, it will have a "sub_armatures" property in `DragonBonesArmatureProxy`.
+6. `DragonBonesArmatureProxy` **is editor use only!! Don't instantiate by youself, and don't access relevant objects/properties, They are unavaunavailable in release build.**
+7. Can access `DragonBonesSlot` and `DragonBonesBone` to do some advance operations through `DragonBonesArmature` (but this is lack of test.).
+8. I have not time to write a further description, please refer source code in "src/" for more details.
+
+## Others
+
+I'm not familiar with DragonBones, so there maybe have some wrong concepts in my code.
+This repo is create for my personal project, and it is useful enough, so I think I will not do more optimize anymore.
+Of cource, if I encounter bug, I will try to fix it.
+If you have any improvement/repair, welcome to commit your pull request.
