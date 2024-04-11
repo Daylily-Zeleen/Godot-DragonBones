@@ -3,7 +3,6 @@
 #include "dragonBones/armature/Slot.h"
 #include "wrappers/GDDisplay.h"
 
-
 namespace godot {
 
 class Slot_GD : public dragonBones::Slot {
@@ -12,8 +11,6 @@ class Slot_GD : public dragonBones::Slot {
 private:
 	float _textureScale;
 	GDDisplay *_renderDisplay;
-
-	Ref<Texture2D> get_display_texture() const;
 
 public:
 	void update_display_texutre() const;

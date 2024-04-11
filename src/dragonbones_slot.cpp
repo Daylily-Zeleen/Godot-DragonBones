@@ -6,23 +6,15 @@
 #include "wrappers/GDMesh.h"
 #include "wrappers/GDTextureAtlasData.h"
 
-#include "godot_cpp/classes/resource_loader.hpp"
-
 using namespace godot;
 using namespace dragonBones;
 
-Ref<Texture2D> Slot_GD::get_display_texture() const {
-	if (!_textureData) {
-		return {};
-	}
-	auto atlas = static_cast<GDTextureAtlasData *>(_textureData->parent);
-	ERR_FAIL_NULL_V(atlas, {});
-	return ResourceLoader::get_singleton()->load(atlas->get_image_file_path());
-}
-
 void Slot_GD::update_display_texutre() const {
-	if (_renderDisplay) {
-		_renderDisplay->texture = get_display_texture();
+	if (!_renderDisplay || !_textureData) {
+		return;
+	}
+	if (auto atlas = static_cast<GDTextureAtlasData *>(_textureData->parent)) {
+		_renderDisplay->texture = atlas->get_display_texture();
 	}
 }
 
@@ -92,21 +84,15 @@ void Slot_GD::_updateColor() {
 	_renderDisplay->queue_redraw();
 }
 
-void Slot_GD::_initDisplay(void *value, bool isRetain) {
-	update_display_texutre();
-}
+void Slot_GD::_initDisplay(void *value, bool isRetain) {}
 
-void Slot_GD::_disposeDisplay(void *value, bool isRelease) {
-}
+void Slot_GD::_disposeDisplay(void *value, bool isRelease) {}
 
 void Slot_GD::_onUpdateDisplay() {
 	_renderDisplay = static_cast<GDDisplay *>(_display != nullptr ? _display : _rawDisplay);
-	update_display_texutre();
 }
 
-void Slot_GD::_addDisplay() {
-	update_display_texutre();
-}
+void Slot_GD::_addDisplay() {}
 
 void Slot_GD::_replaceDisplay(void *value, bool isArmatureDisplay) {
 	static_cast<GDDisplay *>(_renderDisplay)->show();
@@ -136,6 +122,7 @@ void Slot_GD::__get_uv_pt(Point2 &_pt, bool _is_rot, float _u, float _v, const R
 }
 
 void Slot_GD::_updateFrame() {
+	update_display_texutre();
 	const auto currentVerticesData = (_deformVertices != nullptr && _display == _meshDisplay) ? _deformVertices->verticesData : nullptr;
 	auto currentTextureData = static_cast<GDTextureData *>(_textureData);
 

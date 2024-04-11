@@ -764,21 +764,21 @@ bool DragonBonesArmature::is_slots_inherit_material() const {
 	return slots_inherit_material;
 }
 
-void DragonBonesArmature::update_texture_atlas(const Ref<Texture> &_m_texture_atlas) {
-	if (!p_armature) {
-		return;
-	}
+// void DragonBonesArmature::update_texture_atlas(const Ref<Texture> &_m_texture_atlas) {
+// 	if (!p_armature) {
+// 		return;
+// 	}
 
-	for (Slot *slot : p_armature->getSlots()) {
-		if (!slot) {
-			continue;
-		}
-		if (auto display = static_cast<GDDisplay *>(slot->getRawDisplay())) {
-			display->texture = _m_texture_atlas;
-			display->queue_redraw();
-		}
-	}
-}
+// 	for (Slot *slot : p_armature->getSlots()) {
+// 		if (!slot) {
+// 			continue;
+// 		}
+// 		if (auto display = static_cast<GDDisplay *>(slot->getRawDisplay())) {
+// 			display->texture = _m_texture_atlas;
+// 			display->queue_redraw();
+// 		}
+// 	}
+// }
 
 void DragonBonesArmature::update_material_inheritance_recursively(bool p_inheritance) {
 	set_use_parent_material(p_inheritance);

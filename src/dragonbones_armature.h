@@ -90,7 +90,7 @@ public:
 
 	void setup_recursively(bool _b_debug);
 	void update_childs(bool _b_color, bool _b_blending = false);
-	void update_texture_atlas(const Ref<Texture> &_m_texture_atlas);
+	// void update_texture_atlas(const Ref<Texture> &_m_texture_atlas);
 	void update_material_inheritance_recursively(bool p_inheritance);
 
 	//

@@ -2,6 +2,8 @@
 
 #include "dragonBones/model/TextureAtlasData.h"
 
+#include "godot_cpp/classes/resource_loader.hpp"
+#include "godot_cpp/classes/texture2d.hpp"
 #include "godot_cpp/core/math.hpp"
 #include "godot_cpp/variant/string.hpp"
 
@@ -51,7 +53,7 @@ class GDTextureAtlasData : public dragonBones::TextureAtlasData {
 	BIND_CLASS_TYPE_B(GDTextureAtlasData);
 
 private:
-	String image_file_path;
+	Ref<Texture2D> display_texture;
 
 public:
 	GDTextureAtlasData() { _onClear(); }
@@ -61,11 +63,12 @@ public:
 		return BaseObject::borrowObject<GDTextureData>();
 	}
 
-	void init(const String &p_image_file_path) { image_file_path = p_image_file_path; }
-	const String &get_image_file_path() const { return image_file_path; }
+	void init(const String &p_image_file_path) { display_texture = ResourceLoader::get_singleton()->load(p_image_file_path); }
+	const Ref<Texture2D> &get_display_texture() const { return display_texture; }
+
 	virtual void _onClear() override {
 		dragonBones::TextureAtlasData::_onClear();
-		image_file_path = "";
+		display_texture.unref();
 	}
 
 	void setRenderTexture() {

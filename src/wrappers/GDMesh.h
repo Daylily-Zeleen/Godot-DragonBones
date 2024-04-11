@@ -81,7 +81,7 @@ public:
 					-1);
 		}
 
-		if (b_debug || (texture_to_draw.is_null() && Engine::get_singleton()->is_editor_hint())) {
+		if (b_debug) {
 			for (int idx = 0; idx < indices.size(); idx += 3) {
 				RenderingServer::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx]], verticesPos[indices[idx + 1]], col_debug, 2.0);
 				RenderingServer::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx + 1]], verticesPos[indices[idx + 2]], col_debug, 2.0);
