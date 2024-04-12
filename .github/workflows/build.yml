@@ -167,13 +167,6 @@ jobs:
             - name: Checkout project
               uses: actions/checkout@v4
               with:
-                  submodules: false
-
-            - name: Checkout godot-cpp
-              uses: actions/checkout@v4
-              with:
-                  repository: godotengine/godot-cpp
-                  path: godot-cpp
                   submodules: recursive
 
             - name: (Windows) Install mingw64
