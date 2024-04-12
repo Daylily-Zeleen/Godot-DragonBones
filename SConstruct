@@ -97,6 +97,7 @@ def on_complete(target, source, env):
         )
 
     copy_file("README.md", os.path.join(plugin_folder, "README.md"))
+    copy_file("README.zh.md", os.path.join(plugin_folder, "README.zh.md"))
     copy_file("LICENSE", os.path.join(plugin_folder, "LICENSE"))
 
     # 更新.gdextension中的版本信息
