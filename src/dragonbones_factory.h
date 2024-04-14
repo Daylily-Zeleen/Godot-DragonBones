@@ -49,6 +49,9 @@ public:
 protected:
 	static void _bind_methods();
 
+#ifdef DEBUG_ENABLED
+	void _validate_property(PropertyInfo &p_property) const;
+#endif // DEBUG_ENABLED
 public:
 	DragonBonesFactory() = default;
 
@@ -73,6 +76,12 @@ public:
 
 	PackedStringArray get_loaded_dragon_bones_data_name_list() const;
 	PackedStringArray get_loaded_dragon_bones_main_skin_name_list(const String &p_daragon_bones_data_name) const;
+
+private:
+	bool imported{ false };
+	friend class DragonBonesImportPlugin;
+	friend class ResourceFormatSaverDragonBones;
+	friend class ResourceFormatLoaderDragonBones;
 };
 
 class ResourceFormatSaverDragonBones : public ResourceFormatSaver {

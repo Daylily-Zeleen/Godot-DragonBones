@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import sys
 
-version = "v0.1.1"
+version = "v0.2.0"
 
 print("BUILD_VERSION=" + version)

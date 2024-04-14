@@ -1,8 +1,10 @@
 #pragma once
 
+#include "dragonbones_factory.h"
 #include "godot_cpp/classes/editor_export_plugin.hpp"
 #include "godot_cpp/classes/editor_import_plugin.hpp"
 #include "godot_cpp/classes/editor_plugin.hpp"
+#include <godot_cpp/templates/hash_map.hpp>
 
 namespace godot {
 // TODO 实现运行时用的 ResourceFormatLoader
@@ -42,6 +44,9 @@ public:
 	virtual bool _get_option_visibility(const String &path, const StringName &option_name, const Dictionary &options) const override;
 	virtual Error _import(const String &p_source_file, const String &p_save_path, const Dictionary &p_options,
 			const TypedArray<String> &r_platform_variants, const TypedArray<String> &r_gen_files) const override;
+
+public:
+	Ref<DragonBonesFactory> try_import(const String &p_ske_file) const;
 };
 
 class DragonBonesEditorPlugin : public EditorPlugin {
@@ -49,6 +54,12 @@ class DragonBonesEditorPlugin : public EditorPlugin {
 
 	Ref<DragonBonesExportPlugin> export_plugin;
 	Ref<DragonBonesImportPlugin> import_plugin;
+	bool reimporting{ false };
+
+	void _on_filesystem_changed();
+	void _reimport_dbfacroty_recursively(class EditorFileSystemDirectory *p_dir, HashMap<String, Ref<DragonBonesFactory>> &r_factories) const;
+
+	void clear_reimporting_flag() { reimporting = false; }
 
 protected:
 	static void _bind_methods() {}
@@ -56,13 +67,6 @@ protected:
 public:
 	virtual void _enter_tree() override;
 	virtual void _exit_tree() override;
-	// 	func _enter_tree():
-	// 	import_plugin = preload("import_plugin.gd").new()
-	// 	add_import_plugin(import_plugin)
-
-	// func _exit_tree():
-	// 	remove_import_plugin(import_plugin)
-	// 	import_plugin = null
 };
 
 } //namespace godot

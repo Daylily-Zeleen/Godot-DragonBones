@@ -397,6 +397,16 @@ void DragonBonesFactory::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "texture_atlas_json_file_list", PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:%s", Variant::STRING, PROPERTY_HINT_FILE, "*.json")), "set_texture_atlas_json_file_list", "get_texture_atlas_json_file_list");
 }
 
+#ifdef DEBUG_ENABLED
+void DragonBonesFactory::_validate_property(PropertyInfo &p_property) const {
+	if (imported) {
+		if (p_property.name == StringName("dragon_bones_ske_file_list") || p_property.name == StringName("texture_atlas_json_file_list")) {
+			p_property.usage |= PROPERTY_USAGE_READ_ONLY;
+		}
+	}
+}
+#endif // DEBUG_ENABLED
+
 // ===========================================
 bool ResourceFormatSaverDragonBones::_recognize(const Ref<Resource> &resource) const {
 	return cast_to<DragonBonesFactory>(resource.ptr());
@@ -418,6 +428,7 @@ Error ResourceFormatSaverDragonBones::_save(const Ref<Resource> &resource, const
 
 	file->store_var(factory->get_dragon_bones_ske_file_list());
 	file->store_var(factory->get_texture_atlas_json_file_list());
+	file->store_var(factory->imported);
 
 	return OK;
 }
@@ -448,6 +459,7 @@ Variant ResourceFormatLoaderDragonBones::_load(const String &path, const String 
 
 	ret->set_dragon_bones_ske_file_list(f->get_var());
 	ret->set_texture_atlas_json_file_list(f->get_var());
+	ret->imported = f->get_var();
 
 	return ret;
 }

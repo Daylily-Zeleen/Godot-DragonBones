@@ -1,11 +1,14 @@
 #include "dragonbones_editor_plugin.h"
 
-#include "../dragonbones_factory.h"
 #include "godot_cpp/classes/config_file.hpp"
 #include "godot_cpp/classes/dir_access.hpp"
+#include "godot_cpp/classes/editor_file_system.hpp"
+#include "godot_cpp/classes/editor_file_system_directory.hpp"
+#include "godot_cpp/classes/editor_interface.hpp"
 #include "godot_cpp/classes/file_access.hpp"
 #include "godot_cpp/classes/resource_loader.hpp"
 #include "godot_cpp/classes/resource_saver.hpp"
+#include "godot_cpp/variant/utility_functions.hpp"
 
 using namespace godot;
 
@@ -67,8 +70,7 @@ String DragonBonesImportPlugin::_get_preset_name(int32_t preset_index) const {
 
 PackedStringArray DragonBonesImportPlugin::_get_recognized_extensions() const {
 	PackedStringArray ret;
-	// ret.push_back(DragonBonesFactory::SRC_DBJSON_EXT);
-	ret.push_back(DragonBonesFactory::SRC_JSON_EXT);
+	// 只对二进制格式进行导入
 	ret.push_back(DragonBonesFactory::SRC_BIN_EXT);
 	return ret;
 }
@@ -141,56 +143,107 @@ static Error set_import_config_to_json_type(const String &p_src_file, const Stri
 
 Error DragonBonesImportPlugin::_import(const String &p_source_file, const String &p_save_path, const Dictionary &p_options,
 		const TypedArray<String> &r_platform_variants, const TypedArray<String> &r_gen_files) const {
-	// TODO: 此处两个数组参数无法传递回godot
-	const String ext_low = p_source_file.get_extension().to_lower();
+	auto factory = try_import(p_source_file);
 
-	String base_path = p_source_file.get_basename();
-	if (!base_path.ends_with("_ske")) {
-		if (ext_low != "json") {
-			return ERR_FILE_UNRECOGNIZED;
-		}
-
-		callable_mp_static(&set_import_config_to_json_type).call_deferred(p_source_file, p_save_path);
-		// 非龙骨文件
-		return OK;
+	if (factory.is_null()) {
+		return FAILED;
 	}
-	// --------------------
-	base_path = base_path.erase(base_path.length() - strlen("_ske"), strlen("_ske"));
 
-	const String ske_file = p_source_file;
+	auto ext = p_source_file.get_extension();
+	auto save_path = p_source_file.trim_suffix(ext) + _get_save_extension();
+	return ResourceSaver::get_singleton()->save(factory, save_path);
+}
+
+Ref<DragonBonesFactory> DragonBonesImportPlugin::try_import(const String &p_ske_file) const {
+	const String ext_low = p_ske_file.get_extension().to_lower();
+
+	String base_path = p_ske_file.get_basename();
+	if (!base_path.ends_with("_ske")) {
+		return {};
+	}
+
+	base_path = base_path.trim_suffix("_ske");
+
+	const String ske_file = p_ske_file;
 	const String tex_atlas_file = base_path + "_tex.json";
 
 	if (!FileAccess::file_exists(tex_atlas_file)) {
-		WARN_PRINT_ED(vformat("\"%s\" may be a DragonBones file, but can't be import automatically.", p_source_file));
-		return ERR_FILE_NOT_FOUND;
+		return {};
 	}
 
 	Ref<DragonBonesFactory> res;
 	res.instantiate();
+	res->imported = true;
 
 	Error err = res->load_texture_atlas_json_file_list(Array::make(tex_atlas_file));
-	ERR_FAIL_COND_V(err != OK, err);
+	ERR_FAIL_COND_V(err != OK, {});
 
 	err = res->load_dragon_bones_ske_file_list(Array::make(ske_file));
-	ERR_FAIL_COND_V(err != OK, err);
+	ERR_FAIL_COND_V(err != OK, {});
 
-	auto ext = p_source_file.get_extension();
-	auto save_path = p_source_file.trim_suffix(ext) + _get_save_extension();
-	err = ResourceSaver::get_singleton()->save(res, save_path);
-	if (err == OK) {
-		callable_mp_static(&set_import_config_to_json_type).call_deferred(p_source_file, p_save_path);
-	}
-
-	return err;
+	return res;
 }
 
 ///////////////////////////////
+
+void DragonBonesEditorPlugin::_reimport_dbfacroty_recursively(EditorFileSystemDirectory *p_dir, HashMap<String, Ref<DragonBonesFactory>> &r_factories) const {
+	if (!p_dir) {
+		return;
+	}
+
+	for (int32_t i = 0; i < p_dir->get_file_count(); ++i) {
+		const String fp = p_dir->get_file_path(i);
+		// 仅对json进行处理
+		if (fp.get_extension().to_lower() != "json") {
+			continue;
+		}
+
+		Ref<DragonBonesFactory> factory = import_plugin->try_import(fp);
+		if (factory.is_valid()) {
+			auto ext = fp.get_extension();
+			auto save_path = fp.trim_suffix(ext) + DragonBonesFactory::SAVED_EXT;
+			r_factories.insert(save_path, factory);
+		}
+	}
+
+	for (int32_t i = 0; i < p_dir->get_subdir_count(); ++i) {
+		_reimport_dbfacroty_recursively(p_dir->get_subdir(i), r_factories);
+	}
+}
+
+void DragonBonesEditorPlugin::_on_filesystem_changed() {
+	if (reimporting) {
+		return;
+	}
+
+	reimporting = true;
+	HashMap<String, Ref<DragonBonesFactory>> factories;
+	_reimport_dbfacroty_recursively(EditorInterface::get_singleton()->get_resource_filesystem()->get_filesystem(), factories);
+
+	if (!factories.is_empty()) {
+		// 保存龙骨工厂
+		for (auto &kv : factories) {
+			const String path = kv.key;
+			const Ref<DragonBonesFactory> factory = kv.value;
+			Error err = ResourceSaver::get_singleton()->save(factory, path);
+
+			if (err != OK) {
+				ERR_PRINT(vformat("Save DragonBones factory failed: %s", UtilityFunctions::error_string(err)));
+			}
+		}
+	}
+
+	callable_mp(this, &DragonBonesEditorPlugin::clear_reimporting_flag).call_deferred();
+}
+
 void DragonBonesEditorPlugin::_enter_tree() {
 	import_plugin.instantiate();
 	add_import_plugin(import_plugin);
 
 	export_plugin.instantiate();
 	add_export_plugin(export_plugin);
+
+	EditorInterface::get_singleton()->get_resource_filesystem()->connect("filesystem_changed", callable_mp(this, &DragonBonesEditorPlugin::_on_filesystem_changed));
 }
 
 void DragonBonesEditorPlugin::_exit_tree() {
@@ -199,4 +252,6 @@ void DragonBonesEditorPlugin::_exit_tree() {
 
 	remove_export_plugin(export_plugin);
 	export_plugin.unref();
+
+	EditorInterface::get_singleton()->get_resource_filesystem()->disconnect("filesystem_changed", callable_mp(this, &DragonBonesEditorPlugin::_on_filesystem_changed));
 }
