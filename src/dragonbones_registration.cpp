@@ -7,10 +7,17 @@
 
 #include "wrappers/GDMesh.h"
 
+#include "godot_cpp/classes/resource_loader.hpp"
+#include "godot_cpp/classes/resource_saver.hpp"
+
 using namespace godot;
+
+static ResourceFormatSaverDragonBones *saver;
+static ResourceFormatLoaderDragonBones *loader;
 
 void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	if (p_level == MODULE_INITIALIZATION_LEVEL_EDITOR) {
+		GDREGISTER_INTERNAL_CLASS(DragonBonesExportPlugin);
 		GDREGISTER_INTERNAL_CLASS(DragonBonesImportPlugin);
 		GDREGISTER_INTERNAL_CLASS(DragonBonesEditorPlugin);
 		EditorPlugins::add_by_type<DragonBonesEditorPlugin>();
@@ -31,6 +38,15 @@ void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesSlot);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesArmature);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesUserData);
+
+	GDREGISTER_INTERNAL_CLASS(ResourceFormatSaverDragonBones);
+	GDREGISTER_INTERNAL_CLASS(ResourceFormatLoaderDragonBones);
+
+	saver = memnew(ResourceFormatSaverDragonBones);
+	ResourceSaver::get_singleton()->add_resource_format_saver(saver);
+
+	loader = memnew(ResourceFormatLoaderDragonBones);
+	ResourceLoader::get_singleton()->add_resource_format_loader(loader);
 }
 
 void uninitialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
@@ -43,4 +59,10 @@ void uninitialize_gddragonbones_module(godot::ModuleInitializationLevel p_level)
 
 	// 清除对象池
 	dragonBones::BaseObject::clearPool();
+
+	ResourceSaver::get_singleton()->remove_resource_format_saver(saver);
+	memdelete(saver);
+
+	ResourceLoader::get_singleton()->remove_resource_format_loader(loader);
+	memdelete(loader);
 }

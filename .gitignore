@@ -1,6 +1,7 @@
 .cache/
 
 *.obj
+*.os
 
 compile_commands.json
 

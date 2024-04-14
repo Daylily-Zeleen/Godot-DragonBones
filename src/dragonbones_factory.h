@@ -2,8 +2,12 @@
 
 #include "dragonBones/factory/BaseFactory.h"
 
+#include "godot_cpp/classes/project_settings.hpp"
 #include "godot_cpp/classes/resource.hpp"
 #include "godot_cpp/classes/texture2d.hpp"
+
+#include "godot_cpp/classes/resource_format_loader.hpp"
+#include "godot_cpp/classes/resource_format_saver.hpp"
 
 namespace godot {
 
@@ -12,6 +16,15 @@ class DragonBonesFactory : public Resource, private dragonBones::BaseFactory {
 	GDCLASS(DragonBonesFactory, Resource)
 
 	class DragonBonesArmature *building_main_armature{};
+
+	PackedByteArray get_file_data(const String &p_file) const;
+
+public:
+	static String get_imported_file_name(const String &p_path) { return p_path.md5_text() + ".dbimport"; }
+	static String convert_to_imported_path(const String &p_path) {
+		bool use_hidden_directory = ProjectSettings::get_singleton()->get_setting_with_override("application/config/use_hidden_project_data_directory");
+		return vformat("res://%s/imported/%s", use_hidden_directory ? ".godot" : "godot", get_imported_file_name(p_path));
+	}
 
 protected:
 	// dragonBones::BaseFactory 成员
@@ -28,10 +41,10 @@ protected:
 	virtual void _buildBones(const dragonBones::BuildArmaturePackage &dataPackage, dragonBones::Armature *armature) const override;
 
 public:
-	static constexpr auto SRC_DBJSON_EXT = "dbjson";
+	// static constexpr auto SRC_DBJSON_EXT = "dbjson";
 	static constexpr auto SRC_JSON_EXT = "json";
 	static constexpr auto SRC_BIN_EXT = "dbbin";
-	static constexpr auto SAVED_EXT = "res";
+	static constexpr auto SAVED_EXT = "dbfactory";
 
 protected:
 	static void _bind_methods();
@@ -55,11 +68,34 @@ public:
 	PackedStringArray get_dragon_bones_ske_file_list() const { return dragon_bones_ske_file_list; }
 	void set_dragon_bones_ske_file_list(PackedStringArray p_files);
 
-	PackedStringArray get_get_dragon_bones_ske_file_list() const { return texture_atlas_json_file_list; }
+	PackedStringArray get_texture_atlas_json_file_list() const { return texture_atlas_json_file_list; }
 	void set_texture_atlas_json_file_list(PackedStringArray p_files);
 
 	PackedStringArray get_loaded_dragon_bones_data_name_list() const;
 	PackedStringArray get_loaded_dragon_bones_main_skin_name_list(const String &p_daragon_bones_data_name) const;
 };
 
+class ResourceFormatSaverDragonBones : public ResourceFormatSaver {
+	GDCLASS(ResourceFormatSaverDragonBones, ResourceFormatSaver)
+protected:
+	static void _bind_methods() {}
+
+public:
+	virtual bool _recognize(const Ref<Resource> &resource) const override;
+	virtual PackedStringArray _get_recognized_extensions(const Ref<Resource> &resource) const override;
+
+	virtual Error _save(const Ref<Resource> &resource, const String &path, uint32_t flags) override;
+};
+
+class ResourceFormatLoaderDragonBones : public ResourceFormatLoader {
+	GDCLASS(ResourceFormatLoaderDragonBones, ResourceFormatLoader)
+protected:
+	static void _bind_methods() {}
+
+public:
+	virtual PackedStringArray _get_recognized_extensions() const override;
+	virtual bool _handles_type(const StringName &type) const override;
+	virtual String _get_resource_type(const String &path) const override;
+	virtual Variant _load(const String &path, const String &original_path, bool use_sub_threads, int32_t cache_mode) const override;
+};
 } //namespace godot

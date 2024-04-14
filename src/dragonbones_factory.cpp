@@ -3,13 +3,32 @@
 #include "godot_cpp/classes/file_access.hpp"
 
 #include "dragonbones_armature.h"
+#include "godot_cpp/variant/utility_functions.hpp"
 #include "wrappers/GDMesh.h"
 #include "wrappers/GDTextureAtlasData.h"
 
 using namespace godot;
 using namespace dragonBones;
-
 //////////////////////////////////////////////////////////////////
+
+PackedByteArray DragonBonesFactory::get_file_data(const String &p_file) const {
+	String fp = p_file;
+	if (!FileAccess::file_exists(fp)) {
+		fp = convert_to_imported_path(fp);
+	}
+
+	Ref<FileAccess> file = FileAccess::open(fp, FileAccess::READ);
+	if (file.is_valid()) {
+		PackedByteArray raw_data;
+		raw_data.resize(file->get_length() + 1);
+		file->get_buffer(raw_data.ptrw(), file->get_length());
+		raw_data.set(file->get_length(), 0x00);
+		return raw_data;
+	} else {
+		ERR_PRINT(vformat("Open \"%s\" failed: \"%s\"", fp, UtilityFunctions::error_string(FileAccess::get_open_error())));
+		return {};
+	}
+}
 
 ///  工厂实现  ///////////////////////////////////////////////////////////////
 DragonBonesData *DragonBonesFactory::loadDragonBonesData(const char *_p_data_loaded, const std::string &name) {
@@ -206,19 +225,14 @@ Error DragonBonesFactory::load_dragon_bones_ske_file_list(PackedStringArray p_fi
 			continue;
 		}
 
-		auto file = FileAccess::open(file_path, FileAccess::READ);
-		if (file.is_null()) {
-			err = file->get_open_error();
-			ERR_PRINT(vformat("Load DragonBones ske file failed: \"%s\", error code: %d", file_path, err));
+		auto raw_data = get_file_data(file_path);
+		if (raw_data.is_empty()) {
+			ERR_PRINT(vformat("Load DragonBones ske file failed: \"%s\".", file_path));
 		}
-
-		PackedByteArray raw_data;
-		raw_data.resize(file->get_length() + 1);
-		file->get_buffer(raw_data.ptrw(), file->get_length());
-		raw_data.set(file->get_length(), 0x00);
 
 		if (!loadDragonBonesData((const char *)raw_data.ptr())) {
 			err = ERR_PARSE_ERROR;
+			ERR_PRINT(vformat("Parse failed: \"%s\"", file_path));
 		}
 	}
 
@@ -262,23 +276,14 @@ Error DragonBonesFactory::load_texture_atlas_json_file_list(PackedStringArray p_
 			continue;
 		}
 
-		auto file = FileAccess::open(file_path, FileAccess::READ);
-		if (file.is_null()) {
-			err = file->get_open_error();
-			ERR_PRINT(vformat("Load DragonBones tex file failed: \"%s\", error code: %d", file_path, err));
+		auto raw_data = get_file_data(file_path);
+		if (raw_data.is_empty()) {
+			ERR_PRINT(vformat("Load DragonBones tex file failed: \"%s\".", file_path));
 		}
-
-		PackedByteArray raw_data;
-		raw_data.resize(file->get_length() + 1);
-		file->get_buffer(raw_data.ptrw(), file->get_length());
-		raw_data.set(file->get_length(), 0x00);
 
 		const auto data = static_cast<GDTextureAtlasData *>(loadTextureAtlasData((const char *)raw_data.ptr(), nullptr));
 
-		if (!data) {
-			err = ERR_PARSE_ERROR;
-			ERR_CONTINUE_MSG(false, vformat("Parse failed: \"%s\"", file_path));
-		}
+		ERR_CONTINUE_MSG(!data, (err = ERR_PARSE_ERROR, vformat("Parse failed: \"%s\"", file_path)));
 
 		if (data->imagePath.empty()) {
 			auto datas = getTextureAtlasData(data->name);
@@ -386,8 +391,63 @@ void DragonBonesFactory::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_dragon_bones_ske_file_list"), &DragonBonesFactory::get_dragon_bones_ske_file_list);
 
 	ClassDB::bind_method(D_METHOD("set_texture_atlas_json_file_list", "texture_atlas_json_file_list"), &DragonBonesFactory::set_texture_atlas_json_file_list);
-	ClassDB::bind_method(D_METHOD("get_get_dragon_bones_ske_file_list"), &DragonBonesFactory::get_get_dragon_bones_ske_file_list);
+	ClassDB::bind_method(D_METHOD("get_texture_atlas_json_file_list"), &DragonBonesFactory::get_texture_atlas_json_file_list);
 
 	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "dragon_bones_ske_file_list", PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:%s", Variant::STRING, PROPERTY_HINT_FILE, "*.dbjson,*.json,*.dbbin")), "set_dragon_bones_ske_file_list", "get_dragon_bones_ske_file_list");
-	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "texture_atlas_json_file_list", PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:%s", Variant::STRING, PROPERTY_HINT_FILE, "*.json")), "set_texture_atlas_json_file_list", "get_get_dragon_bones_ske_file_list");
+	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "texture_atlas_json_file_list", PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:%s", Variant::STRING, PROPERTY_HINT_FILE, "*.json")), "set_texture_atlas_json_file_list", "get_texture_atlas_json_file_list");
+}
+
+// ===========================================
+bool ResourceFormatSaverDragonBones::_recognize(const Ref<Resource> &resource) const {
+	return cast_to<DragonBonesFactory>(resource.ptr());
+}
+
+PackedStringArray ResourceFormatSaverDragonBones::_get_recognized_extensions(const Ref<Resource> &resource) const {
+	if (cast_to<DragonBonesFactory>(resource.ptr())) {
+		return Array::make(DragonBonesFactory::SAVED_EXT);
+	}
+	return {};
+}
+
+Error ResourceFormatSaverDragonBones::_save(const Ref<Resource> &resource, const String &path, uint32_t flags) {
+	Ref<DragonBonesFactory> factory = resource;
+	ERR_FAIL_NULL_V(factory, ERR_INVALID_PARAMETER);
+
+	Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
+	ERR_FAIL_NULL_V_MSG(file, FileAccess::get_open_error(), vformat("Cannot save DragonBonesFactory '%s': %s.", path, UtilityFunctions::error_string(FileAccess::get_open_error())));
+
+	file->store_var(factory->get_dragon_bones_ske_file_list());
+	file->store_var(factory->get_texture_atlas_json_file_list());
+
+	return OK;
+}
+
+// ===========================================
+
+PackedStringArray ResourceFormatLoaderDragonBones::_get_recognized_extensions() const {
+	return Array::make(DragonBonesFactory::SAVED_EXT);
+}
+
+bool ResourceFormatLoaderDragonBones::_handles_type(const StringName &type) const {
+	return type == DragonBonesFactory::get_class_static() || ClassDB::is_parent_class(type, DragonBonesFactory::get_class_static());
+}
+
+String ResourceFormatLoaderDragonBones::_get_resource_type(const String &path) const {
+	if (path.get_extension().to_lower() == DragonBonesFactory::SAVED_EXT) {
+		return DragonBonesFactory::get_class_static();
+	}
+	return "";
+}
+
+Variant ResourceFormatLoaderDragonBones::_load(const String &path, const String &original_path, bool use_sub_threads, int32_t cache_mode) const {
+	Ref<FileAccess> f = FileAccess::open(path, FileAccess::ModeFlags::READ);
+	ERR_FAIL_NULL_V(f, FileAccess::get_open_error());
+
+	Ref<DragonBonesFactory> ret;
+	ret.instantiate();
+
+	ret->set_dragon_bones_ske_file_list(f->get_var());
+	ret->set_texture_atlas_json_file_list(f->get_var());
+
+	return ret;
 }

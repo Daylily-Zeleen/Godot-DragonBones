@@ -1,10 +1,27 @@
 #pragma once
 
+#include "godot_cpp/classes/editor_export_plugin.hpp"
 #include "godot_cpp/classes/editor_import_plugin.hpp"
 #include "godot_cpp/classes/editor_plugin.hpp"
 
 namespace godot {
 // TODO 实现运行时用的 ResourceFormatLoader
+
+class DragonBonesExportPlugin : public EditorExportPlugin {
+	GDCLASS(DragonBonesExportPlugin, EditorExportPlugin)
+
+	PackedStringArray added_files;
+
+protected:
+	static void _bind_methods();
+
+public:
+	virtual String _get_name() const override;
+
+	virtual void _export_begin(const PackedStringArray &features, bool is_debug, const String &path, uint32_t flags) override { added_files.clear(); }
+	virtual void _export_end() override { added_files.clear(); }
+	virtual void _export_file(const String &path, const String &type, const PackedStringArray &features) override;
+};
 
 class DragonBonesImportPlugin : public EditorImportPlugin {
 	GDCLASS(DragonBonesImportPlugin, EditorImportPlugin)
@@ -30,6 +47,7 @@ public:
 class DragonBonesEditorPlugin : public EditorPlugin {
 	GDCLASS(DragonBonesEditorPlugin, EditorPlugin)
 
+	Ref<DragonBonesExportPlugin> export_plugin;
 	Ref<DragonBonesImportPlugin> import_plugin;
 
 protected:
