@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import shutil
-import version
+import build_version
 
 env = SConscript("godot-cpp/SConstruct")
 lib_name = "libgddragonbones"
@@ -107,7 +107,7 @@ def on_complete(target, source, env):
 
     for i in range(len(lines)):
         if lines[i].startswith('version = "') and lines[i].endswith('"\n'):
-            lines[i] = f'version = "{version.version}"\n'
+            lines[i] = f'version = "{build_version.version}"\n'
             break
 
     f = open(extension_file, "w", encoding="utf8")
