@@ -57,6 +57,7 @@
 3. 导入资源为`DragonBonesFoctory`:
    * 单个工厂资源可以指定多个龙骨数据和图集描述数据文件
    * 可在`DragonBones`节点中指定要从`DragonBonesFoctory`实例化的龙骨数据名称和相应的皮肤名称
+   * 如果识别到合适的龙骨资源(xxx_ske.json/dbbin 与 xxx_tex.json)时将在同目录下生成对应的工厂资源文件(xxx_ske.dbfactory)
 4. `DragonBones`节点:
    * 播放动画相关的方法只对主`DragonBonesArmature`进行操作，停止播放则递归对所有`DragonBonesArmature`操作
    * 其他属性则对所有的`DragonBonesArmature`操作
