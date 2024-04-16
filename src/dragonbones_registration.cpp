@@ -43,9 +43,11 @@ void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	GDREGISTER_INTERNAL_CLASS(ResourceFormatLoaderDragonBones);
 
 	saver = memnew(ResourceFormatSaverDragonBones);
+	saver->reference();
 	ResourceSaver::get_singleton()->add_resource_format_saver(saver);
 
 	loader = memnew(ResourceFormatLoaderDragonBones);
+	loader->reference();
 	ResourceLoader::get_singleton()->add_resource_format_loader(loader);
 }
 
@@ -61,8 +63,10 @@ void uninitialize_gddragonbones_module(godot::ModuleInitializationLevel p_level)
 	dragonBones::BaseObject::clearPool();
 
 	ResourceSaver::get_singleton()->remove_resource_format_saver(saver);
+	saver->unreference();
 	memdelete(saver);
 
 	ResourceLoader::get_singleton()->remove_resource_format_loader(loader);
+	loader->unreference();
 	memdelete(loader);
 }
