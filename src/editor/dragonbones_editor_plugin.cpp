@@ -193,8 +193,14 @@ void DragonBonesEditorPlugin::_reimport_dbfacroty_recursively(EditorFileSystemDi
 
 	for (int32_t i = 0; i < p_dir->get_file_count(); ++i) {
 		const String fp = p_dir->get_file_path(i);
-		// 仅对json进行处理
 		if (fp.get_extension().to_lower() != "json") {
+			// 仅对json进行处理
+			continue;
+		}
+
+		constexpr decltype(fp.length()) json_extension_length = sizeof("json") - 1;
+		if (FileAccess::file_exists(fp.substr(0, fp.length() - json_extension_length) + DragonBonesFactory::SAVED_EXT)) {
+			// 已存在，不重复导入，避免因为龙骨文件过多导致编辑器卡顿
 			continue;
 		}
 
