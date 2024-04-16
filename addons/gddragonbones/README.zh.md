@@ -1,10 +1,8 @@
 # Godot-DragonBones Plugin
 
-**该分支仅用于向Asset Library 提交插件。**
-
 ![image](demo/icon.png)
 
-[Click here to refer English readme](EADME.md).
+[Click here to refer English readme](README.md).
 
 一个为 Godot 添加 DragonBones 功能的 GDExtension 插件。
 
@@ -23,6 +21,27 @@
 1. 从发布页面下载最新的发布版。
 2. 克隆该仓库自行编译。
 
+## 如何编译
+
+1. 与子模块一并克隆。
+2. 确保你的开发环境中有"python", "Scons",以及一个合适的c++编译器。
+3. 导航至本地仓库的根目录，运行编译命令，以下命令仅作参考:
+   Debug:
+
+   ```shell
+   scons target=template_debug debug_symbols=yes
+   ```
+
+   Release:
+
+   ```shell
+   scons target=template_release
+   ```
+
+   更多编译选项请参考[godot-cpp](https://github.com/godotengine/godot-cpp.git)的编译系统。
+
+4. 如果编译成功的话，你将可以在`demo/addons/gddragonbones`获取到编译好的插件。
+
 ## 运行示例项目
 
 如果不是自行编译，则需要从发布页面下载该插件并安装到"demo"项目中。
@@ -38,6 +57,7 @@
 3. 导入资源为`DragonBonesFoctory`:
    * 单个工厂资源可以指定多个龙骨数据和图集描述数据文件
    * 可在`DragonBones`节点中指定要从`DragonBonesFoctory`实例化的龙骨数据名称和相应的皮肤名称
+   * 如果识别到合适的龙骨资源(xxx_ske.json/dbbin 与 xxx_tex.json)时将在同目录下生成对应的工厂资源文件(xxx_ske.dbfactory)
 4. `DragonBones`节点:
    * 播放动画相关的方法只对主`DragonBonesArmature`进行操作，停止播放则递归对所有`DragonBonesArmature`操作
    * 其他属性则对所有的`DragonBonesArmature`操作

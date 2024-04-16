@@ -56,6 +56,7 @@ This repository is improved from [gddragonbones](https://github.com/sanja-sa/gdd
 3. Imported Resource is `DragonBonesFoctory`:
    1. One factory can contain multi DragonBones data and Atlas data files.
    2. Can select DragonBones data and skin which are in factory to instantiate in `DragonBones` node.
+   3. If detect DragonBones assets (for example, xxx_ske.json/dbbin and xxx_tex.json) in editor, it will generate a factory resource(xxx_ske.dbfactory) at the same folder.
 4. `DragonBones` node:
    1. Remove mostly methods, all operations are work with `DragonBonesArmature`.
 5. `DragonBonesArmature` node:
