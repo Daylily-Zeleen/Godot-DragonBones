@@ -48,6 +48,7 @@ void DragonBonesExportPlugin::_export_file(const String &path, const String &typ
 		added_files.append(fp);
 	}
 }
+
 // ===========================================
 void DragonBonesImportPlugin::_bind_methods() {
 }
