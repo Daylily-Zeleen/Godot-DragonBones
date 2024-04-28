@@ -48,8 +48,8 @@ void DragonBones::dispatch_sound_event(const String &_str_type, const dragonBone
 
 	if (_str_type == EventObject::SOUND_EVENT) {
 		DragonBonesArmature *armature_proxy = static_cast<DragonBonesArmature *>(_p_value->getArmature()->getDisplay());
-		String anim_name = _p_value->animationState->name.c_str();
-		String event_name = _p_value->name.c_str();
+		String anim_name = to_gd_str(_p_value->animationState->name);
+		String event_name = to_gd_str(_p_value->name);
 		Ref<DragonBonesUserData> user_data{ memnew(DragonBonesUserData(_p_value->getData())) };
 		emit_signal("sound_event", armature_proxy, anim_name, event_name, user_data);
 	}
@@ -62,7 +62,7 @@ void DragonBones::dispatch_event(const String &_str_type, const dragonBones::Eve
 	}
 
 	DragonBonesArmature *armature_proxy = static_cast<DragonBonesArmature *>(_p_value->getArmature()->getDisplay());
-	String anim_name = _p_value->animationState->name.c_str();
+	String anim_name = to_gd_str(_p_value->animationState->name);
 
 	if (_str_type == EventObject::START) {
 		emit_signal("start", armature_proxy, anim_name);
@@ -79,7 +79,7 @@ void DragonBones::dispatch_event(const String &_str_type, const dragonBones::Eve
 	} else if (_str_type == EventObject::FADE_OUT_COMPLETE) {
 		emit_signal("fade_out_completed", armature_proxy, anim_name);
 	} else if (_str_type == EventObject::FRAME_EVENT) {
-		String event_name = _p_value->name.c_str();
+		String event_name = to_gd_str(_p_value->name);
 		Ref<DragonBonesUserData> user_data{ memnew(DragonBonesUserData(_p_value->getData())) };
 		// TODO:: 是否需要包装 EventObj 与 ActionData？
 		emit_signal("frame_event", armature_proxy, anim_name, event_name, user_data);
@@ -409,7 +409,7 @@ void DragonBones::play_from_time(float _f_time) {
 	WARN_DEPRECATED;
 	play();
 	if (b_playing && p_armature->is_initialized()) {
-		p_armature->getAnimation()->gotoAndPlayByTime(str_curr_anim.ascii().get_data(), _f_time, c_loop);
+		p_armature->getAnimation()->gotoAndPlayByTime(to_std_str(str_curr_anim), _f_time, c_loop);
 	}
 }
 
@@ -417,7 +417,7 @@ void DragonBones::play_from_progress(float _f_progress) {
 	WARN_DEPRECATED;
 	play();
 	if (b_playing && p_armature->is_initialized()) {
-		p_armature->getAnimation()->gotoAndPlayByProgress(str_curr_anim.ascii().get_data(), CLAMP(_f_progress, 0, 1.f), c_loop);
+		p_armature->getAnimation()->gotoAndPlayByProgress(to_std_str(str_curr_anim), CLAMP(_f_progress, 0, 1.f), c_loop);
 	}
 }
 
@@ -792,7 +792,7 @@ PackedStringArray DragonBonesUserData::get_strings() const {
 
 	if (user_data->strings.size()) {
 		for (size_t i = 0; i < user_data->strings.size(); ++i) {
-			ret[i] = user_data->strings[i].c_str();
+			ret[i] = to_gd_str(user_data->strings[i]);
 		}
 	}
 
@@ -824,7 +824,7 @@ String DragonBonesUserData::get_string(DragonBonesUserData::v_size_t p_index) co
 		return {};
 	}
 	ERR_FAIL_INDEX_V(p_index, user_data->strings.size(), {});
-	return user_data->strings[p_index].c_str();
+	return to_gd_str(user_data->strings[p_index]);
 }
 
 DragonBonesUserData::v_size_t DragonBonesUserData::get_ints_size() const {

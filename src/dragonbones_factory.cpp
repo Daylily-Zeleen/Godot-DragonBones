@@ -86,7 +86,7 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 	}
 
 	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
-	armatureDisplay->set_name(armature->getName().c_str());
+	armatureDisplay->set_name(to_gd_str(armature->getName()));
 	return armature;
 }
 
@@ -103,7 +103,7 @@ Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, co
 
 	const auto proxy = static_cast<DragonBonesArmature *>(slot->getArmature()->getDisplay());
 	proxy->add_slot(slot->getName(), tree_slot);
-	wrapperDisplay->set_name(slot->getName().c_str());
+	wrapperDisplay->set_name(to_gd_str(slot->getName()));
 
 	return slot;
 }
@@ -300,7 +300,7 @@ Error DragonBonesFactory::load_texture_atlas_json_file_list(PackedStringArray p_
 			ERR_CONTINUE_MSG(false, vformat("Unsupport texture atlas file: \"%s\", need \"imagePath\" field.", file_path));
 		}
 
-		data->init(file_path.get_base_dir().path_join(data->imagePath.c_str()));
+		data->init(file_path.get_base_dir().path_join(to_gd_str(data->imagePath)));
 	}
 	return err;
 }
@@ -318,7 +318,7 @@ void DragonBonesFactory::set_texture_atlas_json_file_list(PackedStringArray p_fi
 PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_data_name_list() const {
 	PackedStringArray ret;
 	for (auto kv : getAllDragonBonesData()) {
-		ret.push_back(kv.first.c_str());
+		ret.push_back(to_gd_str(kv.first));
 	}
 	return ret;
 }
@@ -328,7 +328,7 @@ PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_main_skin_name_lis
 
 	DragonBonesData *dbdata = nullptr;
 	if (!p_daragon_bones_data_name.is_empty()) {
-		dbdata = getDragonBonesData(p_daragon_bones_data_name.ascii().get_data());
+		dbdata = getDragonBonesData(to_std_str(p_daragon_bones_data_name));
 	} else {
 		if (getAllDragonBonesData().size() > 0) {
 			dbdata = getAllDragonBonesData().begin()->second;
@@ -346,7 +346,7 @@ PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_main_skin_name_lis
 
 	for (const auto &kv : armature_data->skins) {
 		if (kv.second) {
-			ret.push_back(kv.second->name.c_str());
+			ret.push_back(to_gd_str(kv.second->name));
 		}
 	}
 	return ret;
@@ -365,7 +365,7 @@ dragonBones::DragonBones *DragonBonesFactory::create_dragon_bones(
 	if (p_armature_data_name.is_empty()) {
 		dragon_bones_data = dragon_bones_data_list.begin()->second;
 	} else {
-		dragon_bones_data = getDragonBonesData(p_armature_data_name.ascii().get_data());
+		dragon_bones_data = getDragonBonesData(to_std_str(p_armature_data_name));
 	}
 
 	ERR_FAIL_NULL_V(dragon_bones_data, nullptr);
@@ -377,7 +377,7 @@ dragonBones::DragonBones *DragonBonesFactory::create_dragon_bones(
 	const auto armature_name = dragon_bones_data->getArmatureNames()[0];
 
 	building_main_armature = p_main_armature;
-	p_main_armature = buildArmatureDisplay(armature_name, dragon_bones_data->name, p_skin_name.ascii().get_data());
+	p_main_armature = buildArmatureDisplay(armature_name, dragon_bones_data->name, to_std_str(p_skin_name));
 	building_main_armature = nullptr;
 
 	return ret;

@@ -403,7 +403,7 @@ void DragonBonesSlot::set_display_by_name(const String &_name) {
 
 	// we only want to update the slot if there's a choice
 	if (rawData->size() > 1) {
-		const char *desired_item = _name.ascii().get_data();
+		const char *desired_item = _name.utf8().get_data();
 		std::string NONE_STRING("none");
 
 		if (NONE_STRING.compare(desired_item) == 0) {
@@ -458,7 +458,7 @@ void DragonBonesSlot::previous_display() {
 
 String DragonBonesSlot::get_slot_name() {
 	ERR_FAIL_NULL_V(slot, {});
-	return slot->getName().c_str();
+	return to_gd_str(slot->getName());
 }
 
 DragonBonesArmature *DragonBonesSlot::get_child_armature() {

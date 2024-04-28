@@ -130,7 +130,7 @@ Vector2 DragonBonesBone::get_bone_offset_position() const {
 
 String DragonBonesBone::get_name() const {
 	ERR_FAIL_NULL_V(boneData, {});
-	return String(boneData->getName().c_str());
+	return String::utf8(boneData->getName().c_str());
 }
 
 Vector2 DragonBonesBone::get_bone_position() const {

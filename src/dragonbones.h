@@ -17,7 +17,7 @@ public:
 
 	virtual bool hasDBEventListener(const std::string &type) const override { return true; }
 	virtual void dispatchDBEvent(const std::string &type, dragonBones::EventObject *value) override {
-		dispatch_sound_event(String(type.c_str()), value);
+		dispatch_sound_event(to_gd_str(type), value);
 	}
 
 private:

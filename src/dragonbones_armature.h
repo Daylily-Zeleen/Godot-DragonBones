@@ -76,7 +76,7 @@ public:
 	virtual void addDBEventListener(const std::string &_type, const std::function<void(dragonBones::EventObject *)> &_listener) override {}
 	virtual void removeDBEventListener(const std::string &_type, const std::function<void(dragonBones::EventObject *)> &_listener) override {}
 	virtual void dispatchDBEvent(const std::string &_type, dragonBones::EventObject *_value) override {
-		this->dispatch_event(String(_type.c_str()), _value);
+		this->dispatch_event(to_gd_str(_type), _value);
 	}
 
 	void dbInit(dragonBones::Armature *_p_armature) override;
@@ -94,7 +94,7 @@ public:
 	void update_material_inheritance_recursively(bool p_inheritance);
 
 	//
-	dragonBones::Slot *getSlot(const String &p_name) const { return p_armature->getSlot(p_name.ascii().get_data()); }
+	dragonBones::Slot *getSlot(const String &p_name) const { return p_armature->getSlot(to_std_str(p_name)); }
 
 	template <typename Func, typename std::enable_if<std::is_invocable_v<Func, DragonBonesArmature *>>::type *_dummy = nullptr>
 	void for_each_armature(Func &&p_action) {
