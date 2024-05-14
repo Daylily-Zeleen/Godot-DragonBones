@@ -11,8 +11,8 @@ config_version=5
 [application]
 
 config/name="Demo"
-run/main_scene="res://demo.tscn"
-config/features=PackedStringArray("4.3", "GL Compatibility")
+run/main_scene="res://dragonbones_demo/demo.tscn"
+config/features=PackedStringArray("4.2", "GL Compatibility")
 
 [filesystem]
 

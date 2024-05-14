@@ -6,6 +6,8 @@
 
 一个为 Godot 添加 DragonBones 功能的 GDExtension 插件。
 
+![image](doc/1.PNG)
+
 ## 相关连接
 
 * Godot: <https://godotengine.org>
