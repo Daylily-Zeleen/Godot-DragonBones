@@ -129,8 +129,16 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 	}
 
 	if (!m_res->can_create_dragon_bones_instance()) {
+#ifdef TOOLS_ENABLED
+		if (!m_res->is_imported()) {
+			// 只对非导入工厂打印错误信息
+			WARN_PRINT(vformat("DragonBonesFactory \"%s\" is invalid, please setup its properties.", m_res));
+		}
+		return;
+#else // !TOOLS_ENABLED
 		WARN_PRINT(vformat("DragonBonesFactory \"%s\" is invalid, please setup its properties.", m_res));
 		return;
+#endif //  TOOLS_ENABLED
 	}
 
 	// build Armature display
@@ -521,7 +529,14 @@ void DragonBones::set_armature_settings(const Dictionary &p_settings) const {
 	if (p_armature->is_initialized()) {
 		p_armature->set_settings(p_settings);
 	} else {
+#ifdef TOOLS_ENABLED
+		if (!m_res->is_imported()) {
+			// 只对非导入工厂打印错误信息，导入工厂将在后续重新导入
+			WARN_PRINT_ED("p_armature is invalid, can't set armature settings.");
+		}
+#else // !TOOLS_ENABLED
 		WARN_PRINT_ED("p_armature is invalid, can't set armature settings.");
+#endif // !TOOLS_ENABLED
 	}
 }
 

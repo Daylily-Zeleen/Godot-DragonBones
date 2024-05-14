@@ -46,7 +46,7 @@ public:
 			const TypedArray<String> &r_platform_variants, const TypedArray<String> &r_gen_files) const override;
 
 public:
-	Ref<DragonBonesFactory> try_import(const String &p_ske_file) const;
+	Ref<DragonBonesFactory> try_import(const String &p_ske_file, DragonBonesFactory *p_factory = nullptr) const;
 };
 
 class DragonBonesEditorPlugin : public EditorPlugin {
@@ -54,12 +54,15 @@ class DragonBonesEditorPlugin : public EditorPlugin {
 
 	Ref<DragonBonesExportPlugin> export_plugin;
 	Ref<DragonBonesImportPlugin> import_plugin;
-	bool reimporting{ false };
 
+	HashMap<String, String> moved_factory_files;
+
+	void _on_file_system_dock_files_moved(const String &p_old_file, const String &p_new_file);
 	void _on_filesystem_changed();
 	void _reimport_dbfacroty_recursively(class EditorFileSystemDirectory *p_dir, HashMap<String, Ref<DragonBonesFactory>> &r_factories) const;
+	void _reimport_movd_facotry_files();
 
-	void clear_reimporting_flag() { reimporting = false; }
+	void clear_reimporting_flag();
 
 protected:
 	static void _bind_methods() {}

@@ -11,10 +11,16 @@ using namespace godot;
 using namespace dragonBones;
 //////////////////////////////////////////////////////////////////
 
+bool DragonBonesFactory::editor_reimporting{ false };
+
 PackedByteArray DragonBonesFactory::get_file_data(const String &p_file) const {
 	String fp = p_file;
-	if (!FileAccess::file_exists(fp)) {
-		fp = convert_to_imported_path(fp);
+
+	if (!Engine::get_singleton()->is_editor_hint()) {
+		// 编辑器中运行不执行回退逻辑
+		if (!FileAccess::file_exists(fp)) {
+			fp = convert_to_imported_path(fp);
+		}
 	}
 
 	Ref<FileAccess> file = FileAccess::open(fp, FileAccess::READ);
@@ -25,6 +31,12 @@ PackedByteArray DragonBonesFactory::get_file_data(const String &p_file) const {
 		raw_data.set(file->get_length(), 0x00);
 		return raw_data;
 	} else {
+#ifdef TOOLS_ENABLED
+		if (editor_reimporting) {
+			// 编辑器执行重新导入时获取不到文件属于预期，因此不打印错误
+			return {};
+		}
+#endif // TOOLS_ENABLED
 		ERR_PRINT(vformat("Open \"%s\" failed: \"%s\"", fp, UtilityFunctions::error_string(FileAccess::get_open_error())));
 		return {};
 	}
@@ -226,9 +238,7 @@ Error DragonBonesFactory::load_dragon_bones_ske_file_list(PackedStringArray p_fi
 		}
 
 		auto raw_data = get_file_data(file_path);
-		if (raw_data.is_empty()) {
-			ERR_PRINT(vformat("Load DragonBones ske file failed: \"%s\".", file_path));
-		}
+		ERR_CONTINUE_MSG(raw_data.is_empty(), (err = ERR_PARSE_ERROR, vformat("Load DragonBones ske file failed: \"%s\".", file_path)));
 
 		if (!loadDragonBonesData((const char *)raw_data.ptr())) {
 			err = ERR_PARSE_ERROR;
@@ -277,12 +287,9 @@ Error DragonBonesFactory::load_texture_atlas_json_file_list(PackedStringArray p_
 		}
 
 		auto raw_data = get_file_data(file_path);
-		if (raw_data.is_empty()) {
-			ERR_PRINT(vformat("Load DragonBones tex file failed: \"%s\".", file_path));
-		}
+		ERR_CONTINUE_MSG(raw_data.is_empty(), (err = ERR_PARSE_ERROR, vformat("Load DragonBones tex file failed: \"%s\".", file_path)));
 
 		const auto data = static_cast<GDTextureAtlasData *>(loadTextureAtlasData((const char *)raw_data.ptr(), nullptr));
-
 		ERR_CONTINUE_MSG(!data, (err = ERR_PARSE_ERROR, vformat("Parse failed: \"%s\"", file_path)));
 
 		if (data->imagePath.empty()) {
@@ -407,6 +414,26 @@ void DragonBonesFactory::_validate_property(PropertyInfo &p_property) const {
 }
 #endif // DEBUG_ENABLED
 
+#ifdef TOOLS_ENABLED
+
+DragonBonesFactory::DragonBonesFactory() {
+}
+
+DragonBonesFactory::~DragonBonesFactory() {
+	if (!imported) {
+		return;
+	}
+
+	auto &all = get_all_imported_factories();
+	for (auto it = all.begin(); it != all.end(); ++it) {
+		if (it->value == this) {
+			all.remove(it);
+			return;
+		}
+	}
+}
+#endif // TOOLS_ENABLED
+
 // ===========================================
 bool ResourceFormatSaverDragonBones::_recognize(const Ref<Resource> &resource) const {
 	return cast_to<DragonBonesFactory>(resource.ptr());
@@ -451,15 +478,71 @@ String ResourceFormatLoaderDragonBones::_get_resource_type(const String &path) c
 }
 
 Variant ResourceFormatLoaderDragonBones::_load(const String &path, const String &original_path, bool use_sub_threads, int32_t cache_mode) const {
-	Ref<FileAccess> f = FileAccess::open(path, FileAccess::ModeFlags::READ);
-	ERR_FAIL_NULL_V(f, FileAccess::get_open_error());
+	PackedStringArray ske_files;
+	PackedStringArray atlas_files;
+	bool imported;
+
+	Error err = parse_dbfactory_file(path, ske_files, atlas_files, imported);
+	if (err != OK) {
+		return err;
+	}
 
 	Ref<DragonBonesFactory> ret;
 	ret.instantiate();
 
-	ret->set_dragon_bones_ske_file_list(f->get_var());
-	ret->set_texture_atlas_json_file_list(f->get_var());
-	ret->imported = f->get_var();
+#ifdef TOOLS_ENABLED
+	if (Engine::get_singleton()->is_editor_hint()) {
+		if (!imported) {
+			ret->set_dragon_bones_ske_file_list(ske_files);
+			ret->set_texture_atlas_json_file_list(atlas_files);
+		} else {
+			bool valid = true;
+			for (const auto &f : ske_files) {
+				if (!FileAccess::file_exists(f)) {
+					valid = false;
+				}
+			}
+			for (const auto &f : atlas_files) {
+				if (!FileAccess::file_exists(f)) {
+					valid = false;
+				}
+			}
+
+			// 仅在所有依赖文件存在时赋值，否则等待编辑器重新导入
+			if (valid) {
+				ret->set_dragon_bones_ske_file_list(ske_files);
+				ret->set_texture_atlas_json_file_list(atlas_files);
+			}
+		}
+		ret->imported = imported;
+	} else {
+		ret->set_dragon_bones_ske_file_list(ske_files);
+		ret->set_texture_atlas_json_file_list(atlas_files);
+		ret->imported = imported;
+	}
+#else // ! TOOLS_ENABLED
+	ret->set_dragon_bones_ske_file_list(ske_files);
+	ret->set_texture_atlas_json_file_list(atlas_files);
+	ret->imported = imported;
+#endif // TOOLS_ENABLED
+
+#ifdef TOOLS_ENABLED
+	if (imported) {
+		DragonBonesFactory::get_all_imported_factories().insert(path, ret.ptr());
+	}
+#endif // TOOLS_ENABLED
 
 	return ret;
+}
+
+Error ResourceFormatLoaderDragonBones::parse_dbfactory_file(const String &p_path, PackedStringArray &r_ske_files, PackedStringArray &r_atlas_files, bool &r_imported) {
+	ERR_FAIL_COND_V(p_path.get_extension().to_lower() != DragonBonesFactory::SAVED_EXT, ERR_FILE_UNRECOGNIZED);
+	Ref<FileAccess> f = FileAccess::open(p_path, FileAccess::ModeFlags::READ);
+	ERR_FAIL_NULL_V(f, FileAccess::get_open_error());
+
+	r_ske_files.append_array(f->get_var());
+	r_atlas_files.append_array(f->get_var());
+	r_imported = f->get_var();
+
+	return OK;
 }

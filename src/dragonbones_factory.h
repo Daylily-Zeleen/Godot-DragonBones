@@ -9,6 +9,10 @@
 #include "godot_cpp/classes/resource_format_loader.hpp"
 #include "godot_cpp/classes/resource_format_saver.hpp"
 
+#ifdef TOOLS_ENABLED
+#include "godot_cpp/templates/hash_map.hpp"
+#endif // TOOLS_ENABLED
+
 namespace godot {
 
 // TODO: 暂不支持内嵌图集数据的龙骨文件
@@ -42,9 +46,9 @@ protected:
 
 public:
 	// static constexpr auto SRC_DBJSON_EXT = "dbjson";
-	static constexpr auto SRC_JSON_EXT = "json";
-	static constexpr auto SRC_BIN_EXT = "dbbin";
-	static constexpr auto SAVED_EXT = "dbfactory";
+	static constexpr char SRC_JSON_EXT[] = "json";
+	static constexpr char SRC_BIN_EXT[] = "dbbin";
+	static constexpr char SAVED_EXT[] = "dbfactory";
 
 protected:
 	static void _bind_methods();
@@ -53,8 +57,6 @@ protected:
 	void _validate_property(PropertyInfo &p_property) const;
 #endif // DEBUG_ENABLED
 public:
-	DragonBonesFactory() = default;
-
 	Error load_dragon_bones_ske_file_list(PackedStringArray p_files);
 	Error load_texture_atlas_json_file_list(PackedStringArray p_files);
 
@@ -82,6 +84,23 @@ private:
 	friend class DragonBonesImportPlugin;
 	friend class ResourceFormatSaverDragonBones;
 	friend class ResourceFormatLoaderDragonBones;
+
+#ifdef TOOLS_ENABLED
+public:
+	DragonBonesFactory();
+	~DragonBonesFactory();
+
+	static HashMap<String, DragonBonesFactory *> &get_all_imported_factories() {
+		static HashMap<String, DragonBonesFactory *> ret;
+		return ret;
+	}
+
+	bool is_imported() const { return imported; }
+
+private:
+	static bool editor_reimporting;
+	friend class DragonBonesEditorPlugin;
+#endif // TOOLS_ENABLED
 };
 
 class ResourceFormatSaverDragonBones : public ResourceFormatSaver {
@@ -106,5 +125,9 @@ public:
 	virtual bool _handles_type(const StringName &type) const override;
 	virtual String _get_resource_type(const String &path) const override;
 	virtual Variant _load(const String &path, const String &original_path, bool use_sub_threads, int32_t cache_mode) const override;
+
+private:
+	static Error parse_dbfactory_file(const String &p_path, PackedStringArray &r_ske_files, PackedStringArray &r_atlas_files, bool &r_imported);
+	friend class DragonBonesEditorPlugin;
 };
 } //namespace godot

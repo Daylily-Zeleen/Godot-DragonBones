@@ -6,6 +6,7 @@
 #include "godot_cpp/classes/editor_file_system_directory.hpp"
 #include "godot_cpp/classes/editor_interface.hpp"
 #include "godot_cpp/classes/file_access.hpp"
+#include "godot_cpp/classes/file_system_dock.hpp"
 #include "godot_cpp/classes/resource_loader.hpp"
 #include "godot_cpp/classes/resource_saver.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
@@ -155,7 +156,7 @@ Error DragonBonesImportPlugin::_import(const String &p_source_file, const String
 	return ResourceSaver::get_singleton()->save(factory, save_path);
 }
 
-Ref<DragonBonesFactory> DragonBonesImportPlugin::try_import(const String &p_ske_file) const {
+Ref<DragonBonesFactory> DragonBonesImportPlugin::try_import(const String &p_ske_file, DragonBonesFactory *p_factory) const {
 	const String ext_low = p_ske_file.get_extension().to_lower();
 
 	String base_path = p_ske_file.get_basename();
@@ -172,17 +173,21 @@ Ref<DragonBonesFactory> DragonBonesImportPlugin::try_import(const String &p_ske_
 		return {};
 	}
 
-	Ref<DragonBonesFactory> res;
-	res.instantiate();
-	res->imported = true;
+	Ref<DragonBonesFactory> ret;
+	if (p_factory == nullptr) {
+		ret.instantiate();
+	} else {
+		ret.reference_ptr(p_factory);
+	}
+	ret->imported = true;
 
-	Error err = res->load_texture_atlas_json_file_list(Array::make(tex_atlas_file));
+	Error err = ret->load_texture_atlas_json_file_list(Array::make(tex_atlas_file));
 	ERR_FAIL_COND_V(err != OK, {});
 
-	err = res->load_dragon_bones_ske_file_list(Array::make(ske_file));
+	err = ret->load_dragon_bones_ske_file_list(Array::make(ske_file));
 	ERR_FAIL_COND_V(err != OK, {});
 
-	return res;
+	return ret;
 }
 
 ///////////////////////////////
@@ -200,8 +205,9 @@ void DragonBonesEditorPlugin::_reimport_dbfacroty_recursively(EditorFileSystemDi
 		}
 
 		constexpr decltype(fp.length()) json_extension_length = sizeof("json") - 1;
-		if (FileAccess::file_exists(fp.substr(0, fp.length() - json_extension_length) + DragonBonesFactory::SAVED_EXT)) {
-			// 已存在，不重复导入，避免因为龙骨文件过多导致编辑器卡顿
+		const String save_path = fp.substr(0, fp.length() - json_extension_length) + DragonBonesFactory::SAVED_EXT;
+		if (FileAccess::file_exists(save_path)) {
+			// 已存在，避免因为龙骨文件过多导致编辑器卡顿
 			continue;
 		}
 
@@ -219,11 +225,11 @@ void DragonBonesEditorPlugin::_reimport_dbfacroty_recursively(EditorFileSystemDi
 }
 
 void DragonBonesEditorPlugin::_on_filesystem_changed() {
-	if (reimporting) {
+	if (DragonBonesFactory::editor_reimporting) {
 		return;
 	}
+	DragonBonesFactory::editor_reimporting = true;
 
-	reimporting = true;
 	HashMap<String, Ref<DragonBonesFactory>> factories;
 	_reimport_dbfacroty_recursively(EditorInterface::get_singleton()->get_resource_filesystem()->get_filesystem(), factories);
 
@@ -232,7 +238,8 @@ void DragonBonesEditorPlugin::_on_filesystem_changed() {
 		for (auto &kv : factories) {
 			const String path = kv.key;
 			const Ref<DragonBonesFactory> factory = kv.value;
-			Error err = ResourceSaver::get_singleton()->save(factory, path);
+
+			Error err = ResourceSaver::get_singleton()->save(factory, path, ResourceSaver::FLAG_REPLACE_SUBRESOURCE_PATHS | ResourceSaver::FLAG_CHANGE_PATH);
 
 			if (err != OK) {
 				ERR_PRINT(vformat("Save DragonBones factory failed: %s", UtilityFunctions::error_string(err)));
@@ -240,8 +247,60 @@ void DragonBonesEditorPlugin::_on_filesystem_changed() {
 		}
 	}
 
+	_reimport_movd_facotry_files();
+
 	callable_mp(this, &DragonBonesEditorPlugin::clear_reimporting_flag).call_deferred();
 }
+
+void DragonBonesEditorPlugin::_on_file_system_dock_files_moved(const String &p_old_file, const String &p_new_file) {
+	if (p_old_file.get_extension().to_lower() == DragonBonesFactory::SAVED_EXT && p_new_file.get_extension().to_lower() == DragonBonesFactory::SAVED_EXT) {
+		moved_factory_files.insert(p_old_file, p_new_file);
+	}
+}
+
+void DragonBonesEditorPlugin::_reimport_movd_facotry_files() {
+	for (const auto &kv : moved_factory_files) {
+		const String ske = kv.value.substr(0, kv.value.length() - sizeof(DragonBonesFactory::SAVED_EXT) + 1) + DragonBonesFactory::SRC_JSON_EXT;
+		if (!FileAccess::file_exists(ske)) {
+			// ske.json 不存在
+			continue;
+		}
+
+		const String &old_path = kv.key;
+		const String &new_path = kv.value;
+
+		auto &all_imported_factories = DragonBonesFactory::get_all_imported_factories();
+
+		String key = old_path;
+		auto it = all_imported_factories.find(old_path);
+		if (it == all_imported_factories.end()) {
+			it = all_imported_factories.find(new_path);
+			String key = new_path;
+		}
+
+		DragonBonesFactory *factory_ptr{ nullptr };
+		if (it != all_imported_factories.end()) {
+			factory_ptr = it->value;
+		} else {
+			factory_ptr = memnew(DragonBonesFactory);
+		}
+
+		auto factory = import_plugin->try_import(ske, factory_ptr);
+		factory->take_over_path(new_path);
+		all_imported_factories.erase(key);
+		all_imported_factories.insert(new_path, factory.ptr());
+
+		Error err = ResourceSaver::get_singleton()->save(factory, new_path, ResourceSaver::FLAG_REPLACE_SUBRESOURCE_PATHS | ResourceSaver::FLAG_CHANGE_PATH);
+		factory->emit_changed();
+
+		if (err != OK) {
+			ERR_PRINT(vformat("Save DragonBones factory failed: %s", UtilityFunctions::error_string(err)));
+		}
+	}
+	moved_factory_files.clear();
+}
+
+void DragonBonesEditorPlugin::clear_reimporting_flag() { DragonBonesFactory::editor_reimporting = false; }
 
 void DragonBonesEditorPlugin::_enter_tree() {
 	import_plugin.instantiate();
@@ -251,6 +310,7 @@ void DragonBonesEditorPlugin::_enter_tree() {
 	add_export_plugin(export_plugin);
 
 	EditorInterface::get_singleton()->get_resource_filesystem()->connect("filesystem_changed", callable_mp(this, &DragonBonesEditorPlugin::_on_filesystem_changed));
+	EditorInterface::get_singleton()->get_file_system_dock()->connect("files_moved", callable_mp(this, &DragonBonesEditorPlugin::_on_file_system_dock_files_moved));
 }
 
 void DragonBonesEditorPlugin::_exit_tree() {
@@ -261,4 +321,5 @@ void DragonBonesEditorPlugin::_exit_tree() {
 	export_plugin.unref();
 
 	EditorInterface::get_singleton()->get_resource_filesystem()->disconnect("filesystem_changed", callable_mp(this, &DragonBonesEditorPlugin::_on_filesystem_changed));
+	EditorInterface::get_singleton()->get_file_system_dock()->disconnect("files_moved", callable_mp(this, &DragonBonesEditorPlugin::_on_file_system_dock_files_moved));
 }
