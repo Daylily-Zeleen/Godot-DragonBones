@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cxys0t3k5e5rf"
-path="res://.godot/imported/Dragon_tex.png-a0ba38f33cd939f458ecafcb1a213e51.ctex"
+path="res://.godot/imported/Dragon_tex.png-2b25852b2d1dc823e6cc13a1046ded77.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Dragon_tex.png"
-dest_files=["res://.godot/imported/Dragon_tex.png-a0ba38f33cd939f458ecafcb1a213e51.ctex"]
+source_file="res://dragonbones_demo/assets/Dragon_tex.png"
+dest_files=["res://.godot/imported/Dragon_tex.png-2b25852b2d1dc823e6cc13a1046ded77.ctex"]
 
 [params]
 

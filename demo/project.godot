@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Demo"
-run/main_scene="res://demo.tscn"
+run/main_scene="res://dragonbones_demo/demo.tscn"
 config/features=PackedStringArray("4.2", "GL Compatibility")
 
 [editor_plugins]

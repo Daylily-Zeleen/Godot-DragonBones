@@ -11,7 +11,9 @@ using namespace godot;
 using namespace dragonBones;
 //////////////////////////////////////////////////////////////////
 
+#ifdef TOOLS_ENABLED
 bool DragonBonesFactory::editor_reimporting{ false };
+#endif // TOOLS_ENABLED
 
 PackedByteArray DragonBonesFactory::get_file_data(const String &p_file) const {
 	String fp = p_file;
