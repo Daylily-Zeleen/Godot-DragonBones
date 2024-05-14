@@ -24,19 +24,23 @@ plugin_bin_folder = f"{plugin_folder}/bin"
 
 extension_file = "demo/addons/gddragonbones/gddragonbones.gdextension"
 
-if env.debug_features:
-    env.Append(CPPDEFINES=["TOOLS_ENABLED"])
 
-
-def add_sources_recursively(dir: str, glob_sources):
+def add_sources_recursively(dir: str, glob_sources, exclude_folder: list[str] = []):
     for f in os.listdir(dir):
+        if f in exclude_folder:
+            continue
         sub_dir = os.path.join(dir, f)
         if os.path.isdir(sub_dir):
             glob_sources += Glob(os.path.join(sub_dir, "*.cpp"))
-            add_sources_recursively(sub_dir, glob_sources)
+            add_sources_recursively(sub_dir, glob_sources, exclude_folder)
 
 
-add_sources_recursively("src/", sources)
+if env.debug_features:
+    env.Append(CPPDEFINES=["TOOLS_ENABLED"])
+    sources += Glob("src/editor/*.cpp")
+
+
+add_sources_recursively("src/", sources, ["editor"])
 
 if env["platform"] == "macos":
     library = env.SharedLibrary(
