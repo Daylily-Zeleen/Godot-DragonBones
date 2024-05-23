@@ -10,10 +10,12 @@ class Slot_GD : public dragonBones::Slot {
 
 private:
 	float _textureScale;
-	GDDisplay *_renderDisplay;
+	GDDisplay *_renderDisplay{ nullptr };
 
 public:
 	void update_display_texutre() const;
+
+	void clear_display();
 
 public:
 	virtual void _updateVisible() override;

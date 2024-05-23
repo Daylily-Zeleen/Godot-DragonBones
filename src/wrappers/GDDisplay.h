@@ -34,6 +34,8 @@ public:
 class GDDisplay : public GDOwnerNode {
 private:
 	GDDisplay(const GDDisplay &);
+	class Slot_GD *slot{ nullptr };
+	friend class Slot_GD;
 
 public:
 	Ref<Texture2D> texture;
@@ -42,7 +44,7 @@ public:
 
 public:
 	GDDisplay() = default;
-	virtual ~GDDisplay() = default;
+	virtual ~GDDisplay() override;
 
 	void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) {
 		// 仅能对 CanvasItemMaterial 进行处理

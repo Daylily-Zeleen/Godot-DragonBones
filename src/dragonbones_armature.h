@@ -44,7 +44,7 @@ protected:
 
 public:
 	DragonBonesArmature();
-	~DragonBonesArmature();
+	virtual ~DragonBonesArmature() override;
 
 	virtual void update_modulate(const Color &p_modulate) override {
 		set_modulate(p_modulate);

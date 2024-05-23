@@ -18,6 +18,15 @@ void Slot_GD::update_display_texutre() const {
 	}
 }
 
+void Slot_GD::clear_display() {
+	_meshDisplay = nullptr;
+	_rawDisplay = nullptr;
+	if (_renderDisplay) {
+		_renderDisplay->slot = nullptr;
+	}
+	_renderDisplay = nullptr;
+}
+
 void Slot_GD::_updateZOrder() {
 	_renderDisplay->set_z_index(_zOrder);
 }
@@ -89,13 +98,19 @@ void Slot_GD::_initDisplay(void *value, bool isRetain) {
 		return;
 	}
 	_renderDisplay = static_cast<GDDisplay *>(value);
+	_renderDisplay->slot = this;
 }
 
 void Slot_GD::_disposeDisplay(void *value, bool isRelease) {
 	if (isRelease) {
 		return;
 	}
+
 	if (auto display = static_cast<GDDisplay *>(getRawDisplay())) {
+		if (display->is_queued_for_deletion()) {
+			return;
+		}
+
 		if (display->get_parent()) {
 			display->get_parent()->remove_child(display);
 		}
@@ -110,7 +125,20 @@ void Slot_GD::_disposeDisplay(void *value, bool isRelease) {
 }
 
 void Slot_GD::_onUpdateDisplay() {
-	_renderDisplay = static_cast<GDDisplay *>(getDisplay() ? getDisplay() : getRawDisplay());
+	GDDisplay *new_display = static_cast<GDDisplay *>(getDisplay() ? getDisplay() : getRawDisplay());
+	if (new_display == _renderDisplay) {
+		return;
+	}
+
+	if (_renderDisplay) {
+		_renderDisplay->slot = nullptr;
+	}
+
+	_renderDisplay = new_display;
+
+	if (_renderDisplay) {
+		_renderDisplay->slot = this;
+	}
 }
 
 void Slot_GD::_addDisplay() {}
@@ -372,7 +400,7 @@ void Slot_GD::_onClear() {
 	Slot::_onClear();
 
 	_textureScale = 1.0f;
-	_renderDisplay = nullptr;
+	clear_display();
 }
 
 /* GODOT CLASS WRAPPER FOR GIVING SCRIPT ACCESS */

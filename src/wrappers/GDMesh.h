@@ -31,7 +31,7 @@ public:
 
 public:
 	GDMesh() = default;
-	virtual ~GDMesh() = default;
+	virtual ~GDMesh() override = default;
 
 	virtual Ref<CanvasItemMaterial> get_material_to_set_blend_mode(bool p_required) override {
 		if (get_use_parent_material()) {
