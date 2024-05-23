@@ -17,6 +17,9 @@ _FORCE_INLINE_ std::string to_std_str(const String &p_gd_str) {
 	return p_gd_str.utf8().get_data();
 }
 
+#define _DEFINE_TO_STRING() \
+	::godot::String _to_string() const { return vformat("<%s#%s>", get_class_static(), get_instance_id()); }
+
 class GDOwnerNode : public Node2D {
 public:
 	GDOwnerNode() = default;

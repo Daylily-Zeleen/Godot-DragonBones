@@ -139,6 +139,7 @@ public:
 
 	/* METHOD BINDINGS */
 	static void _bind_methods();
+	_DEFINE_TO_STRING()
 
 	void for_each_armature_(const Callable &p_action);
 	void for_each_armature_recursively_(const Callable &p_action, int p_current_depth = 0);
@@ -262,6 +263,7 @@ class DragonBonesArmatureProxy : public Resource {
 	GDCLASS(DragonBonesArmatureProxy, Resource)
 protected:
 	static void _bind_methods() {}
+	_DEFINE_TO_STRING()
 
 	bool _set(const StringName &p_name, const Variant &p_val);
 	bool _get(const StringName &p_name, Variant &r_val) const;

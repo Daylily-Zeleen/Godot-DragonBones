@@ -48,6 +48,7 @@ private:
 
 protected:
 	static void _bind_methods();
+	_DEFINE_TO_STRING()
 
 	bool _set(const StringName &_str_name, const Variant &_c_r_value);
 	bool _get(const StringName &_str_name, Variant &_r_ret) const;
@@ -184,11 +185,12 @@ private:
 
 protected:
 	static void _bind_methods();
+	_DEFINE_TO_STRING()
 
 public:
 	DragonBonesUserData() = default;
 	DragonBonesUserData(dragonBones::UserData *p_user_data) :
-			user_data(p_user_data){};
+			user_data(p_user_data) {};
 
 	bool has_data() const { return user_data; }
 

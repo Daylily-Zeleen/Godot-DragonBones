@@ -14,6 +14,7 @@ private:
 
 protected:
 	static void _bind_methods() {}
+	_DEFINE_TO_STRING()
 
 public:
 	PackedInt32Array indices;

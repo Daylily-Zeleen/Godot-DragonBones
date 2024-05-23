@@ -52,6 +52,7 @@ public:
 
 protected:
 	static void _bind_methods();
+	String _to_string() const { return vformat("<%s#%s>", get_class_static(), get_instance_id()); }
 
 #ifdef DEBUG_ENABLED
 	void _validate_property(PropertyInfo &p_property) const;

@@ -59,6 +59,7 @@ public:
 public:
 	/* BIND METHODS */
 	static void _bind_methods();
+	_DEFINE_TO_STRING()
 
 	Color get_display_color_multiplier();
 	void set_display_color_multiplier(const Color &_color);

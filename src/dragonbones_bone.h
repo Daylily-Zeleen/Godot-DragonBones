@@ -22,6 +22,7 @@ public:
 
 public:
 	static void _bind_methods();
+	String _to_string() const { return vformat("<%s#%s>", get_class_static(), get_instance_id()); }
 
 	String get_name() const;
 
