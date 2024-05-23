@@ -415,7 +415,8 @@ Dictionary DragonBonesArmature::get_slots() {
 }
 
 Ref<DragonBonesSlot> DragonBonesArmature::get_slot(const String &_slot_name) {
-	return _slots[to_std_str(_slot_name)];
+	auto it = _slots.find(to_std_str(_slot_name));
+	return it == _slots.end() ? Ref<DragonBonesSlot>{} : it->second;
 }
 
 void DragonBonesArmature::set_slot_display_index(const String &_slot_name, int _index) {
@@ -638,7 +639,8 @@ Dictionary DragonBonesArmature::get_bones() {
 }
 
 Ref<DragonBonesBone> DragonBonesArmature::get_bone(const String &name) {
-	return _bones[to_std_str(name)];
+	auto it = _bones.find(to_std_str(name));
+	return it == _bones.end() ? Ref<DragonBonesBone>{} : it->second;
 }
 
 Slot *DragonBonesArmature::getSlot(const std::string &name) const {
@@ -669,7 +671,7 @@ void DragonBonesArmature::dispose(bool _disposeProxy) {
 
 	for (auto &kv : _slots) {
 		Slot_GD *slot = kv.second->slot;
-		if (auto display = static_cast<Node *>(slot->getRawDisplay())) {
+		if (auto display = static_cast<GDDisplay *>(slot->getRawDisplay())) {
 			if (display->get_parent()) {
 				display->get_parent()->remove_child(display);
 			}
@@ -681,7 +683,7 @@ void DragonBonesArmature::dispose(bool _disposeProxy) {
 
 			display->queue_free();
 		}
-		slot->returnToPool();
+		slot->_rawDisplay = nullptr;
 	}
 	_slots.clear();
 
