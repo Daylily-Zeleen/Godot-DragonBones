@@ -689,6 +689,10 @@ void DragonBonesArmature::dispose(bool _disposeProxy) {
 
 	if (p_armature) {
 		p_armature->dispose();
+		if (auto db = Object::cast_to<DragonBones>(p_owner)) {
+			// 立刻回收
+			db->advance(0.0f);
+		}
 		p_armature = nullptr;
 	}
 }

@@ -89,13 +89,13 @@ void Slot_GD::_initDisplay(void *value, bool isRetain) {}
 void Slot_GD::_disposeDisplay(void *value, bool isRelease) {}
 
 void Slot_GD::_onUpdateDisplay() {
-	_renderDisplay = static_cast<GDDisplay *>(_display != nullptr ? _display : _rawDisplay);
+	_renderDisplay = static_cast<GDDisplay *>(getDisplay() ? getDisplay() : getRawDisplay());
 }
 
 void Slot_GD::_addDisplay() {}
 
 void Slot_GD::_replaceDisplay(void *value, bool isArmatureDisplay) {
-	static_cast<GDDisplay *>(_renderDisplay)->show();
+	_renderDisplay->show();
 
 	if (value != nullptr) {
 		static_cast<GDDisplay *>(value)->hide();
