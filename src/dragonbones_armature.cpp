@@ -668,8 +668,8 @@ void DragonBonesArmature::dispose(bool _disposeProxy) {
 	_bones.clear();
 
 	for (auto &kv : _slots) {
-		Ref<DragonBonesSlot> slot = kv.second;
-		if (auto display = static_cast<GDDisplay *>(slot->slot->getRawDisplay())) {
+		Slot_GD *slot = kv.second->slot;
+		if (auto display = static_cast<Node *>(slot->getRawDisplay())) {
 			if (display->get_parent()) {
 				display->get_parent()->remove_child(display);
 			}
@@ -681,6 +681,7 @@ void DragonBonesArmature::dispose(bool _disposeProxy) {
 
 			display->queue_free();
 		}
+		slot->returnToPool();
 	}
 	_slots.clear();
 
