@@ -84,9 +84,30 @@ void Slot_GD::_updateColor() {
 	_renderDisplay->queue_redraw();
 }
 
-void Slot_GD::_initDisplay(void *value, bool isRetain) {}
+void Slot_GD::_initDisplay(void *value, bool isRetain) {
+	if (isRetain) {
+		return;
+	}
+	_renderDisplay = static_cast<GDDisplay *>(value);
+}
 
-void Slot_GD::_disposeDisplay(void *value, bool isRelease) {}
+void Slot_GD::_disposeDisplay(void *value, bool isRelease) {
+	if (isRelease) {
+		return;
+	}
+	if (auto display = static_cast<GDDisplay *>(getRawDisplay())) {
+		if (display->get_parent()) {
+			display->get_parent()->remove_child(display);
+		}
+
+		if (DragonBonesArmature *sub_armature = Object::cast_to<DragonBonesArmature>(display)) {
+			sub_armature->dispose(true);
+			sub_armature->p_owner = nullptr;
+		}
+
+		display->queue_free();
+	}
+}
 
 void Slot_GD::_onUpdateDisplay() {
 	_renderDisplay = static_cast<GDDisplay *>(getDisplay() ? getDisplay() : getRawDisplay());

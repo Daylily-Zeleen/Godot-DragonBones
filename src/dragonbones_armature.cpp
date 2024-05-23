@@ -668,23 +668,6 @@ void DragonBonesArmature::dbUpdate() {
 
 void DragonBonesArmature::dispose(bool _disposeProxy) {
 	_bones.clear();
-
-	for (auto &kv : _slots) {
-		Slot_GD *slot = kv.second->slot;
-		if (auto display = static_cast<GDDisplay *>(slot->getRawDisplay())) {
-			if (display->get_parent()) {
-				display->get_parent()->remove_child(display);
-			}
-
-			if (DragonBonesArmature *sub_armature = cast_to<DragonBonesArmature>(display)) {
-				sub_armature->dispose(_disposeProxy);
-				sub_armature->p_owner = nullptr;
-			}
-
-			display->queue_free();
-		}
-		slot->_rawDisplay = nullptr;
-	}
 	_slots.clear();
 
 	if (p_armature) {
