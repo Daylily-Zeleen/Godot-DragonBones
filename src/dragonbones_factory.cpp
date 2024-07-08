@@ -361,11 +361,9 @@ PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_main_skin_name_lis
 	}
 	ERR_FAIL_NULL_V(dbdata, ret);
 
-	ArmatureData *armature_data;
-	if (p_armature_name.is_empty()) {
+	ArmatureData *armature_data = dbdata->getArmature(to_std_str(p_armature_name));
+	if (armature_data == nullptr && dbdata->armatureNames.size() > 0) {
 		armature_data = dbdata->getArmature(dbdata->armatureNames[0]);
-	} else {
-		armature_data = dbdata->getArmature(to_std_str(p_armature_name));
 	}
 	ERR_FAIL_NULL_V(armature_data, ret);
 
