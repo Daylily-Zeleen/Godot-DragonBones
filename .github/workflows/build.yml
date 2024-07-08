@@ -249,7 +249,7 @@ jobs:
                   SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
                   SCONS_CACHE_LIMIT: 7168
               run: |
-                  scons target='${{ matrix.target }}' platform='${{ matrix.platform }}' arch='${{ matrix.arch }}' debug_symbol='${{ matrix.debug_symbol }}'
+                  scons target='${{ matrix.target }}' platform='${{ matrix.platform }}' arch='${{ matrix.arch }}' debug_symbol=${{ matrix.debug_symbol }}
 
             - name: Generate xcframework for ios
               if: ${{ matrix.platform == 'ios' }}
@@ -258,8 +258,8 @@ jobs:
                   SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
                   SCONS_CACHE_LIMIT: 7168
               run: |
-                  scons arch=universal ios_simulator=yes platform=ios target='${{ matrix.target }}' debug_symbol='${{ matrix.debug_symbol }}'
-                  scons arch=arm64 ios_simulator=no platform=ios target='${{ matrix.target }}' debug_symbol='${{ matrix.debug_symbol }}'
+                  scons arch=universal ios_simulator=yes platform=ios target='${{ matrix.target }}' debug_symbol=${{ matrix.debug_symbol }}
+                  scons arch=arm64 ios_simulator=no platform=ios target='${{ matrix.target }}' debug_symbol=${{ matrix.debug_symbol }}
                   xcodebuild -create-xcframework -library ./demo/addons/gddragonbones/bin/libgddragonbones.ios.'${{ matrix.target }}'.a -library ./demo/addons/gddragonbones/bin/libgddragonbones.ios.'${{ matrix.target }}'.simulator.a -output ./demo/addons/gddragonbones/bin/libgddragonbones.ios.'${{ matrix.target }}'.xcframework
                   xcodebuild -create-xcframework -library ./godot-cpp/bin/libgodot-cpp.ios.'${{ matrix.target }}'.arm64.a -library ./godot-cpp/bin/libgodot-cpp.ios.'${{ matrix.target }}'.universal.simulator.a  -output ./demo/addons/gddragonbones/bin/libgodot-cpp.ios.'${{ matrix.target }}'.xcframework
 

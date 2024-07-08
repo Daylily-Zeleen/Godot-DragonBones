@@ -134,11 +134,10 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 			// 只对非导入工厂打印错误信息
 			WARN_PRINT(vformat("DragonBonesFactory \"%s\" is invalid, please setup its properties.", m_res));
 		}
-		return;
 #else // !TOOLS_ENABLED
 		WARN_PRINT(vformat("DragonBonesFactory \"%s\" is invalid, please setup its properties.", m_res));
-		return;
 #endif //  TOOLS_ENABLED
+		return;
 	}
 
 	// build Armature display

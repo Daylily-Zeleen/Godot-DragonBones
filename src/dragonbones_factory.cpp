@@ -335,14 +335,13 @@ PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_data_name_list() c
 PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_armature_name_list(const String &p_daragon_bones_data_name) const {
 	PackedStringArray ret;
 
-	DragonBonesData *dbdata = nullptr;
-	if (!p_daragon_bones_data_name.is_empty()) {
-		dbdata = getDragonBonesData(to_std_str(p_daragon_bones_data_name));
-	} else {
+	DragonBonesData *dbdata = getDragonBonesData(to_std_str(p_daragon_bones_data_name));
+	if (dbdata == nullptr) {
 		if (getAllDragonBonesData().size() > 0) {
 			dbdata = getAllDragonBonesData().begin()->second;
 		}
 	}
+
 	ERR_FAIL_NULL_V(dbdata, ret);
 
 	for (auto an : dbdata->getArmatureNames()) {
@@ -354,10 +353,8 @@ PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_armature_name_list
 PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_main_skin_name_list(const String &p_daragon_bones_data_name, const String &p_armature_name) const {
 	PackedStringArray ret;
 
-	DragonBonesData *dbdata = nullptr;
-	if (!p_daragon_bones_data_name.is_empty()) {
-		dbdata = getDragonBonesData(to_std_str(p_daragon_bones_data_name));
-	} else {
+	DragonBonesData *dbdata = getDragonBonesData(to_std_str(p_daragon_bones_data_name));
+	if (dbdata == nullptr) {
 		if (getAllDragonBonesData().size() > 0) {
 			dbdata = getAllDragonBonesData().begin()->second;
 		}
@@ -388,12 +385,10 @@ dragonBones::DragonBones *DragonBonesFactory::create_dragon_bones(
 		dragonBones::IEventDispatcher *p_event_manager, DragonBonesArmature *p_main_armature, const String &p_dragonbones_data_name, const String &p_armature_name, const String &p_skin_name) {
 	const auto &dragon_bones_data_list = getAllDragonBonesData();
 	ERR_FAIL_COND_V(dragon_bones_data_list.size() <= 0, nullptr);
-	dragonBones::DragonBonesData *dragon_bones_data{ nullptr };
 
-	if (p_dragonbones_data_name.is_empty()) {
+	dragonBones::DragonBonesData *dragon_bones_data = getDragonBonesData(to_std_str(p_dragonbones_data_name));
+	if (dragon_bones_data == nullptr) {
 		dragon_bones_data = dragon_bones_data_list.begin()->second;
-	} else {
-		dragon_bones_data = getDragonBonesData(to_std_str(p_dragonbones_data_name));
 	}
 
 	ERR_FAIL_NULL_V(dragon_bones_data, nullptr);
@@ -403,7 +398,8 @@ dragonBones::DragonBones *DragonBonesFactory::create_dragon_bones(
 	set_building_dragon_bones(ret);
 
 	std::string armature_name = to_std_str(p_armature_name);
-	if (p_armature_name.is_empty()) {
+	const auto &armature_names = dragon_bones_data->getArmatureNames();
+	if (p_armature_name.is_empty() || std::find(armature_names.begin(), armature_names.end(), armature_name) == armature_names.end()) {
 		armature_name = dragon_bones_data->getArmatureNames()[0];
 	}
 
