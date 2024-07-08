@@ -14,12 +14,6 @@ namespace godot {
 class DragonBonesArmature : public GDDisplay, public dragonBones::IArmatureProxy {
 	GDCLASS(DragonBonesArmature, GDDisplay)
 public:
-	enum AnimationCallbackModeProcess {
-		ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS = 0,
-		ANIMATION_CALLBACK_MODE_PROCESS_IDLE = 1,
-		ANIMATION_CALLBACK_MODE_PROCESS_MANUAL = 2,
-	};
-
 	enum AnimFadeOutMode {
 		FADE_OUT_NONE,
 		FADE_OUT_SAME_LAYER,
@@ -30,10 +24,9 @@ public:
 	};
 
 private:
-	AnimationCallbackModeProcess callback_mode_process{ ANIMATION_CALLBACK_MODE_PROCESS_IDLE };
-	bool active{ true };
-	bool processing{ false };
-	float time_scale{ 1.0f };
+	// bool active{ true };
+	// bool processing{ false };
+	// float time_scale{ 1.0f };
 
 	bool slots_inherit_material{ true };
 
@@ -200,14 +193,6 @@ public:
 	void set_debug(bool _b_debug, bool p_recursively = false);
 	bool is_debug() const { return b_debug; }
 
-	void set_active_(bool p_active) { set_active(p_active); }
-	void set_active(bool p_active, bool p_recursively = false);
-	bool is_active() const { return active; }
-
-	void set_callback_mode_process_(AnimationCallbackModeProcess p_process_mode) { set_callback_mode_process(p_process_mode); }
-	void set_callback_mode_process(AnimationCallbackModeProcess p_process_mode, bool p_recursively = false);
-	AnimationCallbackModeProcess get_callback_mode_process() const { return callback_mode_process; }
-
 	void set_flip_x_(bool p_flip_x) { set_flip_x(p_flip_x); }
 	void set_flip_x(bool p_flip_x, bool p_recursively = false);
 	bool is_flipped_x() const;
@@ -215,10 +200,6 @@ public:
 	void set_flip_y_(bool p_flip_y) { set_flip_y(p_flip_y); }
 	void set_flip_y(bool p_flip_y, bool p_recursively = false);
 	bool is_flipped_y() const;
-
-	void set_time_scale_(float p_time_scale) { set_time_scale(p_time_scale); }
-	void set_time_scale(float p_time_scale, bool p_recursively = false);
-	float get_time_scale() const;
 
 	Ref<Texture2D> get_texture_override() const;
 	void set_texture_override(const Ref<Texture2D> &p_texture_override);
@@ -235,8 +216,6 @@ public:
 #endif // TOOLS_ENABLED
 
 protected:
-	void _notification(int p_what);
-
 #ifdef TOOLS_ENABLED
 	struct StoragedProperty {
 		StringName name;
@@ -253,9 +232,6 @@ public:
 
 protected:
 #endif // TOOLS_ENABLED
-
-private:
-	void _set_process(bool p_process, bool p_force = false);
 };
 
 #ifdef TOOLS_ENABLED
@@ -285,5 +261,4 @@ private:
 
 } //namespace godot
 
-VARIANT_ENUM_CAST(godot::DragonBonesArmature::AnimationCallbackModeProcess);
 VARIANT_ENUM_CAST(godot::DragonBonesArmature::AnimFadeOutMode);

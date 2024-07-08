@@ -20,13 +20,18 @@ public:
 		dispatch_sound_event(to_gd_str(type), value);
 	}
 
+	enum AnimationCallbackModeProcess {
+		ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS = 0,
+		ANIMATION_CALLBACK_MODE_PROCESS_IDLE = 1,
+		ANIMATION_CALLBACK_MODE_PROCESS_MANUAL = 2,
+	};
+
 private:
 	dragonBones::DragonBones *p_instance{ nullptr };
 
 	Ref<DragonBonesFactory> m_res;
-	String str_curr_anim{ "[none]" };
 	DragonBonesArmature *p_armature{ nullptr };
-	DragonBonesArmature::AnimationCallbackModeProcess callback_mode_process{ DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_IDLE };
+	AnimationCallbackModeProcess callback_mode_process{ ANIMATION_CALLBACK_MODE_PROCESS_IDLE };
 	String instantiate_dragon_bones_data_name{ "" };
 	String instantiate_armature_name{ "" };
 	String instantiate_skin_name{ "" };
@@ -58,6 +63,8 @@ protected:
 #ifdef TOOLS_ENABLED
 	void _validate_property(PropertyInfo &p_property) const;
 #endif // TOOLS_ENABLED
+
+	void _notification(int p_what);
 
 public:
 	DragonBones();
@@ -94,8 +101,8 @@ public:
 	void set_instantiate_skin_name(String p_name);
 	String get_instantiate_skin_name() const;
 
-	void set_callback_mode_process(DragonBonesArmature::AnimationCallbackModeProcess _mode);
-	DragonBonesArmature::AnimationCallbackModeProcess get_callback_mode_process() const;
+	void set_callback_mode_process(AnimationCallbackModeProcess _mode);
+	AnimationCallbackModeProcess get_callback_mode_process() const;
 
 	int get_animation_loop() const;
 	void set_animation_loop(int p_animation_loop);
@@ -137,12 +144,12 @@ public:
 	/* deprecated */ void cycle_next_item_in_slot(const String &_slot_name);
 	/* deprecated */ void cycle_previous_item_in_slot(const String &_slot_name);
 	/* deprecated */ bool is_playing() const;
-	/* deprecated */ void play(bool _b_play = true);
 	/* deprecated */ void play_from_time(float _f_time);
 	/* deprecated */ void play_from_progress(float _f_progress);
 	/* deprecated */ void play_new_animation(const String &_str_anim, int _num_times);
 	/* deprecated */ void play_new_animation_from_progress(const String &_str_anim, int _num_times, float _f_progress);
 	/* deprecated */ void play_new_animation_from_time(const String &_str_anim, int _num_times, float _f_time);
+	/* deprecated */ void play();
 	/* deprecated */ void stop(bool _b_all = false);
 	/* deprecated */ inline void stop_all() { stop(true); }
 #endif
@@ -169,6 +176,7 @@ public:
 	}
 
 private:
+	void _set_process(bool p_process, bool p_force = false);
 	void _on_resource_changed();
 
 	void set_armature_settings(const Dictionary &p_settings) const;
@@ -217,3 +225,5 @@ public:
 };
 
 } //namespace godot
+
+VARIANT_ENUM_CAST(godot::DragonBones::AnimationCallbackModeProcess);

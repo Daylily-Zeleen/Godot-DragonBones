@@ -86,6 +86,17 @@ void DragonBones::dispatch_event(const String &_str_type, const dragonBones::Eve
 	}
 }
 
+void DragonBones::_set_process(bool p_process, bool p_force) {
+	if (processing == p_process && !p_force) {
+		return;
+	}
+
+	set_physics_process_internal(callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS && p_process && b_active);
+	set_process_internal(callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_IDLE && p_process && b_active);
+
+	processing = p_process;
+}
+
 void DragonBones::_on_resource_changed() {
 #ifdef TOOLS_ENABLED
 	auto armatures_settings = get_armature_settings();
@@ -183,9 +194,7 @@ bool DragonBones::is_material_inherited() const {
 
 void DragonBones::set_active(bool _b_active) {
 	b_active = _b_active;
-	if (p_armature->is_initialized()) {
-		p_armature->set_active(_b_active, true);
-	}
+	_set_process(b_active, true);
 }
 
 bool DragonBones::is_active() const {
@@ -205,9 +214,6 @@ bool DragonBones::is_debug() const {
 
 void DragonBones::set_time_scale(float p_time_scale) {
 	f_time_scale = p_time_scale < 0.0 ? 0.0 : p_time_scale;
-	if (b_inited && p_armature->is_initialized()) {
-		p_armature->set_time_scale(f_time_scale, true);
-	}
 }
 
 float DragonBones::get_time_scale() const {
@@ -262,14 +268,11 @@ String DragonBones::get_instantiate_skin_name() const {
 	return instantiate_skin_name;
 }
 
-void DragonBones::set_callback_mode_process(DragonBonesArmature::AnimationCallbackModeProcess _mode) {
+void DragonBones::set_callback_mode_process(AnimationCallbackModeProcess _mode) {
 	callback_mode_process = _mode;
-	if (p_armature->is_initialized()) {
-		p_armature->set_callback_mode_process(_mode, true);
-	}
 }
 
-DragonBonesArmature::AnimationCallbackModeProcess DragonBones::get_callback_mode_process() const {
+DragonBones::AnimationCallbackModeProcess DragonBones::get_callback_mode_process() const {
 	return callback_mode_process;
 }
 
@@ -281,7 +284,7 @@ void DragonBones::set_animation_loop(int p_animation_loop) {
 	c_loop = p_animation_loop;
 	if (b_inited && b_playing) {
 		_reset();
-		p_armature->play(str_curr_anim, c_loop);
+		p_armature->play(p_armature->get_current_animation(), c_loop);
 	}
 }
 
@@ -407,25 +410,56 @@ void DragonBones::set_slot_display_color_multiplier(const String &_slot_name, co
 	p_armature->set_slot_display_color_multiplier(_slot_name, _color);
 }
 
-void DragonBones::play(bool _b_play) {
+bool DragonBones::has_anim(const String &_str_anim) {
 	WARN_DEPRECATED;
-	b_playing = _b_play;
-	if (!_b_play) {
-		stop();
-		return;
-	}
+	ERR_FAIL_COND_V(!p_armature->is_initialized(), false);
+	return p_armature->has_animation(_str_anim);
+}
 
-	// setup speed
-	set_time_scale(f_speed);
-	if (p_armature->is_initialized() && p_armature->has_animation(str_curr_anim)) {
-		p_armature->play(str_curr_anim, c_loop);
-		b_try_playing = false;
-	} else {
-		// not finded animation stop playing
-		b_try_playing = true;
-		str_curr_anim = "[none]";
-		stop();
+float DragonBones::tell() {
+	WARN_DEPRECATED;
+	ERR_FAIL_COND_V(!p_armature->is_initialized(), 0.0f);
+	return p_armature->tell_animation(str_curr_anim);
+}
+
+void DragonBones::seek(float _f_p) {
+	WARN_DEPRECATED;
+	ERR_FAIL_COND(!p_armature->is_initialized());
+	b_playing = false;
+	f_progress = _f_p;
+	p_armature->seek_animation(str_curr_anim, _f_p);
+}
+
+float DragonBones::get_progress() const {
+	WARN_DEPRECATED;
+	if (p_armature->is_initialized()) {
+		return p_armature->get_animation_progress();
 	}
+	return f_progress;
+}
+
+String DragonBones::get_current_animation() const {
+	WARN_DEPRECATED;
+	if (p_armature->is_initialized()) {
+		return p_armature->get_current_animation();
+	}
+	return {};
+}
+
+String DragonBones::get_current_animation_on_layer(int _layer) const {
+	WARN_DEPRECATED;
+	if (p_armature->is_initialized()) {
+		return p_armature->get_current_animation_on_layer(_layer);
+	}
+	return {};
+}
+
+bool DragonBones::is_playing() const {
+	WARN_DEPRECATED;
+	if (p_armature->is_initialized()) {
+		return p_armature->is_playing();
+	}
+	return false;
 }
 
 void DragonBones::play_from_time(float _f_time) {
@@ -475,10 +509,12 @@ void DragonBones::play_new_animation(const String &_str_anim, int _num_times) {
 	play(true);
 }
 
-bool DragonBones::has_anim(const String &_str_anim) {
-	WARN_DEPRECATED;
-	ERR_FAIL_COND_V(!p_armature->is_initialized(), false);
-	return p_armature->has_animation(_str_anim);
+void DragonBones::play() {
+	b_playing = true;
+	_set_process(b_playing);
+	if (p_armature->is_initialized()) {
+		p_armature->play(p_armature->get_current_animation(), c_loop);
+	}
 }
 
 void DragonBones::stop(bool _b_all) {
@@ -487,56 +523,11 @@ void DragonBones::stop(bool _b_all) {
 	}
 
 	b_playing = false;
+	_set_process(b_playing);
 
-	if (p_armature->is_initialized() && p_armature->is_playing()) {
-		p_armature->stop(_b_all ? String("") : str_curr_anim, true, _b_all ? true : false);
-	}
-}
-
-float DragonBones::tell() {
-	WARN_DEPRECATED;
-	ERR_FAIL_COND_V(!p_armature->is_initialized(), 0.0f);
-	return p_armature->tell_animation(str_curr_anim);
-}
-
-void DragonBones::seek(float _f_p) {
-	WARN_DEPRECATED;
-	ERR_FAIL_COND(!p_armature->is_initialized());
-	b_playing = false;
-	f_progress = _f_p;
-	p_armature->seek_animation(str_curr_anim, _f_p);
-}
-
-float DragonBones::get_progress() const {
-	WARN_DEPRECATED;
 	if (p_armature->is_initialized()) {
-		return p_armature->get_animation_progress();
+		p_armature->stop("", true, _b_all);
 	}
-	return f_progress;
-}
-
-bool DragonBones::is_playing() const {
-	WARN_DEPRECATED;
-	if (p_armature->is_initialized()) {
-		return p_armature->is_playing();
-	}
-	return false;
-}
-
-String DragonBones::get_current_animation() const {
-	WARN_DEPRECATED;
-	if (p_armature->is_initialized()) {
-		return p_armature->get_current_animation();
-	}
-	return {};
-}
-
-String DragonBones::get_current_animation_on_layer(int _layer) const {
-	WARN_DEPRECATED;
-	if (p_armature->is_initialized()) {
-		return p_armature->get_current_animation_on_layer(_layer);
-	}
-	return {};
 }
 #endif
 
@@ -653,6 +644,27 @@ void DragonBones::_validate_property(PropertyInfo &p_property) const {
 }
 #endif // TOOLS_ENABLED
 
+void DragonBones::_notification(int p_what) {
+	switch (p_what) {
+		case NOTIFICATION_ENTER_TREE: {
+			if (!processing) {
+				set_physics_process_internal(false);
+				set_process_internal(false);
+			}
+		} break;
+		case NOTIFICATION_INTERNAL_PROCESS: {
+			if (b_active && callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_IDLE) {
+				advance(get_process_delta_time() * f_time_scale);
+			}
+		} break;
+		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS: {
+			if (b_active && callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS) {
+				advance(get_physics_process_delta_time() * f_time_scale);
+			}
+		} break;
+	}
+}
+
 void DragonBones::for_each_armature_(const Callable &p_action) {
 	for_each_armature(
 			[&](auto p_armature, auto depth) {
@@ -681,8 +693,6 @@ void DragonBones::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("fade_in", "anim_name", "time", "loop", "layer", "group", "fade_out_mode"), &DragonBones::fade_in);
 	ClassDB::bind_method(D_METHOD("fade_out", "anim_name"), &DragonBones::fade_out);
 
-	ClassDB::bind_method(D_METHOD("stop"), &DragonBones::stop);
-	ClassDB::bind_method(D_METHOD("stop_all"), &DragonBones::stop_all);
 	ClassDB::bind_method(D_METHOD("reset"), &DragonBones::_reset);
 	ClassDB::bind_method(D_METHOD("has_slot"), &DragonBones::has_slot);
 	ClassDB::bind_method(D_METHOD("set_slot_by_item_name"), &DragonBones::set_slot_by_item_name);
@@ -695,7 +705,6 @@ void DragonBones::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("cycle_next_item_in_slot"), &DragonBones::cycle_next_item_in_slot);
 	ClassDB::bind_method(D_METHOD("cycle_previous_item_in_slot"), &DragonBones::cycle_previous_item_in_slot);
 
-	ClassDB::bind_method(D_METHOD("play"), &DragonBones::play);
 	ClassDB::bind_method(D_METHOD("play_from_time"), &DragonBones::play_from_time);
 	ClassDB::bind_method(D_METHOD("play_from_progress"), &DragonBones::play_from_progress);
 	ClassDB::bind_method(D_METHOD("play_new_animation"), &DragonBones::play_new_animation);
@@ -712,7 +721,11 @@ void DragonBones::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_current_animation"), &DragonBones::get_current_animation);
 	ClassDB::bind_method(D_METHOD("get_current_animation_on_layer"), &DragonBones::get_current_animation_on_layer);
 
+	ClassDB::bind_method(D_METHOD("play"), &DragonBones::play);
+	ClassDB::bind_method(D_METHOD("stop"), &DragonBones::stop);
+	ClassDB::bind_method(D_METHOD("stop_all"), &DragonBones::stop_all);
 #endif
+	ClassDB::bind_method(D_METHOD("advance", "delta"), &DragonBones::advance);
 
 	ClassDB::bind_method(D_METHOD("set_animation_loop", "loop_count"), &DragonBones::set_animation_loop);
 	ClassDB::bind_method(D_METHOD("get_animation_loop"), &DragonBones::get_animation_loop);
@@ -781,6 +794,11 @@ void DragonBones::_bind_methods() {
 	const auto user_data_prop = PropertyInfo(Variant::OBJECT, "event_data", PROPERTY_HINT_NONE, "", PROPERTY_HINT_NONE, DragonBonesUserData::get_class_static());
 	ADD_SIGNAL(MethodInfo("frame_event", armature_prop, anim_name_prop, event_name_prop, user_data_prop));
 	ADD_SIGNAL(MethodInfo("sound_event", armature_prop, anim_name_prop, event_name_prop, user_data_prop));
+
+	// 枚举
+	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS);
+	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_IDLE);
+	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_MANUAL);
 }
 
 DragonBones::DragonBones() {

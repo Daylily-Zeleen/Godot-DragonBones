@@ -18,7 +18,7 @@ func _ready() -> void:
 
 	animation_process_mode_option_btn.item_selected.connect(_on_process_mode_option_btn_item_selected)
 	for idx in range(animation_process_mode_option_btn.item_count):
-		if animation_process_mode_option_btn.get_item_metadata(idx) == DragonBonesArmature.ANIMATION_CALLBACK_MODE_PROCESS_IDLE:
+		if animation_process_mode_option_btn.get_item_metadata(idx) == DragonBones.ANIMATION_CALLBACK_MODE_PROCESS_IDLE:
 			animation_process_mode_option_btn.select(idx)
 			_on_process_mode_option_btn_item_selected(idx)
 			break
@@ -45,19 +45,19 @@ func _ready() -> void:
 	%DebugCheck.button_pressed = false
 
 	# Active
-	%ActiveCheck.toggled.connect(func(toggled: bool): _armature.active = toggled)
-	%ActiveCheck.button_pressed = true
+	%ActiveCheck.toggled.connect(func(toggled: bool): dragonbones.active = toggled)
+	%ActiveCheck.button_pressed = false
 
 	# Time Scale
-	%TimeScaleSpinBox.value_changed.connect(func(value: float): _armature.time_scale = value)
+	%TimeScaleSpinBox.value_changed.connect(func(value: float): dragonbones.time_scale = value)
 	%TimeScaleSpinBox.value = 1.0
 	
 	# Manual Advance
 	%AdvanceBtn.pressed.connect(_on_advance_btn_pressed)
 
 func _on_process_mode_option_btn_item_selected(index: int) -> void:
-	_armature.callback_mode_process = animation_process_mode_option_btn.get_item_metadata(index)
-	%AdvanceUI.visible = _armature.callback_mode_process == DragonBonesArmature.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	dragonbones.callback_mode_process = animation_process_mode_option_btn.get_item_metadata(index)
+	%AdvanceUI.visible = dragonbones.callback_mode_process == DragonBones.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 
 
 func _on_animation_option_btn_item_selected(index: int) -> void:
@@ -68,10 +68,11 @@ func _on_animation_option_btn_item_selected(index: int) -> void:
 	_armature.stop(_armature.current_animation, true)
 	if not anim.is_empty():
 		_armature.play(anim, -1)
+		#dragonbones.play()
 
 
 func _on_advance_btn_pressed() -> void:
-	assert(_armature.callback_mode_process == DragonBonesArmature.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL)
+	assert(dragonbones.callback_mode_process == DragonBones.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL)
 	var delta :float = %AdvanceTime.value
-	_armature.advance(delta)
+	dragonbones.advance(delta)
 	

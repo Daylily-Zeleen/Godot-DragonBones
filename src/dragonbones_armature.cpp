@@ -80,9 +80,6 @@ void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_rect"), &DragonBonesArmature::get_rect);
 
 	ClassDB::bind_method(D_METHOD("set_debug", "debug", "recursively"), &DragonBonesArmature::set_debug, DEFVAL(false));
-	ClassDB::bind_method(D_METHOD("set_time_scale", "time_scale", "recursively"), &DragonBonesArmature::set_time_scale, DEFVAL(false));
-	ClassDB::bind_method(D_METHOD("set_active", "active", "recursively"), &DragonBonesArmature::set_active, DEFVAL(false));
-	ClassDB::bind_method(D_METHOD("set_callback_mode_process", "callback_mode_process", "recursively"), &DragonBonesArmature::set_callback_mode_process, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("set_slots_inherit_material", "slots_inherit_material", "recursively"), &DragonBonesArmature::set_slots_inherit_material, DEFVAL(false));
 
 	// Setter Getter
@@ -95,20 +92,11 @@ void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_debug_", "debug"), &DragonBonesArmature::set_debug_);
 	ClassDB::bind_method(D_METHOD("is_debug"), &DragonBonesArmature::is_debug);
 
-	ClassDB::bind_method(D_METHOD("set_active_", "active"), &DragonBonesArmature::set_active_);
-	ClassDB::bind_method(D_METHOD("is_active"), &DragonBonesArmature::is_active);
-
-	ClassDB::bind_method(D_METHOD("set_callback_mode_process_", "callback_mode_process"), &DragonBonesArmature::set_callback_mode_process_);
-	ClassDB::bind_method(D_METHOD("get_callback_mode_process"), &DragonBonesArmature::get_callback_mode_process);
-
 	ClassDB::bind_method(D_METHOD("set_flip_x_", "flip_x"), &DragonBonesArmature::set_flip_x_);
 	ClassDB::bind_method(D_METHOD("is_flipped_x"), &DragonBonesArmature::is_flipped_x);
 
 	ClassDB::bind_method(D_METHOD("set_flip_y_", "flip_y"), &DragonBonesArmature::set_flip_y_);
 	ClassDB::bind_method(D_METHOD("is_flipped_y"), &DragonBonesArmature::is_flipped_y);
-
-	ClassDB::bind_method(D_METHOD("set_time_scale_", "time_scale"), &DragonBonesArmature::set_time_scale_);
-	ClassDB::bind_method(D_METHOD("get_time_scale"), &DragonBonesArmature::get_time_scale);
 
 	ClassDB::bind_method(D_METHOD("set_texture_override", "texture_override"), &DragonBonesArmature::set_texture_override);
 	ClassDB::bind_method(D_METHOD("get_texture_override"), &DragonBonesArmature::get_texture_override);
@@ -120,24 +108,15 @@ void DragonBonesArmature::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "current_animation", PROPERTY_HINT_ENUM, "", PROPERTY_USAGE_EDITOR), "set_current_animation", "get_current_animation");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "animation_progress", PROPERTY_HINT_RANGE, "0.0,1.0,0.0001", PROPERTY_USAGE_EDITOR), "set_animation_progress", "get_animation_progress");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "time_scale", PROPERTY_HINT_RANGE, "0,10.0,0.01"), "set_time_scale_", "get_time_scale");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "active"), "set_active_", "is_active");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "slots_inherit_material"), "set_slots_inherit_material_", "is_slots_inherit_material");
 
 	ADD_GROUP("Flip", "flip_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_x"), "set_flip_x_", "is_flipped_x");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_y"), "set_flip_y_", "is_flipped_y");
 
-	ADD_GROUP("Callback Mode", "callback_mode_");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "callback_mode_process", PROPERTY_HINT_ENUM, "Physics,Idle,Manual"), "set_callback_mode_process_", "get_callback_mode_process");
-
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "texture_override", PROPERTY_HINT_RESOURCE_TYPE, Texture2D::get_class_static()), "set_texture_override", "get_texture_override");
 
 	// Enum
-	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS);
-	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_IDLE);
-	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_MANUAL);
-
 	BIND_ENUM_CONSTANT(FADE_OUT_NONE);
 	BIND_ENUM_CONSTANT(FADE_OUT_SAME_LAYER);
 	BIND_ENUM_CONSTANT(FADE_OUT_SAME_GROUP);
@@ -325,8 +304,6 @@ bool DragonBonesArmature::is_playing() const {
 void DragonBonesArmature::play(const String &_animation_name, int loop) {
 	if (has_animation(_animation_name)) {
 		getAnimation()->play(to_std_str(_animation_name), loop);
-
-		_set_process(true);
 	}
 	// TODO: 是否需要在没有动画时停止一切动画
 }
@@ -354,8 +331,6 @@ void DragonBonesArmature::stop(const String &_animation_name, bool b_reset, bool
 		}
 	}
 
-	_set_process(false);
-
 	if (p_recursively) {
 		for_each_armature([&_animation_name, b_reset](DragonBonesArmature *p_child_armature) {
 			p_child_armature->stop(_animation_name, b_reset, true);
@@ -372,8 +347,6 @@ void DragonBonesArmature::stop_all_animations(bool b_reset, bool p_recursively) 
 		reset();
 	}
 
-	_set_process(false);
-
 	if (p_recursively) {
 		for_each_armature([b_reset](DragonBonesArmature *p_child_armature) {
 			p_child_armature->stop_all_animations(b_reset, true);
@@ -384,7 +357,6 @@ void DragonBonesArmature::stop_all_animations(bool b_reset, bool p_recursively) 
 void DragonBonesArmature::fade_in(const String &_animation_name, float _time, int _loop, int _layer, const String &_group, AnimFadeOutMode _fade_out_mode) {
 	if (has_animation(_animation_name)) {
 		getAnimation()->fadeIn(to_std_str(_animation_name), _time, _loop, _layer, to_std_str(_group), (AnimationFadeOutMode)_fade_out_mode);
-		_set_process(true);
 	}
 }
 
@@ -562,19 +534,6 @@ void DragonBonesArmature::set_flip_y(bool p_flip_y, bool p_recursively) {
 			p_child_armature->set_flip_y(p_flip_y, true);
 		});
 	}
-}
-
-void DragonBonesArmature::set_time_scale(float p_time_scale, bool p_recursively) {
-	time_scale = p_time_scale < 0.0f ? 0.0 : p_time_scale;
-	if (p_recursively) {
-		for_each_armature([p_time_scale](DragonBonesArmature *p_child_armature) {
-			p_child_armature->set_time_scale(p_time_scale, true);
-		});
-	}
-}
-
-float DragonBonesArmature::get_time_scale() const {
-	return time_scale;
 }
 
 bool DragonBonesArmature::is_flipped_y() const {
@@ -779,41 +738,6 @@ void DragonBonesArmature::update_material_inheritance_recursively(bool p_inherit
 }
 
 //
-void DragonBonesArmature::set_active(bool p_active, bool p_recursively) {
-	if (active != p_active) {
-		active = p_active;
-
-		_set_process(processing, true);
-	}
-
-	if (p_recursively) {
-		for_each_armature([p_active](DragonBonesArmature *p_child_armature) {
-			p_child_armature->set_active(p_active, true);
-		});
-	}
-}
-
-void DragonBonesArmature::set_callback_mode_process(AnimationCallbackModeProcess p_process_mode, bool p_recursively) {
-	if (callback_mode_process != p_process_mode) {
-		bool was_active = is_active();
-		if (was_active) {
-			set_active(false);
-		}
-
-		callback_mode_process = p_process_mode;
-
-		if (was_active) {
-			set_active(true);
-		}
-	}
-
-	if (p_recursively) {
-		for_each_armature([p_process_mode](DragonBonesArmature *p_child_armature) {
-			p_child_armature->set_callback_mode_process(p_process_mode, true);
-		});
-	}
-}
-
 void DragonBonesArmature::set_animation_progress(float p_progress) {
 	seek_animation(get_current_animation(), p_progress);
 }
@@ -885,38 +809,6 @@ bool DragonBonesArmature::has_sub_armature() const {
 }
 
 #endif // TOOLS_ENABLED
-
-void DragonBonesArmature::_notification(int p_what) {
-	switch (p_what) {
-		case NOTIFICATION_ENTER_TREE: {
-			if (!processing) {
-				set_physics_process_internal(false);
-				set_process_internal(false);
-			}
-		} break;
-		case NOTIFICATION_INTERNAL_PROCESS: {
-			if (active && callback_mode_process == DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_IDLE) {
-				advance(get_process_delta_time() * time_scale);
-			}
-		} break;
-		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS: {
-			if (active && callback_mode_process == DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS) {
-				advance(get_physics_process_delta_time() * time_scale);
-			}
-		} break;
-	}
-}
-
-void DragonBonesArmature::_set_process(bool p_process, bool p_force) {
-	if (processing == p_process && !p_force) {
-		return;
-	}
-
-	set_physics_process_internal(callback_mode_process == DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS && p_process && active);
-	set_process_internal(callback_mode_process == DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_IDLE && p_process && active);
-
-	processing = p_process;
-}
 
 void DragonBonesArmature::set_settings(const Dictionary &p_settings) {
 	auto keys = p_settings.keys();
