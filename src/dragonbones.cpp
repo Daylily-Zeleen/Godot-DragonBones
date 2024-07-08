@@ -142,7 +142,7 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 	}
 
 	// build Armature display
-	p_instance = m_res->create_dragon_bones(this, p_armature, instantiate_dragon_bones_data_name, instantiate_skin_name);
+	p_instance = m_res->create_dragon_bones(this, p_armature, instantiate_dragon_bones_data_name, instantiate_armature_name, instantiate_skin_name);
 	ERR_FAIL_COND(!p_armature->is_initialized());
 
 	// update flip
@@ -229,6 +229,22 @@ void DragonBones::set_instantiate_dragon_bones_data_name(String p_name) {
 
 String DragonBones::get_instantiate_dragon_bones_data_name() const {
 	return instantiate_dragon_bones_data_name;
+}
+
+void DragonBones::set_instantiate_armature_name(String p_name) {
+	if (p_name == "[default]") {
+		p_name = "";
+	}
+	if (p_name == instantiate_armature_name) {
+		return;
+	}
+
+	instantiate_armature_name = p_name;
+	_on_resource_changed();
+}
+
+String DragonBones::get_instantiate_armature_name() const {
+	return instantiate_armature_name;
 }
 
 void DragonBones::set_instantiate_skin_name(String p_name) {
@@ -613,10 +629,19 @@ void DragonBones::_validate_property(PropertyInfo &p_property) const {
 		}
 
 		p_property.hint_string = hint;
+	} else if (p_property.name == SNAME("instantiate_armature_name")) {
+		String hint = "[default]";
+
+		for (const auto &name : m_res->get_loaded_dragon_bones_armature_name_list(instantiate_dragon_bones_data_name)) {
+			hint += ",";
+			hint += name;
+		}
+
+		p_property.hint_string = hint;
 	} else if (p_property.name == SNAME("instantiate_skin_name")) {
 		String hint = "[default]";
 
-		for (const auto &name : m_res->get_loaded_dragon_bones_main_skin_name_list(instantiate_dragon_bones_data_name)) {
+		for (const auto &name : m_res->get_loaded_dragon_bones_main_skin_name_list(instantiate_dragon_bones_data_name, instantiate_armature_name)) {
 			if (name == "default") {
 				continue;
 			}
@@ -711,6 +736,9 @@ void DragonBones::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_instantiate_dragon_bones_data_name", "instantiate_dragon_bones_data_name"), &DragonBones::set_instantiate_dragon_bones_data_name);
 	ClassDB::bind_method(D_METHOD("get_instantiate_dragon_bones_data_name"), &DragonBones::get_instantiate_dragon_bones_data_name);
 
+	ClassDB::bind_method(D_METHOD("set_instantiate_armature_name", "instantiate_armature_name"), &DragonBones::set_instantiate_armature_name);
+	ClassDB::bind_method(D_METHOD("get_instantiate_armature_name"), &DragonBones::get_instantiate_armature_name);
+
 	ClassDB::bind_method(D_METHOD("set_instantiate_skin_name", "instantiate_skin_name"), &DragonBones::set_instantiate_skin_name);
 	ClassDB::bind_method(D_METHOD("get_instantiate_skin_name"), &DragonBones::get_instantiate_skin_name);
 
@@ -733,6 +761,7 @@ void DragonBones::_bind_methods() {
 
 	ADD_GROUP("Instantiate Settings", "instantiate_");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "instantiate_dragon_bones_data_name", PROPERTY_HINT_ENUM_SUGGESTION, "[default]"), "set_instantiate_dragon_bones_data_name", "get_instantiate_dragon_bones_data_name");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "instantiate_armature_name", PROPERTY_HINT_ENUM_SUGGESTION, "[default]"), "set_instantiate_armature_name", "get_instantiate_armature_name");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "instantiate_skin_name", PROPERTY_HINT_ENUM_SUGGESTION, "[default]"), "set_instantiate_skin_name", "get_instantiate_skin_name");
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "armaturess_use_this_material"), "set_inherit_material", "is_material_inherited");

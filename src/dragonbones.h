@@ -28,6 +28,7 @@ private:
 	DragonBonesArmature *p_armature{ nullptr };
 	DragonBonesArmature::AnimationCallbackModeProcess callback_mode_process{ DragonBonesArmature::ANIMATION_CALLBACK_MODE_PROCESS_IDLE };
 	String instantiate_dragon_bones_data_name{ "" };
+	String instantiate_armature_name{ "" };
 	String instantiate_skin_name{ "" };
 	float f_time_scale{ 1.0f };
 	float f_progress{ 0.0f };
@@ -86,6 +87,9 @@ public:
 
 	void set_instantiate_dragon_bones_data_name(String p_name);
 	String get_instantiate_dragon_bones_data_name() const;
+
+	void set_instantiate_armature_name(String p_name);
+	String get_instantiate_armature_name() const;
 
 	void set_instantiate_skin_name(String p_name);
 	String get_instantiate_skin_name() const;
