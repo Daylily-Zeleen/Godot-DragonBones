@@ -166,7 +166,7 @@ void DragonBonesFactory::_buildBones(const BuildArmaturePackage &dataPackage, Ar
 	}
 }
 
-///  对外接口c成员  ///////////////////////////////////////////////////////////////
+///  对外接口成员  ///////////////////////////////////////////////////////////////
 void make_dragon_bones_data_unref_texture_atlas_data(dragonBones::DragonBonesData *p_data, const dragonBones::TextureAtlasData *p_atlas) {
 	if (!p_data || !p_atlas) {
 		return;
@@ -193,13 +193,13 @@ void make_dragon_bones_data_unref_texture_atlas_data(dragonBones::DragonBonesDat
 
 					if (display->type == dragonBones::DisplayType::Image) {
 						if (auto image_display = static_cast<dragonBones::ImageDisplayData *>(display)) {
-							if (image_display->texture->parent == p_atlas) {
+							if (image_display->texture && image_display->texture->parent == p_atlas) {
 								image_display->texture = nullptr; // 清除对该图集的散图引用
 							}
 						}
 					} else if (display->type == dragonBones::DisplayType::Mesh) {
 						if (auto mesh_display = static_cast<dragonBones::MeshDisplayData *>(display)) {
-							if (mesh_display->texture->parent == p_atlas) {
+							if (mesh_display->texture && mesh_display->texture->parent == p_atlas) {
 								mesh_display->texture = nullptr; // 清除对该图集的散图引用
 							}
 						}
