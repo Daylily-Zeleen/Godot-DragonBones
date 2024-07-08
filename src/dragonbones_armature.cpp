@@ -239,8 +239,8 @@ void DragonBonesArmature::set_current_animation(const String &p_animation) {
 }
 
 String DragonBonesArmature::get_current_animation() const {
-	if (!p_armature || !getAnimation()) {
-		return {};
+	if (!p_armature || !getAnimation() || !is_playing()) {
+		return "[none]";
 	}
 	return to_gd_str(getAnimation()->getLastAnimationName());
 }
