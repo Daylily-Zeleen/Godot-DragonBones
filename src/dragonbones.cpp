@@ -647,6 +647,7 @@ void DragonBones::_validate_property(PropertyInfo &p_property) const {
 void DragonBones::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE: {
+			_set_process(b_active);
 			if (!processing) {
 				set_physics_process_internal(false);
 				set_process_internal(false);
