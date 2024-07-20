@@ -1,0 +1,39 @@
+name: Feature Request
+description: Request a new feature
+body:
+
+- type: markdown
+  attributes:
+    value: |
+      A new feature request is **highly unlikely to be implemented by the repo holder**, unless it is truly urgent, important and feasible.
+
+- type: textarea
+  attributes:
+    label: Describe the project you are working on
+    description: This is important to know the *context* in which the feature is being proposed. Features used in real-world projects are more likely to be added.
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Describe the problem or limitation you are having in your project
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Describe the feature / enhancement and how it helps to overcome the problem or limitation
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Describe how your proposal will work, with code, pseudo-code, mock-ups, and/or diagrams
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: If this enhancement will not be used often, can it be worked around with a few lines of script?
+  validations:
+    required: true
