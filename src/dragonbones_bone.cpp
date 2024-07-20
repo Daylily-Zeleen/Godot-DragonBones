@@ -1,131 +1,79 @@
 #include "dragonbones_bone.h"
+#include "dragonbones_armature.h"
 
 using namespace godot;
 
+_FORCE_INLINE_ Transform2D to_gd_transform(const dragonBones::Transform &p_t) {
+	return {
+		p_t.rotation,
+		Vector2(p_t.scaleX, p_t.scaleY),
+		p_t.skew,
+		Vector2(p_t.x, p_t.y)
+	};
+}
+
+_FORCE_INLINE_ dragonBones::Transform to_db_transform(const Transform2D &p_t) {
+	dragonBones::Transform ret;
+	ret.x = p_t.get_origin().x;
+	ret.y = p_t.get_origin().y;
+	ret.rotation = p_t.get_rotation();
+	ret.scaleX = p_t.get_scale().x;
+	ret.scaleY = p_t.get_scale().y;
+	ret.skew = p_t.get_skew();
+	return ret;
+}
+
 void DragonBonesBone::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_name"), &DragonBonesBone::get_name);
+	ClassDB::bind_method(D_METHOD("get_parent"), &DragonBonesBone::get_parent);
 	ClassDB::bind_method(D_METHOD("has_data"), &DragonBonesBone::has_data);
 
-	ClassDB::bind_method(D_METHOD("get_bone_position"), &DragonBonesBone::get_bone_position);
-	ClassDB::bind_method(D_METHOD("set_bone_position", "new_position"), &DragonBonesBone::set_bone_position);
+	ClassDB::bind_method(D_METHOD("get_position"), &DragonBonesBone::get_position);
+	ClassDB::bind_method(D_METHOD("set_position", "new_position"), &DragonBonesBone::set_position);
 
-	ClassDB::bind_method(D_METHOD("get_bone_scale"), &DragonBonesBone::get_bone_scale);
-	ClassDB::bind_method(D_METHOD("set_bone_scale", "new_scale"), &DragonBonesBone::set_bone_scale);
+	ClassDB::bind_method(D_METHOD("get_scale"), &DragonBonesBone::get_scale);
+	ClassDB::bind_method(D_METHOD("set_scale", "new_scale"), &DragonBonesBone::set_scale);
 
-	ClassDB::bind_method(D_METHOD("get_bone_rotation"), &DragonBonesBone::get_bone_rotation);
-	ClassDB::bind_method(D_METHOD("set_bone_rotation", "deg_in_rad"), &DragonBonesBone::set_bone_rotation);
+	ClassDB::bind_method(D_METHOD("get_rotation"), &DragonBonesBone::get_rotation);
+	ClassDB::bind_method(D_METHOD("set_rotation", "deg_in_rad"), &DragonBonesBone::set_rotation);
 
-	ClassDB::bind_method(D_METHOD("set_bone_global_scale", "new_scale"), &DragonBonesBone::set_bone_global_scale);
-	ClassDB::bind_method(D_METHOD("get_bone_global_scale"), &DragonBonesBone::get_bone_global_scale);
+	ClassDB::bind_method(D_METHOD("set_global_scale", "new_scale"), &DragonBonesBone::set_global_scale);
+	ClassDB::bind_method(D_METHOD("get_global_scale"), &DragonBonesBone::get_global_scale);
 
-	ClassDB::bind_method(D_METHOD("set_bone_global_position", "new_position"), &DragonBonesBone::set_bone_global_position);
-	ClassDB::bind_method(D_METHOD("get_bone_global_position"), &DragonBonesBone::get_bone_global_position);
+	ClassDB::bind_method(D_METHOD("set_global_position", "new_position"), &DragonBonesBone::set_global_position);
+	ClassDB::bind_method(D_METHOD("get_global_position"), &DragonBonesBone::get_global_position);
 
-	ClassDB::bind_method(D_METHOD("get_bone_global_rotation"), &DragonBonesBone::get_bone_global_rotation);
-	ClassDB::bind_method(D_METHOD("set_bone_global_rotation", "deg_in_rad"), &DragonBonesBone::set_bone_global_rotation);
+	ClassDB::bind_method(D_METHOD("get_global_rotation"), &DragonBonesBone::get_global_rotation);
+	ClassDB::bind_method(D_METHOD("set_global_rotation", "deg_in_rad"), &DragonBonesBone::set_global_rotation);
 
-	ClassDB::bind_method(D_METHOD("get_bone_transform"), &DragonBonesBone::get_bone_transform);
-	ClassDB::bind_method(D_METHOD("set_bone_transform", "transform"), &DragonBonesBone::set_bone_transform);
+	ClassDB::bind_method(D_METHOD("get_transform"), &DragonBonesBone::get_transform);
+	ClassDB::bind_method(D_METHOD("set_transform", "transform"), &DragonBonesBone::set_transform);
 
-	ClassDB::bind_method(D_METHOD("get_bone_global_transform"), &DragonBonesBone::get_bone_global_transform);
-	ClassDB::bind_method(D_METHOD("set_bone_global_transform", "global_transform"), &DragonBonesBone::set_bone_global_transform);
+	ClassDB::bind_method(D_METHOD("get_global_transform"), &DragonBonesBone::get_global_transform);
+	ClassDB::bind_method(D_METHOD("set_global_transform", "global_transform"), &DragonBonesBone::set_global_transform);
 
-	ClassDB::bind_method(D_METHOD("get_bone_offset_position"), &DragonBonesBone::get_bone_offset_position);
-	ClassDB::bind_method(D_METHOD("get_bone_animation_position"), &DragonBonesBone::get_bone_animation_position);
-	ClassDB::bind_method(D_METHOD("get_bone_origin_position"), &DragonBonesBone::get_bone_origin_position);
+	ClassDB::bind_method(D_METHOD("get_offset_mode"), &DragonBonesBone::get_offset_mode);
+	ClassDB::bind_method(D_METHOD("get_offset"), &DragonBonesBone::get_offset);
+	ClassDB::bind_method(D_METHOD("get_animation_pose"), &DragonBonesBone::get_animation_pose);
+	ClassDB::bind_method(D_METHOD("get_origin"), &DragonBonesBone::get_origin);
 
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "rotation"), "set_bone_rotation", "get_bone_rotation");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "global_rotation"), "set_bone_global_rotation", "get_bone_global_rotation");
-	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "position"), "set_bone_position", "get_bone_position");
-	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "global_position"), "set_bone_global_position", "get_bone_global_position");
-	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "scale"), "set_bone_scale", "get_bone_scale");
-	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "global_scale"), "set_bone_global_scale", "get_bone_global_scale");
-	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM2D, "transform"), "set_bone_transform", "get_bone_transform");
-	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM2D, "global_transform"), "set_bone_global_transform", "get_bone_global_transform");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "rotation"), "set_rotation", "get_rotation");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "global_rotation"), "set_global_rotation", "get_global_rotation");
+	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "position"), "set_position", "get_position");
+	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "global_position"), "set_global_position", "get_global_position");
+	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "scale"), "set_scale", "get_scale");
+	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "global_scale"), "set_global_scale", "get_global_scale");
+	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM2D, "transform"), "set_transform", "get_transform");
+	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM2D, "global_transform"), "set_global_transform", "get_global_transform");
+
+	// 枚举
+	BIND_ENUM_CONSTANT(OFFSET_MODE_NONE);
+	BIND_ENUM_CONSTANT(OFFSET_MODE_ADDITIVE);
+	BIND_ENUM_CONSTANT(OFFSET_MODE_OVERRIDE);
 }
 
-Transform2D DragonBonesBone::get_bone_transform() const {
-	return Transform2D{ get_bone_rotation(), get_bone_position() }.scaled(get_bone_scale());
-}
-
-void DragonBonesBone::set_bone_transform(const Transform2D &p_transform) {
-	set_bone_scale(p_transform.get_scale());
-	set_bone_position(p_transform.get_origin());
-	set_bone_rotation(p_transform.get_rotation());
-}
-
-Transform2D DragonBonesBone::get_bone_global_transform() const {
-	return Transform2D{ get_bone_global_rotation(), get_bone_global_position() }.scaled(get_bone_global_scale());
-}
-void DragonBonesBone::set_bone_global_transform(const Transform2D &p_global_transform) {
-	set_bone_global_scale(p_global_transform.get_scale());
-	set_bone_global_position(p_global_transform.get_origin());
-	set_bone_global_rotation(p_global_transform.get_rotation());
-}
-
-Vector2 DragonBonesBone::get_bone_global_position() const {
-	ERR_FAIL_NULL_V(armature, {});
-	return get_bone_position() +
-			armature->get_global_transform().get_origin() +
-			get_bone_origin_position();
-}
-
-Vector2 DragonBonesBone::get_bone_global_scale() const {
-	ERR_FAIL_NULL_V(armature, {});
-	return armature->get_global_transform().get_scale();
-}
-
-float DragonBonesBone::get_bone_global_rotation() const {
-	ERR_FAIL_NULL_V(boneData, {});
-	return boneData->global.rotation;
-}
-
-void DragonBonesBone::set_bone_global_position(Vector2 new_pos) {
-	ERR_FAIL_NULL(armature);
-	set_bone_position(
-			new_pos -
-			armature->get_global_transform().get_origin() -
-			get_bone_origin_position());
-}
-
-void DragonBonesBone::set_bone_global_scale(Vector2 scale) {
-	ERR_FAIL_NULL(boneData);
-	boneData->global.scaleX = scale.x;
-	boneData->global.scaleY = scale.y;
-
-	boneData->invalidUpdate();
-}
-
-void DragonBonesBone::set_bone_global_rotation(float rotation) {
-	ERR_FAIL_NULL(boneData);
-	boneData->global.rotation = rotation;
-	boneData->update(0);
-	boneData->invalidUpdate();
-}
-
-Vector2 DragonBonesBone::get_bone_origin_position() const {
-	ERR_FAIL_COND_V(!boneData || !armature, {});
-	float _x = boneData->origin->x * armature->get_global_transform().get_scale().x;
-	float _y = boneData->origin->y * armature->get_global_transform().get_scale().y;
-
-	return Vector2(_x, _y);
-}
-
-Vector2 DragonBonesBone::get_bone_animation_position() const {
-	ERR_FAIL_NULL_V(boneData, {});
-	float _x = boneData->animationPose.x;
-	float _y = boneData->animationPose.y;
-
-	return Vector2(_x, _y);
-}
-
-Vector2 DragonBonesBone::get_bone_offset_position() const {
-	ERR_FAIL_NULL_V(boneData, {});
-
-	float _x = boneData->offset.x;
-	float _y = boneData->offset.y;
-
-	return Vector2(_x, _y);
+bool DragonBonesBone::has_data() const {
+	return boneData && armature;
 }
 
 String DragonBonesBone::get_name() const {
@@ -133,46 +81,137 @@ String DragonBonesBone::get_name() const {
 	return String::utf8(boneData->getName().c_str());
 }
 
-Vector2 DragonBonesBone::get_bone_position() const {
-	ERR_FAIL_COND_V(!boneData || !armature, {});
-	return Vector2(boneData->animationPose.x * armature->get_global_transform().get_scale().x,
-			boneData->animationPose.y * armature->get_global_transform().get_scale().y);
-}
-
-void DragonBonesBone::set_bone_position(Vector2 new_pos) {
-	ERR_FAIL_COND(!boneData || !armature);
-	boneData->animationPose.x = new_pos.x / armature->get_global_transform().get_scale().x;
-	boneData->animationPose.y = new_pos.y / armature->get_global_transform().get_scale().y;
-
-	boneData->invalidUpdate();
-}
-
-Vector2 DragonBonesBone::get_bone_scale() const {
+Ref<DragonBonesBone> DragonBonesBone::get_parent() const {
 	ERR_FAIL_NULL_V(boneData, {});
-	return Vector2(boneData->animationPose.scaleX, boneData->animationPose.scaleY);
+	ERR_FAIL_NULL_V(armature, {});
+	if (boneData->getParent() == nullptr) {
+		return {};
+	}
+	return static_cast<DragonBonesArmature *>(armature)->get_bone(to_gd_str(boneData->getParent()->getName()));
 }
 
-void DragonBonesBone::set_bone_scale(Vector2 scale) {
-	ERR_FAIL_NULL(boneData);
-	boneData->animationPose.scaleX = scale.x;
-	boneData->animationPose.scaleY = scale.y;
-
-	boneData->invalidUpdate();
+// Local
+Vector2 DragonBonesBone::get_position() const {
+	return get_transform().get_origin();
 }
 
-float DragonBonesBone::get_bone_rotation() const {
+void DragonBonesBone::set_position(Vector2 new_pos) {
+	auto transform = get_transform();
+	transform.set_origin(new_pos);
+	set_transform(transform);
+}
+
+float DragonBonesBone::get_rotation() const {
+	return get_transform().get_rotation();
+}
+
+void DragonBonesBone::set_rotation(float rotation) {
+	auto transform = get_transform();
+	transform.set_rotation(rotation);
+	set_transform(transform);
+}
+
+Vector2 DragonBonesBone::get_scale() const {
+	return get_transform().get_scale();
+}
+
+void DragonBonesBone::set_scale(Vector2 scale) {
+	auto transform = get_transform();
+	transform.set_scale(scale);
+	set_transform(transform);
+}
+
+Transform2D DragonBonesBone::get_transform() const {
 	ERR_FAIL_NULL_V(boneData, {});
-	return boneData->animationPose.rotation;
+	auto transform = to_gd_transform(boneData->global);
+	if (boneData->getParent()) {
+		auto parent_transform = boneData->getParent()->global;
+
+		return to_gd_transform(parent_transform).inverse() * transform;
+	}
+
+	return transform;
 }
 
-void DragonBonesBone::set_bone_rotation(float rotation) {
+void DragonBonesBone::set_transform(const Transform2D &p_transform) {
 	ERR_FAIL_NULL(boneData);
+	dragonBones::Matrix global;
+	to_db_transform(p_transform).toMatrix(global);
 
-	boneData->animationPose.rotation = rotation;
-	boneData->update(0);
+	if (boneData->getParent()) {
+		dragonBones::Matrix parent_matrix;
+		boneData->getParent()->global.toMatrix(parent_matrix);
+
+		parent_matrix.concat(global);
+
+		boneData->global.fromMatrix(parent_matrix);
+	} else {
+		boneData->global.fromMatrix(global);
+	}
+	boneData->global.toMatrix(boneData->globalTransformMatrix);
+
 	boneData->invalidUpdate();
 }
 
-bool DragonBonesBone::has_data() const {
-	return boneData && armature;
+// Global
+Vector2 DragonBonesBone::get_global_position() const {
+	return get_global_transform().get_origin();
+}
+
+void DragonBonesBone::set_global_position(Vector2 new_pos) {
+	auto gt = get_global_transform();
+	gt.set_origin(new_pos);
+	set_global_transform(gt);
+}
+
+float DragonBonesBone::get_global_rotation() const {
+	return get_global_transform().get_rotation();
+}
+
+void DragonBonesBone::set_global_rotation(float rotation) {
+	auto gt = get_global_transform();
+	gt.set_rotation(rotation);
+	set_global_transform(gt);
+}
+
+Vector2 DragonBonesBone::get_global_scale() const {
+	return get_global_transform().get_scale();
+}
+
+void DragonBonesBone::set_global_scale(Vector2 scale) {
+	auto gt = get_global_transform();
+	gt.set_scale(scale);
+	set_global_transform(gt);
+}
+
+Transform2D DragonBonesBone::get_global_transform() const {
+	ERR_FAIL_NULL_V(boneData, {});
+	return to_gd_transform(boneData->global);
+}
+
+void DragonBonesBone::set_global_transform(const Transform2D &p_global_transform) {
+	ERR_FAIL_NULL(boneData);
+	boneData->global = to_db_transform(p_global_transform);
+	boneData->global.toMatrix(boneData->globalTransformMatrix);
+}
+
+// Others
+DragonBonesBone::OffsetMode DragonBonesBone::get_offset_mode() const {
+	ERR_FAIL_NULL_V(boneData, {});
+	return static_cast<OffsetMode>(boneData->offsetMode);
+}
+
+Transform2D DragonBonesBone::get_offset() const {
+	ERR_FAIL_NULL_V(boneData, {});
+	return to_gd_transform(boneData->offset);
+}
+
+Transform2D DragonBonesBone::get_animation_pose() const {
+	ERR_FAIL_NULL_V(boneData, {});
+	return to_gd_transform(boneData->animationPose);
+}
+
+Transform2D DragonBonesBone::get_origin() const {
+	ERR_FAIL_NULL_V(boneData, {});
+	return to_gd_transform(*boneData->origin);
 }
