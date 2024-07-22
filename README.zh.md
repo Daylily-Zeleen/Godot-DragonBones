@@ -48,6 +48,14 @@
 
 如果不是自行编译，则需要从发布页面下载该插件并安装到"demo"项目中。
 
+## C#
+   ```
+   private GodotObject DragonBones;
+   private GodotObject DragonBonesArmature;
+   DragonBones = GetNode<GodotObject>("DragonBones");
+   DragonBonesArmature = (GodotObject)DragonBones.Get("armature");
+   ```
+   
 ## 说明
 
 该仓库改进自[龙骨模块](https://github.com/sanja-sa/gddragonbones)。
