@@ -44,6 +44,11 @@
 
 4. 如果编译成功的话，你将可以在`demo/addons/gddragonbones`获取到编译好的插件。
 
+## C#使用
+   DragonBones = GetNode<GodotObject>("DragonBones");
+   DragonBonesArmature = (GodotObject)DragonBones.Get("armature");
+   
+
 ## 运行示例项目
 
 如果不是自行编译，则需要从发布页面下载该插件并安装到"demo"项目中。
