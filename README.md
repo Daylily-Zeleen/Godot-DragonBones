@@ -49,6 +49,14 @@ A GDExtension plugin to add DragonBones for Godot.
 
 If you are not compile by youself, you should download this plugin and plug it into "demo".
 
+## C#
+   ```
+   private GodotObject DragonBones;
+   private GodotObject DragonBonesArmature;
+   DragonBones = GetNode<GodotObject>("DragonBones");
+   DragonBonesArmature = (GodotObject)DragonBones.Get("armature");
+   ```
+
 ## Contents
 
 This repository is improved from [gddragonbones](https://github.com/sanja-sa/gddragonbones).
