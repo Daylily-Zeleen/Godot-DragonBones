@@ -92,7 +92,7 @@ public:
 	}
 
 	virtual void update_modulate(const Color &p_modulate) override {
-		set_modulate(p_modulate);
+		GDDisplay::update_modulate(p_modulate);
 		verticesColor.fill(p_modulate);
 	}
 };

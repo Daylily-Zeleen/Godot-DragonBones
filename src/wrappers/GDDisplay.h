@@ -55,7 +55,7 @@ public:
 		}
 	}
 
-	virtual void update_modulate(const Color &p_modulate) { set_modulate(p_modulate); }
+	virtual void update_modulate(const Color &p_modulate) { set_self_modulate(p_modulate); }
 };
 
 }; //namespace godot

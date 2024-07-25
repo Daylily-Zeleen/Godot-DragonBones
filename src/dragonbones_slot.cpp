@@ -419,7 +419,7 @@ void DragonBonesSlot::_bind_methods() {
 
 Color DragonBonesSlot::get_display_color_multiplier() {
 	ERR_FAIL_NULL_V(slot, {});
-	ColorTransform transform(slot->_colorTransform);
+	const ColorTransform &transform = slot->_colorTransform;
 
 	Color return_color;
 	return_color.r = transform.redMultiplier;
