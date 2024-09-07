@@ -12,13 +12,13 @@ extends Node
 # Setup UI to control DragonBonesArmature's properties.
 func _ready() -> void:
 	# AnimationCallbackModeProcess
-	for e: String in ClassDB.class_get_enum_constants(&"DragonBones", &"AnimationCallbackModeProcess"):
+	for e: String in ClassDB.class_get_enum_constants(&"DragonBonesArmature", &"AnimationCallbackModeProcess"):
 		animation_process_mode_option_btn.add_item(e.rsplit("_", false, 1)[1])
-		animation_process_mode_option_btn.set_item_metadata(animation_process_mode_option_btn.item_count - 1, DragonBones[e])
+		animation_process_mode_option_btn.set_item_metadata(animation_process_mode_option_btn.item_count - 1, DragonBonesArmature[e])
 
 	animation_process_mode_option_btn.item_selected.connect(_on_process_mode_option_btn_item_selected)
 	for idx in range(animation_process_mode_option_btn.item_count):
-		if animation_process_mode_option_btn.get_item_metadata(idx) == DragonBones.ANIMATION_CALLBACK_MODE_PROCESS_IDLE:
+		if animation_process_mode_option_btn.get_item_metadata(idx) == DragonBonesArmature.ANIMATION_CALLBACK_MODE_PROCESS_IDLE:
 			animation_process_mode_option_btn.select(idx)
 			_on_process_mode_option_btn_item_selected(idx)
 			break
@@ -49,7 +49,7 @@ func _ready() -> void:
 	%ActiveCheck.button_pressed = false
 
 	# Time Scale
-	%TimeScaleSpinBox.value_changed.connect(func(value: float): dragonbones.time_scale = value)
+	%TimeScaleSpinBox.value_changed.connect(func(value: float): _armature.time_scale = value)
 	%TimeScaleSpinBox.value = 1.0
 	
 	# Manual Advance
@@ -57,7 +57,7 @@ func _ready() -> void:
 
 func _on_process_mode_option_btn_item_selected(index: int) -> void:
 	dragonbones.animation_callback_mode_process = animation_process_mode_option_btn.get_item_metadata(index)
-	%AdvanceUI.visible = dragonbones.animation_callback_mode_process == DragonBones.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	%AdvanceUI.visible = dragonbones.animation_callback_mode_process == DragonBonesArmature.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 
 
 func _on_animation_option_btn_item_selected(index: int) -> void:
@@ -72,7 +72,7 @@ func _on_animation_option_btn_item_selected(index: int) -> void:
 
 
 func _on_advance_btn_pressed() -> void:
-	assert(dragonbones.animation_callback_mode_process == DragonBones.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL)
+	assert(dragonbones.animation_callback_mode_process == DragonBonesArmature.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL)
 	var delta :float = %AdvanceTime.value
-	dragonbones.advance(delta)
+	_armature.advance(delta)
 	
