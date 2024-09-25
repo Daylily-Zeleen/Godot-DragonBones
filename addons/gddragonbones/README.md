@@ -71,6 +71,8 @@ This repository is improved from [gddragonbones](https://github.com/sanja-sa/gdd
 
 ## Others
 
+If this plugin can help you, please consider to [buy me a coffee](https://afdian.com/a/Daylily-Zeleen).
+
 I'm not familiar with DragonBones, so there maybe have some wrong concepts in my code.
 This repo is create for my personal project, and it is useful enough, so I think I will not do more optimize anymore.
 Of cource, if I encounter bug, I will try to fix it.
