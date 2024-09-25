@@ -49,7 +49,7 @@ func _ready() -> void:
 	%ActiveCheck.button_pressed = false
 
 	# Time Scale
-	%TimeScaleSpinBox.value_changed.connect(func(value: float): dragonbones.time_scale = value)
+	%TimeScaleSpinBox.value_changed.connect(func(value: float): dragonbones.animation_time_scale = value)
 	%TimeScaleSpinBox.value = 1.0
 	
 	# Manual Advance
