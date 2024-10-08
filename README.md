@@ -49,6 +49,10 @@ A GDExtension plugin to add DragonBones for Godot.
 
 If you are not compile by youself, you should download this plugin and plug it into "demo".
 
+## Export
+
+1. Web: "Extensions Support" is required; "Thread Support" is requred if you use the precompiled plugin.
+
 ## Contents
 
 This repository is improved from [gddragonbones](https://github.com/sanja-sa/gddragonbones).

@@ -52,6 +52,10 @@
 
 该仓库改进自[龙骨模块](https://github.com/sanja-sa/gddragonbones)。
 
+## 关于导出
+
+1. Web: “扩展支持”必须勾选上。如果您使用的是预编译的库则“线程支持”也必须启用。
+
 ### 改进内容
 
 1. 改为4.x用的GDExtension。
