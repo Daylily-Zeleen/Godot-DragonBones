@@ -1,6 +1,6 @@
 # Godot-DragonBones Plugin
 
-![image](demo/icon.png)
+![image](demo/addons/gddragonbones/icons/doc_icon.png)
 
 [Click here to refer English readme](README.md).
 
@@ -12,6 +12,7 @@
 
 * Godot: <https://godotengine.org>
 * DragonBones: <http://dragonbones.com>
+* 一个来自@blurymind的简单演示: <https://github.com/blurymind/godot4-dragonbones-demo-animations-and-slots/tree/main>.
 
 ## 支持的版本
 
@@ -60,15 +61,15 @@
 
 1. 改为4.x用的GDExtension。
 2. 实现编辑器导入插件以供自动导入龙骨相关文件。
-3. 导入资源为`DragonBonesFoctory`:
+3. 导入资源为`DragonBonesFoctory`![image](demo/addons/gddragonbones/icons/DragonBonesWhite.png):
    * 单个工厂资源可以指定多个龙骨数据和图集描述数据文件
    * 可在`DragonBones`节点中指定要从`DragonBonesFoctory`实例化的龙骨数据名称和相应的皮肤名称
    * 如果识别到合适的龙骨资源(xxx_ske.json/dbbin 与 xxx_tex.json)时将在同目录下生成对应的工厂资源文件(xxx_ske.dbfactory)
-4. `DragonBones`节点:
+4. `DragonBones`![image](demo/addons/gddragonbones/icons/DragonBonesBlue.png)节点:
    * 播放动画相关的方法只对主`DragonBonesArmature`进行操作，停止播放则递归对所有`DragonBonesArmature`操作
    * 其他属性则对所有的`DragonBonesArmature`操作
     由于龙骨对动画的操作粒度是针对某一个`Armature`，因此不建议直接对`DragonBones`进行动画相关的控制。
-5. `DragonBonesArmature`节点:
+5. `DragonBonesArmature`![image](demo/addons/gddragonbones/icons/DragonBonesBlue.png)节点:
    * **由`DragonBones`根据设定从`DragonBonesFoctory`进行实例化，不应该手动创建**。
    * 在编辑器中,作为`DragonBones`的"main_armature"属性以`DragonBonesArmatureProxy`类型进行设置,如果有子Armature，则会用有一个"sub_armatures"属性可供编辑（所有一切编辑设置将会保存在场景数据中，实例化时将被正确设置倒相应的`DragonBonesArmature`上）。
    * **千万不要手动释放！否则将导致崩溃！**

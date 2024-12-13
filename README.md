@@ -1,6 +1,6 @@
 # Godot-DragonBones Plugin
 
-![image](demo/icon.png)
+![image](demo/addons/gddragonbones/icons/doc_icon.png)
 
 [点击查看中文说明](README.zh.md)。
 
@@ -12,6 +12,7 @@ A GDExtension plugin to add DragonBones for Godot.
 
 * Godot: <https://godotengine.org>
 * DragonBones: <http://dragonbones.com>
+* A simple demo from @blurymind: <https://github.com/blurymind/godot4-dragonbones-demo-animations-and-slots/tree/main>.
 
 ## Support Versions
 
@@ -59,13 +60,13 @@ This repository is improved from [gddragonbones](https://github.com/sanja-sa/gdd
 
 1. Change to GDExtension for Godot 4.x.
 2. Implement a import plugin to import DragonBones files automatically.
-3. Imported Resource is `DragonBonesFoctory`:
+3. Imported Resource is `DragonBonesFoctory`![image](demo/addons/gddragonbones/icons/DragonBonesWhite.png):
    1. One factory can contain multi DragonBones data and Atlas data files.
    2. Can select DragonBones data and skin which are in factory to instantiate in `DragonBones` node.
    3. If detect DragonBones assets (for example, xxx_ske.json/dbbin and xxx_tex.json) in editor, it will generate a factory resource(xxx_ske.dbfactory) at the same folder.
-4. `DragonBones` node:
+4. `DragonBones` ![image](demo/addons/gddragonbones/icons/DragonBonesBlue.png) node:
    1. Remove mostly methods, all operations are work with `DragonBonesArmature`.
-5. `DragonBonesArmature` node:
+5. `DragonBonesArmature` ![image](demo/addons/gddragonbones/icons/DragonBonesBlue.png) node:
    * **Instantiated by `DragonBones` node which accroding to `DragonBonesFoctory`, don't instantiate it by youself.**
    * **Don't free by youself, it will lead to crash!!**
    * In editor, a proxy property in `DragonBones` node, which it's type is `DragonBonesArmatureProxy`, name is "main_armature", will be indicated as the main `DragonBonesArmature` node. If main armature have child armatures, it will have a "sub_armatures" property in `DragonBonesArmatureProxy`.
