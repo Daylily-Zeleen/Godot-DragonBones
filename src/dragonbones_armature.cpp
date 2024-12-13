@@ -12,7 +12,7 @@ using namespace dragonBones;
 #define SNAME(sn) ([] {static const StringName ret{sn};return ret; }())
 
 DragonBonesArmature::DragonBonesArmature() {
-	set_use_parent_material(true);
+	set_use_parent_material(true); // 默认使用父级材质，直接配置 DragonBones 节点的材质。
 }
 
 DragonBonesArmature::~DragonBonesArmature() {

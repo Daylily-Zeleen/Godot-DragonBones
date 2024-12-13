@@ -99,6 +99,9 @@ void Slot_GD::_initDisplay(void *value, bool isRetain) {
 	}
 	_renderDisplay = static_cast<GDDisplay *>(value);
 	_renderDisplay->slot = this;
+
+	DragonBonesArmature *proxy = static_cast<DragonBonesArmature *>(_armature->getProxy());
+	_renderDisplay->set_use_parent_material(proxy->is_slots_inherit_material());
 }
 
 void Slot_GD::_disposeDisplay(void *value, bool isRelease) {
