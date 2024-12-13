@@ -1,12 +1,12 @@
 # Godot-DragonBones Plugin
 
-![image](demo/addons/gddragonbones/icons/doc_icon.png)
+![image](demo/addons/gddragonbones/doc/doc_icon.png)
 
 [Click here to refer English readme](README.md).
 
 一个为 Godot 添加 DragonBones 功能的 GDExtension 插件。
 
-![image](doc/1.PNG)
+![image](demo/addons/gddragonbones/doc/1.PNG)
 
 ## 相关连接
 
