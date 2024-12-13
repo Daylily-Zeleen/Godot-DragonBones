@@ -217,11 +217,11 @@ public:
 
 protected:
 #ifdef TOOLS_ENABLED
-	struct StoragedProperty {
+	struct StoredProperty {
 		StringName name;
 		Variant default_value;
 	};
-	static std::vector<StoragedProperty> storage_properties;
+	static std::vector<StoredProperty> storage_properties;
 
 	bool _set(const StringName &p_name, const Variant &p_val);
 	bool _get(const StringName &p_name, Variant &r_val) const;

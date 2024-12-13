@@ -130,7 +130,7 @@ void DragonBonesArmature::_bind_methods() {
 	for (size_t i = 0; i < props.size(); ++i) {
 		Dictionary prop = props[i];
 		if ((((uint32_t)prop["usage"]) & PROPERTY_USAGE_STORAGE) != 0) {
-			storage_properties.emplace_back(StoragedProperty{ prop["name"], tmp_obj->get(prop["name"]) });
+			storage_properties.emplace_back(StoredProperty{ prop["name"], tmp_obj->get(prop["name"]) });
 		}
 
 		DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(
@@ -138,8 +138,57 @@ void DragonBonesArmature::_bind_methods() {
 				(String)prop["hint_string"], (uint64_t)(prop["usage"]), (StringName)prop["class"]));
 	}
 
-	storage_properties.emplace_back(StoragedProperty{ "use_parent_material", false });
-	storage_properties.emplace_back(StoragedProperty{ "current_animation", String() });
+	storage_properties.emplace_back(StoredProperty{ "current_animation", String() });
+
+	// Visibility
+	storage_properties.emplace_back(StoredProperty{ "visible", true });
+	storage_properties.emplace_back(StoredProperty{ "modulate", Color(1.0, 1.0, 1.0, 1.0) });
+	storage_properties.emplace_back(StoredProperty{ "self_modulate", Color(1.0, 1.0, 1.0, 1.0) });
+	storage_properties.emplace_back(StoredProperty{ "show_behind_parent", false });
+	storage_properties.emplace_back(StoredProperty{ "top_level", false });
+	storage_properties.emplace_back(StoredProperty{ "clip_children", false });
+	storage_properties.emplace_back(StoredProperty{ "light_mask", 1 });
+	storage_properties.emplace_back(StoredProperty{ "visibility_layerF", 1 });
+
+	// Ordering
+	storage_properties.emplace_back(StoredProperty{ "z_index", 0 });
+	storage_properties.emplace_back(StoredProperty{ "z_as_relative", true });
+	storage_properties.emplace_back(StoredProperty{ "y_sort_enabled", false });
+
+	// Texture
+	storage_properties.emplace_back(StoredProperty{ "texture_filter", TEXTURE_FILTER_PARENT_NODE });
+	storage_properties.emplace_back(StoredProperty{ "texture_repeat", TEXTURE_REPEAT_PARENT_NODE });
+
+	// Material
+	storage_properties.emplace_back(StoredProperty{ "material", Variant() });
+	storage_properties.emplace_back(StoredProperty{ "use_parent_material", false });
+
+	// ====
+	// Visibility
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::NIL, "Visibility", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_GROUP));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "visible"));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::COLOR, "modulate"));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::COLOR, "self_modulate"));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "show_behind_parent"));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "top_level"));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "clip_children", PROPERTY_HINT_ENUM, "Disabled,Clip Only,Clip + Draw"));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "light_mask", PROPERTY_HINT_LAYERS_2D_RENDER));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "visibility_layer", PROPERTY_HINT_LAYERS_2D_RENDER));
+
+	// Ordering
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::NIL, "Ordering", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_GROUP));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "z_index", PROPERTY_HINT_RANGE, itos(RenderingServer::CANVAS_ITEM_Z_MIN) + "," + itos(RenderingServer::CANVAS_ITEM_Z_MAX) + ",1"));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "z_as_relative"));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "y_sort_enabled"));
+
+	// Texture
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::NIL, "Texture", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_GROUP));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "texture_filter", PROPERTY_HINT_ENUM, "Inherit,Nearest,Linear,Nearest Mipmap,Linear Mipmap,Nearest Mipmap Anisotropic,Linear Mipmap Anisotropic"));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "texture_repeat", PROPERTY_HINT_ENUM, "Inherit,Disabled,Enabled,Mirror"));
+
+	// Material
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::NIL, "Material", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_GROUP));
+	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::OBJECT, "material", PROPERTY_HINT_RESOURCE_TYPE, "CanvasItemMaterial,ShaderMaterial"));
 	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "use_parent_material"));
 
 	memdelete(tmp_obj);
@@ -747,7 +796,7 @@ float DragonBonesArmature::get_animation_progress() const {
 }
 
 #ifdef TOOLS_ENABLED
-std::vector<DragonBonesArmature::StoragedProperty> DragonBonesArmature::storage_properties{};
+std::vector<DragonBonesArmature::StoredProperty> DragonBonesArmature::storage_properties{};
 
 bool DragonBonesArmature::_set(const StringName &p_name, const Variant &p_val) {
 	if (p_name == SNAME("sub_armatures")) {
@@ -884,7 +933,11 @@ bool DragonBonesArmatureProxy::_set(const StringName &p_name, const Variant &p_v
 	for (const auto &prop_info : armature_property_list) {
 		if (prop_info.name == p_name) {
 			armature_node->set(p_name, p_val);
-			notify_property_list_changed();
+			if (prop_info.name.ends_with("modulate")) {
+				armature_node->queue_redraw();
+			} else {
+				notify_property_list_changed();
+			}
 			return true;
 		}
 	}
