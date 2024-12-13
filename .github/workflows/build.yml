@@ -56,14 +56,14 @@ jobs:
                       arch: universal
                     - identifier: ios-arm64-debug
                       name: 🍏 ios arm64 Debug
-                      runner: macos-12
+                      runner: macos-latest
                       target: template_debug
                       debug_symbol: yes
                       platform: ios
                       arch: arm64
                     - identifier: ios-arm64-release
                       name: 🍏 ios arm64 Release
-                      runner: macos-12
+                      runner: macos-latest
                       target: template_release
                       debug_symbol: no
                       platform: ios
