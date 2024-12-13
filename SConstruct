@@ -3,6 +3,7 @@ import os
 import shutil
 import build_version
 
+
 env = SConscript("godot-cpp/SConstruct")
 lib_name = "libgddragonbones"
 # For the reference:
@@ -25,7 +26,7 @@ plugin_bin_folder = f"{plugin_folder}/bin"
 extension_file = "demo/addons/gddragonbones/gddragonbones.gdextension"
 
 
-def add_sources_recursively(dir: str, glob_sources, exclude_folder: list[str] = []):
+def add_sources_recursively(dir: str, glob_sources, exclude_folder: list = []):
     for f in os.listdir(dir):
         if f in exclude_folder:
             continue
@@ -100,9 +101,26 @@ def on_complete(target, source, env):
             f"{plugin_bin_folder}/{lib_name}{suffix}{share_lib_suffix}",
         )
 
-    copy_file("README.md", os.path.join(plugin_folder, "README.md"))
-    copy_file("README.zh.md", os.path.join(plugin_folder, "README.zh.md"))
+    copied_readme_file_path = os.path.join(plugin_folder, "README.md")
+    copied_readme_zh_file_path = os.path.join(plugin_folder, "README.zh.md")
+
+    copy_file("README.md", copied_readme_file_path)
+    copy_file("README.zh.md", copied_readme_zh_file_path)
     copy_file("LICENSE", os.path.join(plugin_folder, "LICENSE"))
+
+    # 替换 readme 中图片的路径
+    for fp in [copied_readme_file_path, copied_readme_zh_file_path]:
+        f = open(fp, "r", encoding="utf8")
+        lines = f.readlines()
+        f.close()
+
+        for i in range(len(lines)):
+            if lines[i].count("(demo/addons/gddragonbones/") > 0:
+                lines[i] = lines[i].replace("(demo/addons/gddragonbones/", "(")
+
+        f = open(fp, "w", encoding="utf8")
+        f.writelines(lines)
+        f.close()
 
     # 更新.gdextension中的版本信息
     f = open(extension_file, "r", encoding="utf8")
