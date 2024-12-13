@@ -1,6 +1,10 @@
 # Godot-DragonBones Plugin
 
-**该分支仅用于向Asset Library 提交插件。**
+### **该分支仅用于提交给Asset Library，该文件中的信息是过时的。请前往[main分支](https://github.com/Daylily-Zeleen/Godot-DragonBones/tree/master)获取最新的信息。**
+### **This branch is created for submitting to Asset Library. The informations in this file are outdated. Please goto the [main branch](https://github.com/Daylily-Zeleen/Godot-DragonBones/tree/master) for getting latest infomations.**
+
+-----------------------------------
+###
 
 ![image](demo/icon.png)
 
