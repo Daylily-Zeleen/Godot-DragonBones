@@ -47,7 +47,12 @@
 
 ## 运行示例项目
 
-如果不是自行编译，则需要从发布页面下载该插件并安装到"demo"项目中。
+**"master"分支不包含编译好的库，直接克隆或作为zip档下载是无法直接运行”demo“中的示例！**
+
+为了正常运行自带的示例，有以下3种方式：
+1. 根据上一Part"[如何编译](#如何编译)"进行编译。
+2. 从[发布页面](https://github.com/Daylily-Zeleen/Godot-DragonBones/releases)下载合适的发布版本，并安装到"demo"项目中。
+3. 打开"demo"文件夹中的工程，忽略错误与警告，到 Asset Library 中使用 "Godot-DragonBones" 作为关键词搜索该插件并安装，再重启编辑器即可。
 
 ## 说明
 
