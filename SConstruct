@@ -82,23 +82,31 @@ def on_complete(target, source, env):
     if platform == "macos":
         copy_file(
             f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.framework/{lib_name}.{platform}.{compile_target}",
-            f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.framework/{lib_name}.{platform}.{compile_target}",
+            f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.framework/{lib_name}.{platform}.{compile_target}".replace(
+                ".dev.", "."
+            ),
         )
     elif platform == "ios":
         if ios_simulator:
             copy_file(
                 f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a",
-                f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a",
+                f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a".replace(
+                    ".dev.", "."
+                ),
             )
         else:
             copy_file(
                 f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.a",
-                f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.a",
+                f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.a".replace(
+                    ".dev.", "."
+                ),
             )
     else:
         copy_file(
             f"{output_bin_folder}/{lib_name}{suffix}{share_lib_suffix}",
-            f"{plugin_bin_folder}/{lib_name}{suffix}{share_lib_suffix}",
+            f"{plugin_bin_folder}/{lib_name}{suffix}{share_lib_suffix}".replace(
+                ".dev.", "."
+            ),
         )
 
     copied_readme_file_path = os.path.join(plugin_folder, "README.md")
