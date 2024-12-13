@@ -143,7 +143,7 @@ void DragonBonesArmature::_bind_methods() {
 	// Visibility
 	storage_properties.emplace_back(StoredProperty{ "visible", true });
 	storage_properties.emplace_back(StoredProperty{ "modulate", Color(1.0, 1.0, 1.0, 1.0) });
-	storage_properties.emplace_back(StoredProperty{ "self_modulate", Color(1.0, 1.0, 1.0, 1.0) });
+	// storage_properties.emplace_back(StoredProperty{ "self_modulate", Color(1.0, 1.0, 1.0, 1.0) }); // Self modulate 不影响子节点
 	storage_properties.emplace_back(StoredProperty{ "show_behind_parent", false });
 	storage_properties.emplace_back(StoredProperty{ "top_level", false });
 	storage_properties.emplace_back(StoredProperty{ "clip_children", false });
@@ -168,7 +168,7 @@ void DragonBonesArmature::_bind_methods() {
 	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::NIL, "Visibility", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_GROUP));
 	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "visible"));
 	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::COLOR, "modulate"));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::COLOR, "self_modulate"));
+	// DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::COLOR, "self_modulate"));
 	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "show_behind_parent"));
 	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "top_level"));
 	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "clip_children", PROPERTY_HINT_ENUM, "Disabled,Clip Only,Clip + Draw"));

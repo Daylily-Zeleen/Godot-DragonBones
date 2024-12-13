@@ -83,10 +83,7 @@ void Slot_GD::_updateColor() {
 
 	GDOwnerNode *__p_owner = _renderDisplay->p_owner;
 	if (__p_owner) {
-		__color.a *= __p_owner->get_modulate().a;
-		__color.r *= __p_owner->get_modulate().r;
-		__color.g *= __p_owner->get_modulate().g;
-		__color.b *= __p_owner->get_modulate().b;
+		__color *= __p_owner->get_modulate();
 	}
 
 	_renderDisplay->update_modulate(__color);
