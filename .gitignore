@@ -1,2 +1,15 @@
 # Godot 4+ specific ignores
 .godot/
+
+# Master branch's dev files.
+__pycache__/
+.cache/
+.vscode/
+bin/
+demo/
+godot-cpp/
+src/
+*.dblite
+compile_commands.json
+*.obj
+*.pdb
