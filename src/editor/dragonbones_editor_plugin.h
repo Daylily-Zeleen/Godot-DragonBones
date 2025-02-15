@@ -39,7 +39,7 @@ public:
 	virtual TypedArray<Dictionary> _get_import_options(const String &p_path, int32_t p_preset_index) const override;
 	virtual String _get_save_extension() const override;
 	virtual String _get_resource_type() const override;
-	virtual double _get_priority() const override;
+	virtual decltype(EditorImportPlugin()._get_priority()) _get_priority() const override;
 	virtual int32_t _get_import_order() const override;
 	virtual bool _get_option_visibility(const String &path, const StringName &option_name, const Dictionary &options) const override;
 	virtual Error _import(const String &p_source_file, const String &p_save_path, const Dictionary &p_options,

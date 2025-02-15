@@ -97,7 +97,7 @@ String DragonBonesImportPlugin::_get_resource_type() const {
 	return DragonBonesFactory::get_class_static();
 }
 
-double DragonBonesImportPlugin::_get_priority() const {
+decltype(EditorImportPlugin()._get_priority()) DragonBonesImportPlugin::_get_priority() const {
 	return 2; // 提高优先级
 }
 
