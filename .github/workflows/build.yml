@@ -221,16 +221,6 @@ jobs:
                 version: ${{env.EM_VERSION}}
                 actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
-            - name: Setup version
-              if: ${{ matrix.platform != 'windows' }}
-              run: |
-                python build_version.py >> $GITHUB_ENV
-
-            - name: Setup version (windows)
-              if: ${{ matrix.platform == 'windows' }}
-              run: |
-                python build_version.py >> $env:GITHUB_ENV
-
             - name: Setup build cache
               uses: actions/cache@v4
               with:
@@ -284,18 +274,41 @@ jobs:
                   cp -n -r '${{ github.workspace }}/demo/addons' '${{ github.workspace }}/artifact/${{ github.event.repository.name }}/'
 
             - name: Upload artifact ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
-                  name: ${{ github.event.repository.name }}-${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}-${{ env.BUILD_VERSION }}-${{ github.sha }}
+                  name: ${{ github.event.repository.name }}-${{ github.sha }}-${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
                   path: |
                       ${{ github.workspace }}/${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}/artifact/
                   retention-days: 14
 
-            - name: Upload artifact
-              uses: actions/upload-artifact@v3
+    merge_artifacts:
+        runs-on: ubuntu-latest
+        needs: build
+        steps:
+            - name: Checkout project
+              uses: actions/checkout@v4
+              with:
+                  submodules: false
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.x"
+
+            - name: Setup version
+              if: ${{ matrix.platform != 'windows' }}
+              run: |
+                python build_version.py >> $GITHUB_ENV
+
+            - name: Setup version (windows)
+              if: ${{ matrix.platform == 'windows' }}
+              run: |
+                python build_version.py >> $env:GITHUB_ENV
+
+            - name: Merge Artifacts to all in one
+              uses: actions/upload-artifact/merge@v4
               with:
                   name: ${{ github.event.repository.name }}-all-platforms-${{ env.BUILD_VERSION }}-${{ github.sha }}
-                  path: |
-                      ${{ github.workspace }}/artifact
-                  retention-days: 14
-                  if-no-files-found: error
+                  pattern: ${{ github.event.repository.name }}-${{ github.sha }}*
+                  delete-merged: true
+                  retention-days: 90
