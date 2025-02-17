@@ -653,7 +653,7 @@ void JSONDataParser::_parseMesh(const rapidjson::Value& rawData, MeshDisplayData
         weight->offset = weightOffset;
         weightBoneIndices.resize(weightBoneCount);
         _intArray.resize(_intArray.size() + 1 + 1 + weightBoneCount + vertexCount + weightCount);
-        _intArray[weightOffset + (unsigned)BinaryOffset::WeigthFloatOffset] = floatOffset;
+        _intArray[weightOffset + (unsigned)BinaryOffset::WeightFloatOffset] = floatOffset;
 
         for (std::size_t i = 0; i < weightBoneCount; ++i) 
         {
@@ -661,7 +661,7 @@ void JSONDataParser::_parseMesh(const rapidjson::Value& rawData, MeshDisplayData
             const auto bone = _rawBones[rawBoneIndex];
             weight->addBone(bone);
             weightBoneIndices[i] = rawBoneIndex;
-            _intArray[weightOffset + (unsigned)BinaryOffset::WeigthBoneIndices + i] = indexOf(sortedBones, bone);
+            _intArray[weightOffset + (unsigned)BinaryOffset::WeightBoneIndices + i] = indexOf(sortedBones, bone);
         }
 
         _floatArray.resize(_floatArray.size() + weightCount * 3);
@@ -674,7 +674,7 @@ void JSONDataParser::_parseMesh(const rapidjson::Value& rawData, MeshDisplayData
         _helpMatrixA.ty = rawSlotPose[5].GetDouble();
 
         for (
-            std::size_t i = 0, iW = 0, iB = weightOffset + (unsigned)BinaryOffset::WeigthBoneIndices + weightBoneCount, iV = floatOffset;
+            std::size_t i = 0, iW = 0, iB = weightOffset + (unsigned)BinaryOffset::WeightBoneIndices + weightBoneCount, iV = floatOffset;
             i < vertexCount;
             ++i
         ) 
@@ -1583,7 +1583,7 @@ unsigned JSONDataParser::_parseSlotFFDFrame(const rapidjson::Value& rawData, uns
         _helpMatrixA.ty = rawSlotPose[5].GetDouble();
 
         _frameFloatArray.resize(_frameFloatArray.size() + weight->count * 2);
-        iB = weight->offset + (unsigned)BinaryOffset::WeigthBoneIndices + weight->bones.size();
+        iB = weight->offset + (unsigned)BinaryOffset::WeightBoneIndices + weight->bones.size();
     }
     else 
     {

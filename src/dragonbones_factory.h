@@ -78,8 +78,8 @@ public:
 	void set_texture_atlas_json_file_list(PackedStringArray p_files);
 
 	PackedStringArray get_loaded_dragon_bones_data_name_list() const;
-	PackedStringArray get_loaded_dragon_bones_armature_name_list(const String &p_daragon_bones_data_name) const;
-	PackedStringArray get_loaded_dragon_bones_main_skin_name_list(const String &p_daragon_bones_data_name, const String &p_armature_name) const;
+	PackedStringArray get_loaded_dragon_bones_armature_name_list(const String &p_dragon_bones_data_name) const;
+	PackedStringArray get_loaded_dragon_bones_main_skin_name_list(const String &p_dragon_bones_data_name, const String &p_armature_name) const;
 
 private:
 	bool imported{ false };

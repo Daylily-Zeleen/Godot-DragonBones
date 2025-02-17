@@ -13,7 +13,7 @@ private:
 	GDDisplay *_renderDisplay{ nullptr };
 
 public:
-	void update_display_texutre() const;
+	void update_display_texture() const;
 
 	void clear_display();
 

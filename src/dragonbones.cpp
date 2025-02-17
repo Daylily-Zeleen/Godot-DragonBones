@@ -169,7 +169,7 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 	p_armature->update_childs(true, true);
 
 	// update material inheritance
-	p_armature->update_material_inheritance_recursively(armatures_inherite_material);
+	p_armature->update_material_inheritance_recursively(armatures_inherit_material);
 
 	p_armature->advance(0);
 
@@ -182,14 +182,14 @@ Ref<DragonBonesFactory> DragonBones::get_factory() const {
 }
 
 void DragonBones::set_inherit_material(bool _b_enable) {
-	armatures_inherite_material = _b_enable;
+	armatures_inherit_material = _b_enable;
 	if (p_armature->is_initialized()) {
-		p_armature->update_material_inheritance_recursively(armatures_inherite_material);
+		p_armature->update_material_inheritance_recursively(armatures_inherit_material);
 	}
 }
 
 bool DragonBones::is_material_inherited() const {
-	return armatures_inherite_material;
+	return armatures_inherit_material;
 }
 
 void DragonBones::set_active(bool _b_active) {

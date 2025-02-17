@@ -50,7 +50,7 @@ private:
 #ifdef COMPATIBILITY_ENABLED
 #endif // COMPATIBILITY_ENABLED
 
-	bool armatures_inherite_material{ true };
+	bool armatures_inherit_material{ true };
 
 protected:
 	static void _bind_methods();

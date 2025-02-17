@@ -64,16 +64,16 @@ void BinaryDataParser::_parseVertices(const rapidjson::Value& rawData, VerticesD
     {
         const auto weight = BaseObject::borrowObject<WeightData>();
         const auto vertexCount = _intArray[vertices.offset + (unsigned)BinaryOffset::MeshVertexCount];
-        const auto boneCount = (unsigned)_intArray[weightOffset + (unsigned)BinaryOffset::WeigthBoneCount];
+        const auto boneCount = (unsigned)_intArray[weightOffset + (unsigned)BinaryOffset::WeightBoneCount];
         weight->offset = weightOffset;
 
         for (std::size_t i = 0; i < boneCount; ++i)
         {
-            const auto boneIndex = _intArray[weightOffset + (unsigned)BinaryOffset::WeigthBoneIndices + i];
+            const auto boneIndex = _intArray[weightOffset + (unsigned)BinaryOffset::WeightBoneIndices + i];
             weight->addBone(_rawBones[boneIndex]);
         }
 
-        auto boneIndicesOffset = weightOffset + (unsigned)BinaryOffset::WeigthBoneIndices + boneCount;
+        auto boneIndicesOffset = weightOffset + (unsigned)BinaryOffset::WeightBoneIndices + boneCount;
         unsigned weightCount = 0;
         for (std::size_t i = 0, l = vertexCount; i < l; ++i)
         {

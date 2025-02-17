@@ -108,9 +108,9 @@ DRAGONBONES_NAMESPACE_BEGIN
  */
 enum class BinaryOffset
 {
-    WeigthBoneCount = 0,
-    WeigthFloatOffset = 1,
-    WeigthBoneIndices = 2,
+    WeightBoneCount = 0,
+    WeightFloatOffset = 1,
+    WeightBoneIndices = 2,
 
     MeshVertexCount = 0,
     MeshTriangleCount = 1,

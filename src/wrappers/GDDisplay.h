@@ -48,7 +48,7 @@ public:
 
 	void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) {
 		// 仅能对 CanvasItemMaterial 进行处理
-		// TOOD: 如果以后 CanvasItem 支持实例的着色器参数，可以考虑对其进行设置，以支持 ShaderMaterial
+		// TODO: 如果以后 CanvasItem 支持实例的着色器参数，可以考虑对其进行设置，以支持 ShaderMaterial
 		Ref<CanvasItemMaterial> mat = get_material_to_set_blend_mode(p_blend_mode == CanvasItemMaterial::BLEND_MODE_MIX);
 		if (mat.is_valid()) {
 			mat->set_blend_mode(p_blend_mode);

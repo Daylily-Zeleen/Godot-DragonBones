@@ -59,8 +59,8 @@ class DragonBonesEditorPlugin : public EditorPlugin {
 
 	void _on_file_system_dock_files_moved(const String &p_old_file, const String &p_new_file);
 	void _on_filesystem_changed();
-	void _reimport_dbfacroty_recursively(class EditorFileSystemDirectory *p_dir, HashMap<String, Ref<DragonBonesFactory>> &r_factories) const;
-	void _reimport_movd_facotry_files();
+	void _reimport_dbfactory_recursively(class EditorFileSystemDirectory *p_dir, HashMap<String, Ref<DragonBonesFactory>> &r_factories) const;
+	void _reimport_moved_factory_files();
 
 	void clear_reimporting_flag();
 

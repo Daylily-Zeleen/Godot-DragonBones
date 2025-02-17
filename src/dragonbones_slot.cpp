@@ -9,7 +9,7 @@
 using namespace godot;
 using namespace dragonBones;
 
-void Slot_GD::update_display_texutre() const {
+void Slot_GD::update_display_texture() const {
 	if (!_renderDisplay || !_textureData) {
 		return;
 	}
@@ -171,7 +171,7 @@ void Slot_GD::__get_uv_pt(Point2 &_pt, bool _is_rot, float _u, float _v, const R
 }
 
 void Slot_GD::_updateFrame() {
-	update_display_texutre();
+	update_display_texture();
 	const auto currentVerticesData = (_deformVertices != nullptr && _display == _meshDisplay) ? _deformVertices->verticesData : nullptr;
 	auto currentTextureData = static_cast<GDTextureData *>(_textureData);
 
@@ -193,7 +193,7 @@ void Slot_GD::_updateFrame() {
 			int vertexOffset = intArray[currentVerticesData->offset + (unsigned)BinaryOffset::MeshFloatOffset];
 
 			if (vertexOffset < 0) {
-				vertexOffset += 65536; // Fixed out of bouds bug.
+				vertexOffset += 65536; // Fixed out of bounds bug.
 			}
 
 			const unsigned uvOffset = vertexOffset + (vertexCount << 1);
@@ -303,7 +303,7 @@ void Slot_GD::_updateMesh() {
 		const auto intArray = data->intArray;
 		const auto floatArray = data->floatArray;
 		const auto vertexCount = (std::size_t)intArray[verticesData->offset + (unsigned)BinaryOffset::MeshVertexCount];
-		int weightFloatOffset = intArray[weightData->offset + (unsigned)BinaryOffset::WeigthFloatOffset];
+		int weightFloatOffset = intArray[weightData->offset + (unsigned)BinaryOffset::WeightFloatOffset];
 
 		if (weightFloatOffset < 0) {
 			weightFloatOffset += 65536;
@@ -311,7 +311,7 @@ void Slot_GD::_updateMesh() {
 
 		auto verticesPos_ptr = meshDisplay->verticesPos.ptrw();
 		for (
-				std::size_t i = 0, iD = 0, iB = weightData->offset + (unsigned)BinaryOffset::WeigthBoneIndices + weightData->bones.size(), iV = (std::size_t)weightFloatOffset, iF = 0;
+				std::size_t i = 0, iD = 0, iB = weightData->offset + (unsigned)BinaryOffset::WeightBoneIndices + weightData->bones.size(), iV = (std::size_t)weightFloatOffset, iF = 0;
 				i < vertexCount;
 				++i) {
 			const auto boneCount = (std::size_t)intArray[iB++];

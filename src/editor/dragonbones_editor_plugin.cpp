@@ -192,7 +192,7 @@ Ref<DragonBonesFactory> DragonBonesImportPlugin::try_import(const String &p_ske_
 
 ///////////////////////////////
 
-void DragonBonesEditorPlugin::_reimport_dbfacroty_recursively(EditorFileSystemDirectory *p_dir, HashMap<String, Ref<DragonBonesFactory>> &r_factories) const {
+void DragonBonesEditorPlugin::_reimport_dbfactory_recursively(EditorFileSystemDirectory *p_dir, HashMap<String, Ref<DragonBonesFactory>> &r_factories) const {
 	if (!p_dir) {
 		return;
 	}
@@ -220,7 +220,7 @@ void DragonBonesEditorPlugin::_reimport_dbfacroty_recursively(EditorFileSystemDi
 	}
 
 	for (int32_t i = 0; i < p_dir->get_subdir_count(); ++i) {
-		_reimport_dbfacroty_recursively(p_dir->get_subdir(i), r_factories);
+		_reimport_dbfactory_recursively(p_dir->get_subdir(i), r_factories);
 	}
 }
 
@@ -231,7 +231,7 @@ void DragonBonesEditorPlugin::_on_filesystem_changed() {
 	DragonBonesFactory::editor_reimporting = true;
 
 	HashMap<String, Ref<DragonBonesFactory>> factories;
-	_reimport_dbfacroty_recursively(EditorInterface::get_singleton()->get_resource_filesystem()->get_filesystem(), factories);
+	_reimport_dbfactory_recursively(EditorInterface::get_singleton()->get_resource_filesystem()->get_filesystem(), factories);
 
 	if (!factories.is_empty()) {
 		// 保存龙骨工厂
@@ -247,7 +247,7 @@ void DragonBonesEditorPlugin::_on_filesystem_changed() {
 		}
 	}
 
-	_reimport_movd_facotry_files();
+	_reimport_moved_factory_files();
 
 	callable_mp(this, &DragonBonesEditorPlugin::clear_reimporting_flag).call_deferred();
 }
@@ -258,7 +258,7 @@ void DragonBonesEditorPlugin::_on_file_system_dock_files_moved(const String &p_o
 	}
 }
 
-void DragonBonesEditorPlugin::_reimport_movd_facotry_files() {
+void DragonBonesEditorPlugin::_reimport_moved_factory_files() {
 	for (const auto &kv : moved_factory_files) {
 		const String ske = kv.value.substr(0, kv.value.length() - sizeof(DragonBonesFactory::SAVED_EXT) + 1) + DragonBonesFactory::SRC_JSON_EXT;
 		if (!FileAccess::file_exists(ske)) {

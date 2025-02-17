@@ -66,7 +66,7 @@ DragonBonesArmature *DragonBonesFactory::buildArmatureDisplay(const std::string 
 	// 初始化纹理
 	for (const auto slot : armature->getSlots()) {
 		if (auto slot_gd = static_cast<Slot_GD *>(slot)) {
-			slot_gd->update_display_texutre();
+			slot_gd->update_display_texture();
 		}
 	}
 
@@ -111,7 +111,7 @@ Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, co
 	slot->init(slotData, armature, wrapperDisplay, wrapperDisplay);
 	slot->update(0);
 
-	// slot->update_display_texutre();
+	// slot->update_display_texture();
 
 	Ref<DragonBonesSlot> tree_slot{ memnew(DragonBonesSlot(slot)) };
 
@@ -332,10 +332,10 @@ PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_data_name_list() c
 	return ret;
 }
 
-PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_armature_name_list(const String &p_daragon_bones_data_name) const {
+PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_armature_name_list(const String &p_dragon_bones_data_name) const {
 	PackedStringArray ret;
 
-	DragonBonesData *dbdata = getDragonBonesData(to_std_str(p_daragon_bones_data_name));
+	DragonBonesData *dbdata = getDragonBonesData(to_std_str(p_dragon_bones_data_name));
 	if (dbdata == nullptr) {
 		if (getAllDragonBonesData().size() > 0) {
 			dbdata = getAllDragonBonesData().begin()->second;
@@ -350,10 +350,10 @@ PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_armature_name_list
 	return ret;
 }
 
-PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_main_skin_name_list(const String &p_daragon_bones_data_name, const String &p_armature_name) const {
+PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_main_skin_name_list(const String &p_dragon_bones_data_name, const String &p_armature_name) const {
 	PackedStringArray ret;
 
-	DragonBonesData *dbdata = getDragonBonesData(to_std_str(p_daragon_bones_data_name));
+	DragonBonesData *dbdata = getDragonBonesData(to_std_str(p_dragon_bones_data_name));
 	if (dbdata == nullptr) {
 		if (getAllDragonBonesData().size() > 0) {
 			dbdata = getAllDragonBonesData().begin()->second;
