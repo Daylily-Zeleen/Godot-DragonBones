@@ -1,8 +1,12 @@
 #include "dragonbones_factory.h"
 #include "dragonBones/core/DragonBones.h"
+#include "godot_cpp/classes/dir_access.hpp"
 #include "godot_cpp/classes/file_access.hpp"
 
 #include "dragonbones_armature.h"
+#include "godot_cpp/classes/resource.hpp"
+#include "godot_cpp/classes/resource_saver.hpp"
+#include "godot_cpp/classes/resource_uid.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
 #include "wrappers/GDMesh.h"
 #include "wrappers/GDTextureAtlasData.h"
@@ -453,6 +457,48 @@ DragonBonesFactory::~DragonBonesFactory() {
 #endif // TOOLS_ENABLED
 
 // ===========================================
+Error parse_dbfactory_file(const String &p_path, int64_t &r_uid, PackedStringArray &r_ske_files, PackedStringArray &r_atlas_files, bool &r_imported) {
+	ERR_FAIL_COND_V(p_path.get_extension().to_lower() != DragonBonesFactory::SAVED_EXT, ERR_FILE_UNRECOGNIZED);
+	Ref<FileAccess> f = FileAccess::open(p_path, FileAccess::ModeFlags::READ);
+	ERR_FAIL_NULL_V(f, FileAccess::get_open_error());
+
+	Variant first = f->get_var();
+	if (first.get_type() == Variant::INT) {
+		r_uid = first;
+		r_ske_files.append_array(f->get_var());
+	} else {
+		// Old format.
+		r_uid = ResourceUID::INVALID_ID;
+		r_ske_files.append_array(first);
+	}
+
+	r_atlas_files.append_array(f->get_var());
+	r_imported = f->get_var();
+
+	return OK;
+}
+
+Error save_dbfactory_file(const String &p_path, int64_t p_uid, const PackedStringArray &p_ske_files, const PackedStringArray &p_atlas_files, bool p_imported) {
+	Ref<FileAccess> file = FileAccess::open(p_path, FileAccess::WRITE);
+	ERR_FAIL_NULL_V_MSG(file, FileAccess::get_open_error(), vformat("Cannot save DragonBonesFactory '%s': %s.", p_path, UtilityFunctions::error_string(FileAccess::get_open_error())));
+
+	int64_t uid = ResourceLoader::get_singleton()->get_resource_uid(p_path);
+
+	if (uid == ResourceUID::INVALID_ID) {
+		uid = ResourceUID::get_singleton()->create_id();
+		if (uid != ResourceUID::INVALID_ID) {
+			ResourceUID::get_singleton()->set_id(uid, p_path);
+		}
+	}
+
+	file->store_var(uid);
+	file->store_var(p_ske_files);
+	file->store_var(p_atlas_files);
+	file->store_var(p_imported);
+	return OK;
+}
+
+// ===========================================
 bool ResourceFormatSaverDragonBones::_recognize(const Ref<Resource> &resource) const {
 	return cast_to<DragonBonesFactory>(resource.ptr());
 }
@@ -464,18 +510,58 @@ PackedStringArray ResourceFormatSaverDragonBones::_get_recognized_extensions(con
 	return {};
 }
 
+Error ResourceFormatSaverDragonBones::_set_uid(const String &p_path, int64_t p_uid) {
+	String lc = p_path.to_lower();
+	if (!lc.to_lower().ends_with(DragonBonesFactory::SAVED_EXT)) {
+		return ERR_FILE_UNRECOGNIZED;
+	}
+
+	String local_path = ProjectSettings::get_singleton()->localize_path(p_path);
+	String tmp_file_path = p_path + String(".tmp");
+	auto tmp_file = FileAccess::open(tmp_file_path, FileAccess::READ_WRITE);
+	if (tmp_file.is_null()) {
+		ERR_FAIL_V(FileAccess::get_open_error());
+	}
+
+	int64_t _uid = ResourceUID::INVALID_ID;
+	PackedStringArray ske_files;
+	PackedStringArray atlas_files;
+	bool imported;
+
+	Error err = parse_dbfactory_file(p_path, _uid, ske_files, atlas_files, imported);
+	if (err != OK) {
+		ERR_FAIL_V(err);
+	}
+
+	err = save_dbfactory_file(tmp_file_path, p_uid, ske_files, atlas_files, imported);
+	if (err != OK) {
+		ERR_FAIL_V(err);
+	}
+
+	//s
+	err = DirAccess::remove_absolute(local_path);
+	if (err != OK) {
+		ERR_FAIL_V(err);
+	}
+
+	err = DirAccess::rename_absolute(tmp_file_path, local_path);
+
+	return err;
+}
+
 Error ResourceFormatSaverDragonBones::_save(const Ref<Resource> &resource, const String &path, uint32_t flags) {
 	Ref<DragonBonesFactory> factory = resource;
 	ERR_FAIL_NULL_V(factory, ERR_INVALID_PARAMETER);
 
-	Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE);
-	ERR_FAIL_NULL_V_MSG(file, FileAccess::get_open_error(), vformat("Cannot save DragonBonesFactory '%s': %s.", path, UtilityFunctions::error_string(FileAccess::get_open_error())));
+	int64_t uid = ResourceLoader::get_singleton()->get_resource_uid(path);
+	if (uid == ResourceUID::INVALID_ID) {
+		uid = ResourceUID::get_singleton()->create_id();
+		if (uid != ResourceUID::INVALID_ID) {
+			ResourceUID::get_singleton()->set_id(uid, path);
+		}
+	}
 
-	file->store_var(factory->get_dragon_bones_ske_file_list());
-	file->store_var(factory->get_texture_atlas_json_file_list());
-	file->store_var(factory->imported);
-
-	return OK;
+	return save_dbfactory_file(path, uid, factory->get_dragon_bones_ske_file_list(), factory->get_texture_atlas_json_file_list(), factory->imported);
 }
 
 // ===========================================
@@ -495,12 +581,27 @@ String ResourceFormatLoaderDragonBones::_get_resource_type(const String &path) c
 	return "";
 }
 
+int64_t ResourceFormatLoaderDragonBones::_get_resource_uid(const String &path) const {
+	auto fa = FileAccess::open(path, FileAccess::READ);
+	if (fa.is_null()) {
+		ERR_PRINT(vformat("Cannot open file '%s' for reading uid: %s.", path, UtilityFunctions::error_string(FileAccess::get_open_error())));
+		return ResourceUID::INVALID_ID;
+	}
+
+	Variant ret = fa->get_var();
+	if (ret.get_type() != Variant::INT) {
+		return ResourceUID::INVALID_ID; // Old format.
+	}
+	return ret;
+}
+
 Variant ResourceFormatLoaderDragonBones::_load(const String &path, const String &original_path, bool use_sub_threads, int32_t cache_mode) const {
+	int64_t uid = ResourceUID::INVALID_ID;
 	PackedStringArray ske_files;
 	PackedStringArray atlas_files;
 	bool imported;
 
-	Error err = parse_dbfactory_file(path, ske_files, atlas_files, imported);
+	Error err = parse_dbfactory_file(path, uid, ske_files, atlas_files, imported);
 	if (err != OK) {
 		return err;
 	}
@@ -510,6 +611,16 @@ Variant ResourceFormatLoaderDragonBones::_load(const String &path, const String 
 
 #ifdef TOOLS_ENABLED
 	if (Engine::get_singleton()->is_editor_hint()) {
+		if (uid == ResourceUID::INVALID_ID) {
+			if (FileAccess::file_exists(path)) {
+				uid = ResourceUID::get_singleton()->create_id();
+				Error err = save_dbfactory_file(path, uid, ske_files, atlas_files, imported);
+				if (err != OK) {
+					ResourceUID::get_singleton()->remove_id(uid);
+				}
+			}
+		}
+
 		if (!imported) {
 			ret->set_dragon_bones_ske_file_list(ske_files);
 			ret->set_texture_atlas_json_file_list(atlas_files);
@@ -538,7 +649,19 @@ Variant ResourceFormatLoaderDragonBones::_load(const String &path, const String 
 		ret->set_texture_atlas_json_file_list(atlas_files);
 		ret->imported = imported;
 	}
+
+	if (uid != ResourceUID::INVALID_ID) {
+		if (ResourceUID::get_singleton()->has_id(uid)) {
+			ResourceUID::get_singleton()->set_id(uid, path);
+		}
+	} else {
+		ResourceUID::get_singleton()->add_id(uid, path);
+	}
+
 #else // ! TOOLS_ENABLED
+	if (uid != ResourceUID::INVALID_ID) {
+		ResourceUID::get_singleton()->set_id(uid, path);
+	}
 	ret->set_dragon_bones_ske_file_list(ske_files);
 	ret->set_texture_atlas_json_file_list(atlas_files);
 	ret->imported = imported;
@@ -549,18 +672,5 @@ Variant ResourceFormatLoaderDragonBones::_load(const String &path, const String 
 		DragonBonesFactory::get_all_imported_factories().insert(path, ret.ptr());
 	}
 #endif // TOOLS_ENABLED
-
 	return ret;
-}
-
-Error ResourceFormatLoaderDragonBones::parse_dbfactory_file(const String &p_path, PackedStringArray &r_ske_files, PackedStringArray &r_atlas_files, bool &r_imported) {
-	ERR_FAIL_COND_V(p_path.get_extension().to_lower() != DragonBonesFactory::SAVED_EXT, ERR_FILE_UNRECOGNIZED);
-	Ref<FileAccess> f = FileAccess::open(p_path, FileAccess::ModeFlags::READ);
-	ERR_FAIL_NULL_V(f, FileAccess::get_open_error());
-
-	r_ske_files.append_array(f->get_var());
-	r_atlas_files.append_array(f->get_var());
-	r_imported = f->get_var();
-
-	return OK;
 }

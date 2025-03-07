@@ -113,6 +113,7 @@ protected:
 public:
 	virtual bool _recognize(const Ref<Resource> &resource) const override;
 	virtual PackedStringArray _get_recognized_extensions(const Ref<Resource> &resource) const override;
+	virtual Error _set_uid(const String &path, int64_t uid) override;
 
 	virtual Error _save(const Ref<Resource> &resource, const String &path, uint32_t flags) override;
 };
@@ -126,10 +127,10 @@ public:
 	virtual PackedStringArray _get_recognized_extensions() const override;
 	virtual bool _handles_type(const StringName &type) const override;
 	virtual String _get_resource_type(const String &path) const override;
+	virtual int64_t _get_resource_uid(const String &path) const override;
 	virtual Variant _load(const String &path, const String &original_path, bool use_sub_threads, int32_t cache_mode) const override;
 
 private:
-	static Error parse_dbfactory_file(const String &p_path, PackedStringArray &r_ske_files, PackedStringArray &r_atlas_files, bool &r_imported);
 	friend class DragonBonesEditorPlugin;
 };
 } //namespace godot
