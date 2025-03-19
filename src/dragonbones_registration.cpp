@@ -35,7 +35,6 @@ void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(DragonBonesFactory);
 	GDREGISTER_CLASS(DragonBones);
 
-	GDREGISTER_INTERNAL_CLASS(MeshDisplay);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesBone);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesSlot);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesArmature);

@@ -26,7 +26,7 @@ _FORCE_INLINE_ dragonBones::Transform to_db_transform(const Transform2D &p_t) {
 void DragonBonesBone::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_name"), &DragonBonesBone::get_name);
 	ClassDB::bind_method(D_METHOD("get_parent"), &DragonBonesBone::get_parent);
-	ClassDB::bind_method(D_METHOD("has_data"), &DragonBonesBone::has_data);
+	ClassDB::bind_method(D_METHOD("is_valid"), &DragonBonesBone::is_valid);
 
 	ClassDB::bind_method(D_METHOD("get_position"), &DragonBonesBone::get_position);
 	ClassDB::bind_method(D_METHOD("set_position", "new_position"), &DragonBonesBone::set_position);
@@ -72,7 +72,7 @@ void DragonBonesBone::_bind_methods() {
 	BIND_ENUM_CONSTANT(OFFSET_MODE_OVERRIDE);
 }
 
-bool DragonBonesBone::has_data() const {
+bool DragonBonesBone::is_valid() const {
 	return boneData && armature;
 }
 
@@ -82,12 +82,11 @@ String DragonBonesBone::get_name() const {
 }
 
 Ref<DragonBonesBone> DragonBonesBone::get_parent() const {
-	ERR_FAIL_NULL_V(boneData, {});
-	ERR_FAIL_NULL_V(armature, {});
+	ERR_FAIL_COND_V(!is_valid(), {});
 	if (boneData->getParent() == nullptr) {
 		return {};
 	}
-	return static_cast<DragonBonesArmature *>(armature)->get_bone(to_gd_str(boneData->getParent()->getName()));
+	return armature->get_bone(to_gd_str(boneData->getParent()->getName()));
 }
 
 // Local

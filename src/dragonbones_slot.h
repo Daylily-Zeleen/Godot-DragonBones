@@ -1,7 +1,9 @@
 #pragma once
 
 #include "dragonBones/armature/Slot.h"
-#include "wrappers/i_dragonbones_display.h"
+#include "utils.h"
+#include "wrappers/mesh_display.h"
+#include <godot_cpp/classes/texture2d.hpp>
 
 namespace godot {
 
@@ -10,15 +12,14 @@ class Slot_GD : public dragonBones::Slot {
 
 private:
 	float _textureScale;
-	IDragonBonesDisplay *_renderDisplay{ nullptr };
-
-	void queue_redraw();
 
 public:
 	Ref<Texture2D> get_texture() const;
 	// void update_display_texture() const;
 
 	void clear_display();
+
+	Display *get_display() const { return static_cast<Display *>(getDisplay()); }
 
 public:
 	virtual void _updateVisible() override;

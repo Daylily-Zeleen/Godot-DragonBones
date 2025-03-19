@@ -1,6 +1,8 @@
 #include "dragonbones_factory.h"
+#include "dragonBones/animation/WorldClock.h"
 #include "dragonBones/core/DragonBones.h"
 #include "godot_cpp/classes/dir_access.hpp"
+#include "godot_cpp/classes/engine.hpp"
 #include "godot_cpp/classes/file_access.hpp"
 
 #include "dragonbones_armature.h"
@@ -104,7 +106,6 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 	}
 
 	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
-	armatureDisplay->set_name(to_gd_str(armature->getName()));
 	return armature;
 }
 
@@ -138,16 +139,7 @@ Armature *DragonBonesFactory::_buildChildArmature(const BuildArmaturePackage *da
 		childArmature = buildArmatureDisplay(displayData->path, displayData->getParent()->parent->parent->name);
 	}
 
-	if (childArmature == nullptr) {
-		ERR_PRINT("Child armature is null");
-		return nullptr;
-	}
-
-	childArmature->set_z_index(slot->_zOrder);
-	childArmature->getArmature()->setFlipY(true);
-	childArmature->hide();
-	proxy->add_child(childArmature, false, Node::INTERNAL_MODE_BACK);
-
+	ERR_FAIL_NULL_V_MSG(childArmature, nullptr, "Child armature is null");
 	return childArmature->getArmature();
 }
 

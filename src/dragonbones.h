@@ -3,22 +3,19 @@
 #include "dragonBones/core/DragonBones.h"
 #include "dragonbones_armature.h"
 #include "dragonbones_factory.h"
-#include "wrappers/i_dragonbones_display.h"
 
 namespace godot {
 /// TODO: 修改dragonBones库的new delete,供给Godot追踪内存
-class DragonBones : public Node2D, public IDragonBonesOwner, public dragonBones::IEventDispatcher {
+class DragonBones : public Node2D, public dragonBones::IEventDispatcher {
 	GDCLASS(DragonBones, Node2D)
 
 public:
 	// sound IEventDispatcher
 	virtual void addDBEventListener(const std::string &type, const std::function<void(dragonBones::EventObject *)> &listener) override {}
 	virtual void removeDBEventListener(const std::string &type, const std::function<void(dragonBones::EventObject *)> &listener) override {}
-
 	virtual bool hasDBEventListener(const std::string &type) const override { return true; }
-	virtual void dispatchDBEvent(const std::string &type, dragonBones::EventObject *value) override {
-		dispatch_sound_event(to_gd_str(type), value);
-	}
+
+	virtual void dispatchDBEvent(const std::string &p_type, dragonBones::EventObject *p_value) override;
 
 	enum AnimationCallbackModeProcess {
 		ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS = 0,
@@ -30,7 +27,7 @@ private:
 	dragonBones::DragonBones *p_instance{ nullptr };
 
 	Ref<DragonBonesFactory> m_res;
-	DragonBonesArmature *p_armature{ nullptr };
+	DragonBonesArmature *main_armature{ nullptr };
 	AnimationCallbackModeProcess callback_mode_process{ ANIMATION_CALLBACK_MODE_PROCESS_IDLE };
 	String instantiate_dragon_bones_data_name{ "" };
 	String instantiate_armature_name{ "" };
@@ -42,15 +39,15 @@ private:
 	bool processing{ false };
 	bool b_playing{ false };
 	bool b_debug{ false };
-	bool b_inited{ false };
+	bool b_initialized{ false };
 	bool b_try_playing{ false };
 
 	bool b_flip_x{ false };
 	bool b_flip_y{ false };
-#ifdef COMPATIBILITY_ENABLED
-#endif // COMPATIBILITY_ENABLED
 
 	bool armatures_inherit_material{ true };
+
+	RID draw_mesh;
 
 protected:
 	static void _bind_methods();
@@ -68,16 +65,14 @@ protected:
 
 public:
 	DragonBones();
-	~DragonBones() { _cleanup(true); }
+	~DragonBones();
+
+	virtual void _draw() override;
 
 	void _cleanup(bool p_for_destructor = false);
 
 	// to initial pose current animation
 	void _reset();
-
-	virtual void dispatch_event(const String &_str_type, const dragonBones::EventObject *_p_value) override;
-	virtual void dispatch_sound_event(const String &_str_type, const dragonBones::EventObject *_p_value) override;
-	virtual Ref<CanvasItemMaterial> get_material_to_set_blend_mode(bool p_required) override;
 
 	// setters/getters
 	void set_factory(const Ref<DragonBonesFactory> &_p_data);
@@ -121,39 +116,6 @@ public:
 	/* deprecated */ void set_flip_y(bool _b_flip);
 	/* deprecated */ bool is_flipped_y() const;
 
-#ifdef COMPATIBILITY_ENABLED
-	/**
-		THESE DEPRECATED FUNCTIONS WILL BE REMOVED IN VERSION 3.2.53
-	*/
-	/* deprecated */ void fade_in(const String &_name_anim, float _time, int _loop, int _layer, const String &_group, DragonBonesArmature::AnimFadeOutMode _fade_out_mode);
-	/* deprecated */ void fade_out(const String &_name_anim);
-	/* deprecated */ String get_current_animation() const;
-	/* deprecated */ String get_current_animation_on_layer(int _layer) const;
-	/* deprecated */ float tell();
-	/* deprecated */ void seek(float _f_p);
-	/* deprecated */ float get_progress() const;
-	/* deprecated */ bool has_anim(const String &_str_anim);
-	/* deprecated */ bool has_slot(const String &_slot_name) const;
-	/* deprecated */ Color get_slot_display_color_multiplier(const String &_slot_name);
-	/* deprecated */ void set_slot_display_color_multiplier(const String &_slot_name, const Color &_color);
-	/* deprecated */ void set_slot_display_index(const String &_slot_name, int _index = 0);
-	/* deprecated */ void set_slot_by_item_name(const String &_slot_name, const String &_item_name);
-	/* deprecated */ void set_all_slots_by_item_name(const String &_item_name);
-	/* deprecated */ int get_slot_display_index(const String &_slot_name);
-	/* deprecated */ int get_total_items_in_slot(const String &_slot_name);
-	/* deprecated */ void cycle_next_item_in_slot(const String &_slot_name);
-	/* deprecated */ void cycle_previous_item_in_slot(const String &_slot_name);
-	/* deprecated */ bool is_playing() const;
-	/* deprecated */ void play_from_time(float _f_time);
-	/* deprecated */ void play_from_progress(float _f_progress);
-	/* deprecated */ void play_new_animation(const String &_str_anim, int _num_times);
-	/* deprecated */ void play_new_animation_from_progress(const String &_str_anim, int _num_times, float _f_progress);
-	/* deprecated */ void play_new_animation_from_time(const String &_str_anim, int _num_times, float _f_time);
-	/* deprecated */ void play();
-	/* deprecated */ void stop(bool _b_all = false);
-	/* deprecated */ inline void stop_all() { stop(true); }
-#endif
-
 	DragonBonesArmature *get_armature();
 	void set_armature(DragonBonesArmature *) const; // readonly
 
@@ -161,22 +123,18 @@ public:
 
 	template <class FUNC, std::enable_if_t<std::is_invocable_v<FUNC, DragonBonesArmature *, int>> *_dummy = nullptr>
 	void for_each_armature(FUNC &&p_action) {
-		if (!p_armature) {
+		if (!main_armature) {
 			return;
 		}
 
 		if constexpr (std::is_invocable_r_v<bool, FUNC, DragonBonesArmature *, int>) {
-			if (p_action(p_armature, 0)) {
+			if (p_action(main_armature, 0)) {
 				return;
 			}
 		} else {
-			p_action(p_armature, 0);
+			p_action(main_armature, 0);
 		}
-		p_armature->for_each_armature_recursively(p_action, 1);
-	}
-
-	virtual void request_redraw() override {
-		queue_redraw();
+		main_armature->for_each_armature_recursively(p_action, 1);
 	}
 
 private:
@@ -191,6 +149,8 @@ private:
 #endif // TOOLS_ENABLED
 };
 
+/**
+ */
 class DragonBonesUserData : public RefCounted {
 	GDCLASS(DragonBonesUserData, RefCounted)
 
