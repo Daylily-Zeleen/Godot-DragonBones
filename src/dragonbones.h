@@ -3,12 +3,12 @@
 #include "dragonBones/core/DragonBones.h"
 #include "dragonbones_armature.h"
 #include "dragonbones_factory.h"
-#include "wrappers/GDDisplay.h"
+#include "wrappers/i_dragonbones_display.h"
 
 namespace godot {
 /// TODO: 修改dragonBones库的new delete,供给Godot追踪内存
-class DragonBones : public GDOwnerNode, public dragonBones::IEventDispatcher {
-	GDCLASS(DragonBones, GDOwnerNode)
+class DragonBones : public Node2D, public IDragonBonesOwner, public dragonBones::IEventDispatcher {
+	GDCLASS(DragonBones, Node2D)
 
 public:
 	// sound IEventDispatcher
@@ -117,9 +117,9 @@ public:
 	bool is_debug() const;
 
 	/* deprecated */ void set_flip_x(bool _b_flip);
-	/* deprecated */ bool is_fliped_x() const;
+	/* deprecated */ bool is_flipped_x() const;
 	/* deprecated */ void set_flip_y(bool _b_flip);
-	/* deprecated */ bool is_fliped_y() const;
+	/* deprecated */ bool is_flipped_y() const;
 
 #ifdef COMPATIBILITY_ENABLED
 	/**
@@ -175,6 +175,10 @@ public:
 		p_armature->for_each_armature_recursively(p_action, 1);
 	}
 
+	virtual void request_redraw() override {
+		queue_redraw();
+	}
+
 private:
 	void _set_process(bool p_process, bool p_force = false);
 	void _on_resource_changed();
@@ -202,7 +206,7 @@ protected:
 public:
 	DragonBonesUserData() = default;
 	DragonBonesUserData(dragonBones::UserData *p_user_data) :
-			user_data(p_user_data) {};
+			user_data(p_user_data){};
 
 	bool has_data() const { return user_data; }
 

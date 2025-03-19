@@ -4,7 +4,7 @@
 #include "godot_cpp/classes/ref.hpp"
 
 #include "dragonbones.h"
-#include <wrappers/GDMesh.h>
+#include <wrappers/mesh_display.h>
 
 using namespace godot;
 using namespace dragonBones;
@@ -19,9 +19,20 @@ DragonBonesArmature::~DragonBonesArmature() {
 	dispose(true);
 }
 
+void DragonBonesArmature::_draw() {
+	// TODO: 批处理
+}
+
+void DragonBonesArmature::set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) {
+	auto mat = get_material_to_set_blend_mode(p_blend_mode == CanvasItemMaterial::BLEND_MODE_MIX);
+	if (mat.is_valid()) {
+		mat->set_blend_mode(p_blend_mode);
+	}
+}
+
 Ref<CanvasItemMaterial> DragonBonesArmature::get_material_to_set_blend_mode(bool p_required) {
 	if (get_use_parent_material()) {
-		auto parent = dynamic_cast<GDOwnerNode *>(get_parent());
+		auto parent = dynamic_cast<IDragonBonesOwner *>(get_parent());
 		if (parent) {
 			return parent->get_material_to_set_blend_mode(p_required);
 		}
@@ -226,9 +237,9 @@ void DragonBonesArmature::set_debug(bool _b_debug, bool p_recursively) {
 			});
 		}
 
-		if (auto display = static_cast<GDDisplay *>(slot->getRawDisplay())) {
+		if (auto display = static_cast<IDragonBonesDisplay *>(slot->getRawDisplay())) {
 			display->b_debug = _b_debug;
-			display->queue_redraw();
+			request_redraw();
 		}
 	}
 }
@@ -593,11 +604,11 @@ bool DragonBonesArmature::is_flipped_y() const {
 }
 
 Ref<Texture2D> DragonBonesArmature::get_texture_override() const {
-	return texture;
+	return texture_override;
 }
 
 void DragonBonesArmature::set_texture_override(const Ref<Texture2D> &p_texture_override) {
-	texture = p_texture_override;
+	texture_override = p_texture_override;
 }
 
 Dictionary DragonBonesArmature::get_ik_constraints() {
@@ -636,8 +647,8 @@ void DragonBonesArmature::set_ik_constraint_bend_positive(const String &name, bo
 	}
 }
 
-Dictionary DragonBonesArmature::get_bones() {
-	Dictionary bones{};
+TypedDictionary<StringName, DragonBonesBone> DragonBonesArmature::get_bones() {
+	TypedDictionary<StringName, DragonBonesBone> bones{};
 
 	for (auto &bone : _bones) {
 		bones[to_gd_str(bone.first)] = bone.second;
@@ -680,7 +691,7 @@ void DragonBonesArmature::dispose(bool _disposeProxy) {
 
 	if (p_armature) {
 		p_armature->dispose();
-		if (auto db = Object::cast_to<DragonBones>(p_owner)) {
+		if (auto db = dynamic_cast<DragonBones *>(p_owner)) {
 			// 立刻回收
 			db->advance(0.0f);
 		}
@@ -704,8 +715,10 @@ void DragonBonesArmature::setup_recursively(bool _b_debug) {
 			p_child_armature->setup_recursively(b_debug);
 		});
 
-		if (auto display = static_cast<GDDisplay *>(slot->getRawDisplay())) {
-			add_child(display, false, Node::INTERNAL_MODE_BACK);
+		if (auto display = static_cast<IDragonBonesDisplay *>(slot->getRawDisplay())) {
+			if (auto armature_display = dynamic_cast<DragonBonesArmature *>(display)) {
+				add_child(armature_display, false, Node::INTERNAL_MODE_BACK);
+			}
 			display->p_owner = this;
 			display->b_debug = _b_debug;
 		}
@@ -746,9 +759,9 @@ void DragonBonesArmature::set_slots_inherit_material(bool p_slots_inherit_materi
 			continue;
 		}
 
-		if (auto display = static_cast<GDDisplay *>(slot->getRawDisplay())) {
-			display->set_use_parent_material(p_slots_inherit_material);
-		}
+		// if (auto display = static_cast<IDragonBonesDisplay *>(slot->getRawDisplay())) {
+		// 	display->set_use_parent_material(p_slots_inherit_material);
+		// }
 	}
 
 	if (p_recursively) {
@@ -771,9 +784,9 @@ bool DragonBonesArmature::is_slots_inherit_material() const {
 // 		if (!slot) {
 // 			continue;
 // 		}
-// 		if (auto display = static_cast<GDDisplay *>(slot->getRawDisplay())) {
+// 		if (auto display = static_cast<IDragonBonesDisplay *>(slot->getRawDisplay())) {
 // 			display->texture = _m_texture_atlas;
-// 			display->queue_redraw();
+// 			request_redraw();
 // 		}
 // 	}
 // }
@@ -934,7 +947,7 @@ bool DragonBonesArmatureProxy::_set(const StringName &p_name, const Variant &p_v
 		if (prop_info.name == p_name) {
 			armature_node->set(p_name, p_val);
 			if (prop_info.name.ends_with("modulate")) {
-				armature_node->queue_redraw();
+				armature_node->request_redraw();
 			} else {
 				notify_property_list_changed();
 			}

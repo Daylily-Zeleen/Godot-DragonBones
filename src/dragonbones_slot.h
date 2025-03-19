@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dragonBones/armature/Slot.h"
-#include "wrappers/GDDisplay.h"
+#include "wrappers/i_dragonbones_display.h"
 
 namespace godot {
 
@@ -10,10 +10,13 @@ class Slot_GD : public dragonBones::Slot {
 
 private:
 	float _textureScale;
-	GDDisplay *_renderDisplay{ nullptr };
+	IDragonBonesDisplay *_renderDisplay{ nullptr };
+
+	void queue_redraw();
 
 public:
-	void update_display_texture() const;
+	Ref<Texture2D> get_texture() const;
+	// void update_display_texture() const;
 
 	void clear_display();
 

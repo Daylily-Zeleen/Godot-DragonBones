@@ -7,7 +7,7 @@
 #include "editor/dragonbones_editor_plugin.h"
 #endif //TOOLS_ENABLED
 
-#include "wrappers/GDMesh.h"
+#include "wrappers/mesh_display.h"
 
 #include "godot_cpp/classes/resource_loader.hpp"
 #include "godot_cpp/classes/resource_saver.hpp"
@@ -35,7 +35,7 @@ void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(DragonBonesFactory);
 	GDREGISTER_CLASS(DragonBones);
 
-	GDREGISTER_INTERNAL_CLASS(GDMesh);
+	GDREGISTER_INTERNAL_CLASS(MeshDisplay);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesBone);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesSlot);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesArmature);

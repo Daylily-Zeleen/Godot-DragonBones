@@ -132,7 +132,6 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 	m_res = _p_data;
 
 	if (m_res.is_null()) {
-		// m_texture_atlas.unref();
 		notify_property_list_changed();
 		return;
 	} else if (!m_res->is_connected(sn, cb)) {
@@ -312,7 +311,7 @@ void DragonBones::set_flip_x(bool _b_flip) {
 	}
 }
 
-bool DragonBones::is_fliped_x() const {
+bool DragonBones::is_flipped_x() const {
 	return b_flip_x;
 }
 
@@ -323,7 +322,7 @@ void DragonBones::set_flip_y(bool _b_flip) {
 	}
 }
 
-bool DragonBones::is_fliped_y() const {
+bool DragonBones::is_flipped_y() const {
 	return b_flip_y;
 }
 
@@ -683,9 +682,9 @@ void DragonBones::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_material_inherited"), &DragonBones::is_material_inherited);
 
 	ClassDB::bind_method(D_METHOD("set_flip_x", "enable_flip"), &DragonBones::set_flip_x);
-	ClassDB::bind_method(D_METHOD("is_fliped_x"), &DragonBones::is_fliped_x);
+	ClassDB::bind_method(D_METHOD("is_flipped_x"), &DragonBones::is_flipped_x);
 	ClassDB::bind_method(D_METHOD("set_flip_y", "enable_flip"), &DragonBones::set_flip_y);
-	ClassDB::bind_method(D_METHOD("is_fliped_y"), &DragonBones::is_fliped_y);
+	ClassDB::bind_method(D_METHOD("is_flipped_y"), &DragonBones::is_flipped_y);
 
 #ifdef COMPATIBILITY_ENABLED
 	/*
@@ -764,8 +763,8 @@ void DragonBones::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug"), "set_debug", "is_debug");
 
 	ADD_GROUP("Flip", "flip_");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_x"), "set_flip_x", "is_fliped_x");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_y"), "set_flip_y", "is_fliped_y");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_x"), "set_flip_x", "is_flipped_x");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_y"), "set_flip_y", "is_flipped_y");
 
 	ADD_GROUP("Animation Settings", "animation_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "animation_loop", PROPERTY_HINT_RANGE, "0,100,1,or_greater"), "set_animation_loop", "get_animation_loop");
@@ -777,7 +776,7 @@ void DragonBones::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "instantiate_armature_name", PROPERTY_HINT_ENUM_SUGGESTION, "[default]"), "set_instantiate_armature_name", "get_instantiate_armature_name");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "instantiate_skin_name", PROPERTY_HINT_ENUM_SUGGESTION, "[default]"), "set_instantiate_skin_name", "get_instantiate_skin_name");
 
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "armaturess_use_this_material"), "set_inherit_material", "is_material_inherited");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "armatures_use_this_material"), "set_inherit_material", "is_material_inherited");
 
 	// 信号
 	const auto armature_prop = PropertyInfo(Variant::OBJECT, "armature", PROPERTY_HINT_NONE, "", PROPERTY_HINT_NONE, DragonBonesArmature::get_class_static());
