@@ -29,6 +29,8 @@ public:
 		1
 	};
 
+	RID debug_mesh;
+
 public:
 	GDMesh() = default;
 	virtual ~GDMesh() override = default;
@@ -82,13 +84,39 @@ public:
 					-1);
 		}
 
+#ifdef DEBUG_ENABLED
 		if (b_debug) {
-			for (int idx = 0; idx < indices.size(); idx += 3) {
-				RenderingServer::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx]], verticesPos[indices[idx + 1]], col_debug, 2.0);
-				RenderingServer::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx + 1]], verticesPos[indices[idx + 2]], col_debug, 2.0);
-				RenderingServer::get_singleton()->canvas_item_add_line(get_canvas_item(), verticesPos[indices[idx + 2]], verticesPos[indices[idx]], col_debug, 2.0);
+			if (!debug_mesh.is_valid()) {
+				debug_mesh = RenderingServer::get_singleton()->mesh_create();
+			}
+
+			PackedInt32Array lines_indices;
+			for (int i = 0; i < indices.size(); i += 3) {
+				lines_indices.push_back(indices[i]);
+				lines_indices.push_back(indices[i + 1]);
+
+				lines_indices.push_back(indices[i + 1]);
+				lines_indices.push_back(indices[i + 2]);
+
+				lines_indices.push_back(indices[i + 2]);
+				lines_indices.push_back(indices[i]);
+			}
+
+			Array arrays;
+			arrays.resize(RenderingServer::ARRAY_MAX);
+			arrays[RenderingServer::ARRAY_VERTEX] = verticesPos;
+			arrays[RenderingServer::ARRAY_INDEX] = lines_indices;
+
+			RenderingServer::get_singleton()->mesh_clear(debug_mesh);
+			RenderingServer::get_singleton()->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_LINES, arrays);
+			RenderingServer::get_singleton()->canvas_item_add_mesh(get_canvas_item(), debug_mesh, get_canvas_transform(), col_debug);
+		} else {
+			if (debug_mesh.is_valid()) {
+				RenderingServer::get_singleton()->free_rid(debug_mesh);
+				debug_mesh = RID();
 			}
 		}
+#endif // DEBUG_ENABLED
 	}
 
 	virtual void update_modulate(const Color &p_modulate) override {
