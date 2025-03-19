@@ -1,7 +1,5 @@
 #pragma once
 
-#include "wrappers/i_dragonbones_display.h"
-
 #include "dragonBones/armature/Armature.h"
 #include "dragonBones/armature/IArmatureProxy.h"
 #include "dragonbones_bone.h"
@@ -12,8 +10,8 @@
 
 namespace godot {
 
-class DragonBonesArmature : public Node2D, public IDragonBonesDisplay, public IDragonBonesOwner, public dragonBones::IArmatureProxy {
-	GDCLASS(DragonBonesArmature, Node2D)
+class DragonBonesArmature : public Object, public Display, public dragonBones::IArmatureProxy {
+	GDCLASS(DragonBonesArmature, Object)
 public:
 	enum AnimFadeOutMode {
 		FADE_OUT_NONE,
@@ -25,6 +23,9 @@ public:
 	};
 
 private:
+	class Slot_GD *slot{ nullptr };
+	friend class Slot_GD;
+
 	// bool active{ true };
 	// bool processing{ false };
 	// float time_scale{ 1.0f };
@@ -32,6 +33,9 @@ private:
 	bool slots_inherit_material{ true };
 
 	Ref<Texture2D> texture_override;
+
+	class DragonBones *dragon_bones{ nullptr };
+	friend class DragonBones;
 
 protected:
 	dragonBones::Armature *p_armature{ nullptr };
@@ -41,36 +45,6 @@ protected:
 public:
 	DragonBonesArmature();
 	virtual ~DragonBonesArmature() override;
-
-	virtual void _draw() override;
-
-	virtual void request_redraw() override {
-		p_owner->request_redraw();
-	}
-
-	virtual void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) override;
-
-	virtual Ref<Texture2D> get_draw_texture() const override { return texture_override; }
-	virtual void append_draw_info(LocalVector<Vector2> &r_vertices, LocalVector<int32_t> &r_indices, LocalVector<Color> &r_colors, LocalVector<Vector2> &r_uvs) const override {}
-
-	virtual void update_modulate(const Color &p_modulate) override {
-		IDragonBonesDisplay::update_modulate(p_modulate);
-		update_childs(true);
-	}
-
-	virtual void dispatch_event(const String &_str_type, const dragonBones::EventObject *_p_value) override {
-		if (p_owner) {
-			p_owner->dispatch_event(_str_type, _p_value);
-		}
-	}
-
-	virtual void dispatch_sound_event(const String &_str_type, const dragonBones::EventObject *_p_value) override {
-		if (p_owner) {
-			p_owner->dispatch_sound_event(_str_type, _p_value);
-		}
-	}
-
-	virtual Ref<CanvasItemMaterial> get_material_to_set_blend_mode(bool p_required) override;
 
 	dragonBones::Slot *getSlot(const std::string &name) const;
 
@@ -82,9 +56,8 @@ public:
 	virtual bool hasDBEventListener(const std::string &_type) const override { return true; }
 	virtual void addDBEventListener(const std::string &_type, const std::function<void(dragonBones::EventObject *)> &_listener) override {}
 	virtual void removeDBEventListener(const std::string &_type, const std::function<void(dragonBones::EventObject *)> &_listener) override {}
-	virtual void dispatchDBEvent(const std::string &_type, dragonBones::EventObject *_value) override {
-		this->dispatch_event(to_gd_str(_type), _value);
-	}
+
+	virtual void dispatchDBEvent(const std::string &_type, dragonBones::EventObject *_value) override;
 
 	void dbInit(dragonBones::Armature *_p_armature) override;
 	void dbClear() override;
@@ -95,7 +68,7 @@ public:
 	virtual dragonBones::Armature *getArmature() const override { return p_armature; }
 	virtual dragonBones::Animation *getAnimation() const override { return p_armature->getAnimation(); }
 
-	void setup_recursively(bool _b_debug);
+	void setup_recursively();
 	void update_childs(bool _b_color, bool _b_blending = false);
 	// void update_texture_atlas(const Ref<Texture> &_m_texture_atlas);
 	void update_material_inheritance_recursively(bool p_inheritance);
@@ -140,6 +113,9 @@ public:
 			p_child_armature->for_each_armature_recursively(std::forward<Func>(p_action), p_current_depth + 1);
 		});
 	}
+
+	virtual void queue_redraw() const override;
+	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data) const override;
 
 public:
 	bool is_initialized() const { return p_armature; }
@@ -202,10 +178,6 @@ public:
 
 	void set_animation_progress(float p_progress);
 	float get_animation_progress() const;
-
-	void set_debug_(bool p_debug) { set_debug(p_debug); }
-	void set_debug(bool _b_debug, bool p_recursively = false);
-	bool is_debug() const { return b_debug; }
 
 	void set_flip_x_(bool p_flip_x) { set_flip_x(p_flip_x); }
 	void set_flip_x(bool p_flip_x, bool p_recursively = false);

@@ -1,24 +1,49 @@
 #pragma once
-#include "dragonBones/event/EventObject.h"
-#include "godot_cpp/classes/rendering_server.hpp"
-#include "godot_cpp/variant/utility_functions.hpp"
-#include "i_dragonbones_display.h"
-#include <godot_cpp/classes/engine.hpp>
+
+#include <godot_cpp/classes/canvas_item_material.hpp>
+#include <godot_cpp/classes/texture2d.hpp>
+#include <godot_cpp/templates/local_vector.hpp>
+#include <godot_cpp/templates/vmap.hpp>
+
 
 namespace godot {
 
-class MeshDisplay : public IDragonBonesDisplay, public IDragonBonesOwner {
+struct DrawData {
+	int z_order = 0;
+	Ref<Texture2D> texture;
+	PackedVector2Array vertices;
+	PackedInt32Array indices;
+	PackedColorArray colors;
+	PackedVector2Array uvs;
+};
+
+class Display {
+protected:
+	class Slot_GD *slot{ nullptr };
+	friend class Slot_GD;
+
+public:
+	virtual void queue_redraw() const = 0;
+	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data) const = 0;
+};
+
+class MeshDisplay : public Display {
+public:
+	// class DragonBonesArmature *armature{ nullptr };
+	bool b_debug{ false };
+	Color modulate{ 1.0f, 1.0f, 1.0f, 1.0f };
+
 private:
 	MeshDisplay(const MeshDisplay &);
 
-protected:
-	static void _bind_methods() {}
-
 public:
+	RID mesh_surface;
+
 	PackedInt32Array indices;
 	PackedColorArray verticesColor;
 	PackedVector2Array verticesUV;
 	PackedVector2Array verticesPos;
+	CanvasItemMaterial::BlendMode blend_mode = CanvasItemMaterial::BLEND_MODE_ADD;
 
 	Color col_debug{
 		static_cast<float>(UtilityFunctions::randf_range(0.5f, 1.0f)),
@@ -27,25 +52,15 @@ public:
 		1.0f,
 	};
 
-	RID debug_mesh;
-
 public:
 	MeshDisplay() = default;
 
-	virtual Ref<CanvasItemMaterial> get_material_to_set_blend_mode(bool p_required) override;
-	virtual void dispatch_event(const String &_str_type, const dragonBones::EventObject *_p_value) override;
-	virtual void dispatch_sound_event(const String &_str_type, const dragonBones::EventObject *_p_value) override;
+	void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) {}
+	void update_modulate(const Color &p_modulate);
+	class DragonBonesArmature *get_armature() const;
 
-#ifdef DEBUG_ENABLED
-	// virtual void _draw() override;
-#endif // DEBUG_ENABLED
-
-	virtual void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) override {}
-	virtual void update_modulate(const Color &p_modulate) override;
-	virtual void request_redraw() override;
-
-	virtual Ref<Texture2D> get_draw_texture() const override;
-	virtual void append_draw_info(LocalVector<Vector2> &r_vertices, LocalVector<int32_t> &r_indices, LocalVector<Color> &r_colors, LocalVector<Vector2> &r_uvs) const override;
+	virtual void queue_redraw() const override;
+	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data) const override;
 };
 
 } //namespace godot

@@ -1,7 +1,11 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python
 import os
 import shutil
 import build_version
+
+import os
+os.system("chcp 65001")
 
 
 env = SConscript("godot-cpp/SConstruct")
@@ -9,6 +13,7 @@ lib_name = "libgddragonbones"
 # For the reference:
 # - CCFLAGS are compilation flags shared between C and C++
 # - CFLAGS are for C-specific compilation flags
+
 # - CXXFLAGS are for C++-specific compilation flags
 # - CPPFLAGS are for pre-processor flags
 # - CPPDEFINES are for pre-processor defines

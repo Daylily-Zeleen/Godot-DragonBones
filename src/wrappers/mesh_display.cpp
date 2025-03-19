@@ -1,110 +1,72 @@
 #include "mesh_display.h"
-#include "dragonbones_armature.h"
+#include <dragonbones_armature.h>
 
 namespace godot {
-Ref<CanvasItemMaterial> MeshDisplay::get_material_to_set_blend_mode(bool p_required) {
-	if (auto armature = dynamic_cast<DragonBonesArmature *>(p_owner)) {
-		return armature->get_material_to_set_blend_mode(p_required);
-	}
-	return Ref<CanvasItemMaterial>();
-}
-
-void MeshDisplay::dispatch_event(const String &_str_type, const dragonBones::EventObject *_p_value) {
-	if (p_owner) {
-		p_owner->dispatch_event(_str_type, _p_value);
-	}
-}
-
-void MeshDisplay::dispatch_sound_event(const String &_str_type, const dragonBones::EventObject *_p_value) {
-	if (p_owner) {
-		p_owner->dispatch_sound_event(_str_type, _p_value);
-	}
-}
-
-// #ifdef DEBUG_ENABLED
-// void MeshDisplay::_draw() {
-// 	if (indices.is_empty()) {
-// 		return;
-// 	}
-
-// 	// auto owner = static_cast<IDragonBonesDisplay *>(p_owner);
-// 	// const Ref<Texture2D> texture_to_draw = get_draw_texture();
-
-// 	// if (texture_to_draw.is_valid()) {
-// 	// 	RenderingServer::get_singleton()->canvas_item_add_triangle_array(
-// 	// 			get_canvas_item(),
-// 	// 			indices,
-// 	// 			verticesPos,
-// 	// 			verticesColor,
-// 	// 			verticesUV,
-// 	// 			{},
-// 	// 			{},
-// 	// 			texture_to_draw->get_rid(),
-// 	// 			-1);
-// 	// }
-
-// 	if (b_debug) {
-// 		if (!debug_mesh.is_valid()) {
-// 			debug_mesh = RenderingServer::get_singleton()->mesh_create();
-// 		}
-
-// 		PackedInt32Array lines_indices;
-// 		for (int i = 0; i < indices.size(); i += 3) {
-// 			lines_indices.push_back(indices[i]);
-// 			lines_indices.push_back(indices[i + 1]);
-
-// 			lines_indices.push_back(indices[i + 1]);
-// 			lines_indices.push_back(indices[i + 2]);
-
-// 			lines_indices.push_back(indices[i + 2]);
-// 			lines_indices.push_back(indices[i]);
-// 		}
-
-// 		Array arrays;
-// 		arrays.resize(RenderingServer::ARRAY_MAX);
-// 		arrays[RenderingServer::ARRAY_VERTEX] = verticesPos;
-// 		arrays[RenderingServer::ARRAY_INDEX] = lines_indices;
-
-// 		RenderingServer::get_singleton()->mesh_clear(debug_mesh);
-// 		RenderingServer::get_singleton()->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_LINES, arrays);
-// 		RenderingServer::get_singleton()->canvas_item_add_mesh(get_canvas_item(), debug_mesh, get_canvas_transform(), col_debug);
-// 	} else {
-// 		if (debug_mesh.is_valid()) {
-// 			RenderingServer::get_singleton()->free_rid(debug_mesh);
-// 			debug_mesh = RID();
-// 		}
-// 	}
-// }
-// #endif // DEBUG_ENABLED
 
 void MeshDisplay::update_modulate(const Color &p_modulate) {
-	IDragonBonesDisplay::update_modulate(p_modulate);
+	modulate = p_modulate;
 	verticesColor.fill(p_modulate);
 }
 
-void MeshDisplay::request_redraw() {
-	p_owner->request_redraw();
+DragonBonesArmature *MeshDisplay::get_armature() const {
+	ERR_FAIL_NULL_V(slot->getArmature()->getProxy(), nullptr);
+	return static_cast<DragonBonesArmature *>(slot->getArmature()->getProxy());
 }
 
-Ref<Texture2D> MeshDisplay::get_draw_texture() const {
-	if (auto armature = static_cast<DragonBonesArmature *>(p_owner)) {
-		return armature->get_texture_override();
+void MeshDisplay::queue_redraw() const {
+	ERR_FAIL_NULL(get_armature());
+	get_armature()->queue_redraw();
+}
+
+void MeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data) const {
+	if (!slot->getVisible()) {
+		return;
 	}
-	return slot->get_texture();
-}
 
-void MeshDisplay::append_draw_info(LocalVector<Vector2> &r_vertices, LocalVector<int32_t> &r_indices, LocalVector<Color> &r_colors, LocalVector<Vector2> &r_uvs) const {
-	r_vertices.reserve(r_vertices.size() + verticesPos.size());
-	r_indices.reserve(r_indices.size() + indices.size());
-	r_colors.reserve(r_colors.size() + verticesColor.size());
-	r_uvs.reserve(r_uvs.size() + verticesUV.size());
+	// auto d = std::make_unique<DrawData>();
+	// d->z_order = slot->_zOrder;
 
-	auto vertices_ptr = r_vertices.ptr() + r_vertices.size();
-	auto indices_ptr = r_indices.ptr() + r_indices.size();
-	auto colors_ptr = r_colors.ptr() + r_colors.size();
+	// if (armature) {
+	// 	d->texture = armature->get_texture_override();
+	// } else {
+	// 	d->texture = slot->get_texture();
+	// }
 
-	memcpy(vertices_ptr, verticesPos.ptr(), sizeof(Vector2) * verticesPos.size());
-	memcpy(indices_ptr, indices.ptr(), sizeof(int32_t) * indices.size());
-	memcpy(colors_ptr, verticesColor.ptr(), sizeof(Color) * verticesColor.size());
+	// d->vertices = verticesPos;
+	// d->indices = indices;
+	// d->colors = verticesColor;
+	// d->uvs = verticesUV;
+
+	// d->vertices.resize(d->vertices.size() + verticesPos.size());
+	// d->indices.resize(d->indices.size() + indices.size());
+	// d->colors.resize(d->colors.size() + verticesColor.size());
+	// d->uvs.resize(d->uvs.size() + verticesUV.size());
+
+	// auto vertices_ptr = d->vertices.ptr() + d->vertices.size();
+	// auto indices_ptr = d->indices.ptr() + d->indices.size();
+	// auto colors_ptr = d->colors.ptr() + d->colors.size();
+	// auto uvs_ptr = d->uvs.ptr() + d->uvs.size();
+
+	// memcpy(vertices_ptr, verticesPos.ptr(), sizeof(Vector2) * verticesPos.size());
+	// memcpy(indices_ptr, indices.ptr(), sizeof(int32_t) * indices.size());
+	// memcpy(colors_ptr, verticesColor.ptr(), sizeof(Color) * verticesColor.size());
+	// memcpy(uvs_ptr, verticesUV.ptr(), sizeof(Vector2) * verticesUV.size());
+
+	if (!r_data.has(slot->_zOrder)) {
+		r_data.insert(slot->_zOrder, LocalVector<DrawData>());
+	}
+	auto armature = get_armature();
+	r_data[slot->_zOrder].push_back({ slot->_zOrder,
+			armature && armature->get_texture_override().is_valid() ? armature->get_texture_override() : slot->get_texture(),
+			verticesPos,
+			indices,
+			verticesColor,
+			verticesUV });
+	// ({ .z_order = slot->_zOrder,
+	// 		.texture = armature ? armature->get_texture_override() : slot->get_texture(),
+	// 		.vertices = verticesPos,
+	// 		.indices = indices,
+	// 		.colors = verticesColor,
+	// 		.uvs = verticesUV });
 }
 } //namespace godot
