@@ -8,8 +8,8 @@
 #include "godot_cpp/classes/resource_saver.hpp"
 #include "godot_cpp/classes/resource_uid.hpp"
 #include "godot_cpp/variant/utility_functions.hpp"
-#include "wrappers/GDMesh.h"
-#include "wrappers/GDTextureAtlasData.h"
+#include "wrappers/gd_texture_atlas_data.h"
+#include "wrappers/mesh_display.h"
 
 using namespace godot;
 using namespace dragonBones;
@@ -68,11 +68,11 @@ DragonBonesArmature *DragonBonesFactory::buildArmatureDisplay(const std::string 
 	const auto armature = buildArmature(armatureName, dragonBonesName, skinName, textureAtlasName);
 
 	// 初始化纹理
-	for (const auto slot : armature->getSlots()) {
-		if (auto slot_gd = static_cast<Slot_GD *>(slot)) {
-			slot_gd->update_display_texture();
-		}
-	}
+	// for (const auto slot : armature->getSlots()) {
+	// 	if (auto slot_gd = static_cast<Slot_GD *>(slot)) {
+	// 		slot_gd->update_display_texture();
+	// 	}
+	// }
 
 	if (armature != nullptr) {
 		_dragonBones->getClock()->add(armature);
@@ -110,9 +110,9 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 
 Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, const SlotData *slotData, Armature *armature) const {
 	auto slot = BaseObject::borrowObject<Slot_GD>();
-	auto wrapperDisplay = memnew(GDMesh);
+	auto mesh_display = memnew(MeshDisplay);
 
-	slot->init(slotData, armature, wrapperDisplay, wrapperDisplay);
+	slot->init(slotData, armature, mesh_display, mesh_display);
 	slot->update(0);
 
 	// slot->update_display_texture();
@@ -121,7 +121,6 @@ Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, co
 
 	const auto proxy = static_cast<DragonBonesArmature *>(slot->getArmature()->getDisplay());
 	proxy->add_slot(slot->getName(), tree_slot);
-	wrapperDisplay->set_name(to_gd_str(slot->getName()));
 
 	return slot;
 }

@@ -1,9 +1,9 @@
-#include "GDDisplay.h"
+#include "i_dragonbones_display.h"
 #include "../dragonbones_slot.h"
 
 namespace godot {
 
-GDDisplay::~GDDisplay() {
+IDragonBonesDisplay::~IDragonBonesDisplay() {
 	if (slot) {
 		slot->clear_display();
 		slot = nullptr;

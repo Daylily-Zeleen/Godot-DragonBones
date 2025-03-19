@@ -1,6 +1,6 @@
 #pragma once
 
-#include "wrappers/GDDisplay.h"
+#include "wrappers/i_dragonbones_display.h"
 
 #include "dragonBones/armature/Armature.h"
 #include "dragonBones/armature/IArmatureProxy.h"
@@ -8,11 +8,12 @@
 #include "dragonbones_slot.h"
 
 #include "godot_cpp/classes/texture2d.hpp"
+#include "godot_cpp/variant/typed_dictionary.hpp"
 
 namespace godot {
 
-class DragonBonesArmature : public GDDisplay, public dragonBones::IArmatureProxy {
-	GDCLASS(DragonBonesArmature, GDDisplay)
+class DragonBonesArmature : public Node2D, public IDragonBonesDisplay, public IDragonBonesOwner, public dragonBones::IArmatureProxy {
+	GDCLASS(DragonBonesArmature, Node2D)
 public:
 	enum AnimFadeOutMode {
 		FADE_OUT_NONE,
@@ -30,6 +31,8 @@ private:
 
 	bool slots_inherit_material{ true };
 
+	Ref<Texture2D> texture_override;
+
 protected:
 	dragonBones::Armature *p_armature{ nullptr };
 	std::map<std::string, Ref<DragonBonesBone>> _bones;
@@ -39,8 +42,19 @@ public:
 	DragonBonesArmature();
 	virtual ~DragonBonesArmature() override;
 
+	virtual void _draw() override;
+
+	virtual void request_redraw() override {
+		p_owner->request_redraw();
+	}
+
+	virtual void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) override;
+
+	virtual Ref<Texture2D> get_draw_texture() const override { return texture_override; }
+	virtual void append_draw_info(LocalVector<Vector2> &r_vertices, LocalVector<int32_t> &r_indices, LocalVector<Color> &r_colors, LocalVector<Vector2> &r_uvs) const override {}
+
 	virtual void update_modulate(const Color &p_modulate) override {
-		GDDisplay::update_modulate(p_modulate);
+		IDragonBonesDisplay::update_modulate(p_modulate);
 		update_childs(true);
 	}
 
@@ -176,7 +190,7 @@ public:
 	void set_ik_constraint(const String &name, Vector2 position);
 	void set_ik_constraint_bend_positive(const String &name, bool bend_positive);
 
-	Dictionary get_bones();
+	TypedDictionary<StringName, DragonBonesBone> get_bones();
 	Ref<DragonBonesBone> get_bone(const String &name);
 
 	Rect2 get_rect() const;
