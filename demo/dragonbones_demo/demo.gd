@@ -41,7 +41,7 @@ func _ready() -> void:
 	%FlipYCheck.button_pressed = false
 
 	# Debug
-	%DebugCheck.toggled.connect(func(toggled: bool): _armature.debug = toggled)
+	%DebugCheck.toggled.connect(func(toggled: bool): dragonbones.debug = toggled)
 	%DebugCheck.button_pressed = false
 
 	# Active

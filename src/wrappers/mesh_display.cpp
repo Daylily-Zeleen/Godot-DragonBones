@@ -6,7 +6,8 @@
 namespace godot {
 
 MeshDisplay::MeshDisplay() :
-		mesh(RenderingServer::get_singleton()->mesh_create()), col_debug{
+		// mesh(RenderingServer::get_singleton()->mesh_create()),
+		col_debug{
 			static_cast<float>(UtilityFunctions::randf_range(0.5f, 1.0f)),
 			static_cast<float>(UtilityFunctions::randf_range(0.3f, 1.0f)),
 			static_cast<float>(UtilityFunctions::randf_range(0.3f, 1.0f)),
@@ -15,7 +16,7 @@ MeshDisplay::MeshDisplay() :
 }
 
 MeshDisplay::~MeshDisplay() {
-	RenderingServer::get_singleton()->free_rid(mesh);
+	// RenderingServer::get_singleton()->free_rid(mesh);
 }
 
 void MeshDisplay::update_modulate(const Color &p_modulate) {
@@ -78,7 +79,7 @@ void MeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, con
 			verticesColor,
 			verticesUV,
 			armature && armature->get_texture_override().is_valid() ? armature->get_texture_override() : slot->get_texture(),
-			mesh,
+			blend_mode,
 			slot->_zOrder,
 	});
 	// ({ .z_order = slot->_zOrder,
