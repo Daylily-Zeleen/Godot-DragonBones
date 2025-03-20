@@ -47,7 +47,7 @@ private:
 
 	bool armatures_inherit_material{ true };
 
-	// RID draw_mesh;
+	RID draw_mesh;
 
 protected:
 	static void _bind_methods();

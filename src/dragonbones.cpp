@@ -6,6 +6,7 @@
 #include "dragonbones_armature.h"
 #include "godot_cpp/classes/rendering_server.hpp"
 #include "godot_cpp/templates/vmap.hpp"
+#include "godot_cpp/variant/array.hpp"
 
 using namespace godot;
 
@@ -447,29 +448,75 @@ void DragonBones::_draw() {
 	VMap<int, LocalVector<DrawData>> draw_data;
 	main_armature->append_draw_data(draw_data);
 
+	if (draw_data.is_empty()) {
+		return;
+	}
+
 	const auto RS = RenderingServer::get_singleton();
-	// if (draw_mesh.is_valid()) {
-	// 	RS->mesh_clear(draw_mesh);
-	// } else {
-	// 	draw_mesh = RS->mesh_create();
-	// }
+	if (draw_mesh.is_valid()) {
+		RS->mesh_clear(draw_mesh);
+	} else {
+		draw_mesh = RS->mesh_create();
+	}
 
 	const auto pairs = draw_data.get_array();
+
+	RID texture; // TODO 根据纹理不同创建不同的材质或另外的mesh
+	CanvasItemMaterial::BlendMode blend_mode = draw_data.getv(0)[0].blend_mode;
+
+	struct SurfaceData {
+		PackedInt32Array indices;
+		PackedVector2Array vertices;
+		PackedColorArray colors;
+		PackedVector2Array uv;
+	};
+
+	LocalVector<SurfaceData> surfaces{ SurfaceData() };
+
 	for (auto i = 0; i < draw_data.size(); ++i) {
 		for (const auto &data : pairs[i].value) {
-			Array arr;
-			arr.resize(RenderingServer::ARRAY_MAX);
-			arr[RenderingServer::ARRAY_VERTEX] = data.vertices;
-			arr[RenderingServer::ARRAY_INDEX] = data.indices;
-			arr[RenderingServer::ARRAY_COLOR] = data.colors;
-			arr[RenderingServer::ARRAY_TEX_UV] = data.uvs;
+			if (blend_mode != data.blend_mode) {
+				surfaces.push_back(SurfaceData());
+				blend_mode = data.blend_mode;
+			}
 
-			RS->mesh_clear(data.mesh);
-			RS->mesh_add_surface_from_arrays(data.mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
-			// RS->mesh_surface_set_material(draw_mesh, i, RID()); // TODO
-			RS->canvas_item_add_mesh(get_canvas_item(), data.mesh, data.transform, get_modulate(), data.texture.is_valid() ? data.texture->get_rid() : RID());
+			auto &surface = surfaces[surfaces.size() - 1];
+			int base_index = surface.vertices.size();
+			int insert_begin_index = surface.indices.size();
+
+			surface.indices.resize(surface.indices.size() + data.indices.size());
+			for (int idx = 0; idx < data.indices.size(); ++idx) {
+				surface.indices[idx + insert_begin_index] = data.indices[idx] + base_index;
+			}
+
+			// for (int idx : data.indices) {
+			// 	surface.indices.append(idx + base_index);
+			// }
+
+			surface.vertices.append_array(data.transform.xform(data.vertices));
+			surface.colors.append_array(data.colors);
+			surface.uv.append_array(data.uvs);
+
+			if (data.texture.is_valid()) {
+				texture = data.texture->get_rid();
+			}
 		}
 	}
+
+	for (const auto &surface_data : surfaces) {
+		Array arr;
+		arr.resize(RenderingServer::ARRAY_MAX);
+		arr[RenderingServer::ARRAY_INDEX] = surface_data.indices;
+		arr[RenderingServer::ARRAY_VERTEX] = surface_data.vertices;
+		arr[RenderingServer::ARRAY_COLOR] = surface_data.colors;
+		arr[RenderingServer::ARRAY_TEX_UV] = surface_data.uv;
+
+		// RS->mesh_clear(data.mesh);
+		RS->mesh_add_surface_from_arrays(draw_mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
+		// RS->mesh_surface_set_material(draw_mesh, i, RID()); // TODO
+	}
+
+	RS->canvas_item_add_mesh(get_canvas_item(), draw_mesh, get_canvas_transform(), get_modulate(), texture);
 }
 
 void DragonBones::for_each_armature_(const Callable &p_action) {
@@ -577,9 +624,9 @@ DragonBones::DragonBones() {
 
 DragonBones::~DragonBones() {
 	_cleanup(true);
-	// if (draw_mesh.is_valid()) {
-	// 	RenderingServer::get_singleton()->free_rid(draw_mesh);
-	// }
+	if (draw_mesh.is_valid()) {
+		RenderingServer::get_singleton()->free_rid(draw_mesh);
+	}
 }
 
 ////////////////

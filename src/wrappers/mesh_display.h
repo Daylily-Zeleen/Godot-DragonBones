@@ -14,7 +14,7 @@ struct DrawData {
 	PackedColorArray colors;
 	PackedVector2Array uvs;
 	Ref<Texture2D> texture;
-	RID mesh;
+	CanvasItemMaterial::BlendMode blend_mode;
 	int z_order = 0;
 };
 
@@ -40,7 +40,7 @@ private:
 	MeshDisplay(const MeshDisplay &);
 
 public:
-	RID mesh;
+	// RID mesh;
 
 	PackedInt32Array indices;
 	PackedColorArray verticesColor;

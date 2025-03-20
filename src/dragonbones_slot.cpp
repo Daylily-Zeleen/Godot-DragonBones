@@ -40,37 +40,29 @@ void Slot_GD::_updateVisible() {
 void Slot_GD::_updateBlendMode() {
 	ERR_FAIL_NULL(get_display());
 	get_display()->queue_redraw();
-	// if (_renderDisplay) {
-	// 	CanvasItemMaterial::BlendMode __blend = CanvasItemMaterial::BLEND_MODE_MIX;
 
-	// 	switch (_blendMode) {
-	// 		case BlendMode::Normal:
-	// 			__blend = CanvasItemMaterial::BLEND_MODE_MIX;
-	// 			break;
+	switch (_blendMode) {
+		case BlendMode::Normal: {
+			blend_mode = CanvasItemMaterial::BLEND_MODE_MIX;
+		} break;
 
-	// 		case BlendMode::Add:
-	// 			__blend = CanvasItemMaterial::BLEND_MODE_ADD;
-	// 			break;
+		case BlendMode::Add: {
+			blend_mode = CanvasItemMaterial::BLEND_MODE_ADD;
+		} break;
 
-	// 		case BlendMode::Multiply:
-	// 			__blend = CanvasItemMaterial::BLEND_MODE_MUL;
-	// 			break;
+		case BlendMode::Multiply: {
+			blend_mode = CanvasItemMaterial::BLEND_MODE_MUL;
+		} break;
 
-	// 		case BlendMode::Subtract:
-	// 			__blend = CanvasItemMaterial::BLEND_MODE_SUB;
-	// 			break;
+		case BlendMode::Subtract: {
+			blend_mode = CanvasItemMaterial::BLEND_MODE_SUB;
+		} break;
 
-	// 		default:
-	// 			break;
-	// 	}
-	// 	_renderDisplay->set_blend_mode(__blend);
-	// 	queue_redraw();
-	// } else if (_childArmature) {
-	// 	for (const auto slot : _childArmature->getSlots()) {
-	// 		slot->_blendMode = _blendMode;
-	// 		slot->_updateBlendMode();
-	// 	}
-	// }
+		default: {
+			ERR_PRINT_ONCE("Unsupported DragonBones BlendMode: " + itos((int)_blendMode) + ", use 'CanvasItemMaterial::BLEND_MODE_MIX' instead.");
+			blend_mode = CanvasItemMaterial::BLEND_MODE_MIX;
+		} break;
+	}
 }
 
 void Slot_GD::_updateColor() {
