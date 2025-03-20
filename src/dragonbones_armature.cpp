@@ -440,8 +440,8 @@ bool DragonBonesArmature::has_slot(const String &_slot_name) const {
 	return getArmature()->getSlot(to_std_str(_slot_name)) != nullptr;
 }
 
-Dictionary DragonBonesArmature::get_slots() {
-	Dictionary slots{};
+SlotsDictionary DragonBonesArmature::get_slots() {
+	SlotsDictionary slots{};
 
 	for (auto &slot : _slots) {
 		slots[to_gd_str(slot.first)] = slot.second;
@@ -651,8 +651,8 @@ void DragonBonesArmature::set_ik_constraint_bend_positive(const String &name, bo
 	}
 }
 
-TypedDictionary<StringName, DragonBonesBone> DragonBonesArmature::get_bones() {
-	TypedDictionary<StringName, DragonBonesBone> bones{};
+BonesDictionary DragonBonesArmature::get_bones() {
+	BonesDictionary bones{};
 
 	for (auto &bone : _bones) {
 		bones[to_gd_str(bone.first)] = bone.second;

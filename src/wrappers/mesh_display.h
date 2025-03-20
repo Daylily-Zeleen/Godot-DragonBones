@@ -48,12 +48,7 @@ public:
 	PackedVector2Array verticesPos;
 	CanvasItemMaterial::BlendMode blend_mode = CanvasItemMaterial::BLEND_MODE_ADD;
 
-	Color col_debug{
-		static_cast<float>(UtilityFunctions::randf_range(0.5f, 1.0f)),
-		static_cast<float>(UtilityFunctions::randf_range(0.3f, 1.0f)),
-		static_cast<float>(UtilityFunctions::randf_range(0.3f, 1.0f)),
-		1.0f,
-	};
+	Color col_debug;
 
 public:
 	MeshDisplay();

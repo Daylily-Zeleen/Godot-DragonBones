@@ -1,12 +1,17 @@
 #include "mesh_display.h"
+#include "godot_cpp/variant/utility_functions.hpp"
 #include <dragonbones_armature.h>
 #include <godot_cpp/classes/rendering_server.hpp>
-
 
 namespace godot {
 
 MeshDisplay::MeshDisplay() :
-		mesh(RenderingServer::get_singleton()->mesh_create()) {
+		mesh(RenderingServer::get_singleton()->mesh_create()), col_debug{
+			static_cast<float>(UtilityFunctions::randf_range(0.5f, 1.0f)),
+			static_cast<float>(UtilityFunctions::randf_range(0.3f, 1.0f)),
+			static_cast<float>(UtilityFunctions::randf_range(0.3f, 1.0f)),
+			1.0f,
+		} {
 }
 
 MeshDisplay::~MeshDisplay() {
