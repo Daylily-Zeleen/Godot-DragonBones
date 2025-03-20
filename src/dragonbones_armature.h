@@ -6,7 +6,17 @@
 #include "dragonbones_slot.h"
 
 #include "godot_cpp/classes/texture2d.hpp"
+
+#include <godot_cpp/core/version.hpp>
+
+#if GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
 #include "godot_cpp/variant/typed_dictionary.hpp"
+using SlotsDictionary = godot::TypedDictionary<godot::String, godot::Ref<godot::DragonBonesSlot>>;
+using BonesDictionary = godot::TypedDictionary<godot::String, godot::Ref<godot::DragonBonesBone>>;
+#else // GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
+using SlotsDictionary = godot::Dictionary;
+using BonesDictionary = godot::Dictionary;
+#endif // GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
 
 namespace godot {
 
@@ -150,7 +160,7 @@ public:
 
 	bool has_slot(const String &_slot_name) const;
 	Ref<DragonBonesSlot> get_slot(const String &_slot_name);
-	Dictionary get_slots();
+	SlotsDictionary get_slots();
 
 	void set_slot_display_index(const String &_slot_name, int _index);
 	void set_slot_by_item_name(const String &_slot_name, const String &_item_name);
@@ -166,7 +176,7 @@ public:
 	void set_ik_constraint(const String &name, Vector2 position);
 	void set_ik_constraint_bend_positive(const String &name, bool bend_positive);
 
-	TypedDictionary<StringName, DragonBonesBone> get_bones();
+	BonesDictionary get_bones();
 	Ref<DragonBonesBone> get_bone(const String &name);
 
 	Rect2 get_rect() const;
