@@ -448,11 +448,11 @@ void DragonBones::_draw() {
 	main_armature->append_draw_data(draw_data);
 
 	const auto RS = RenderingServer::get_singleton();
-	if (draw_mesh.is_valid()) {
-		RS->mesh_clear(draw_mesh);
-	} else {
-		draw_mesh = RS->mesh_create();
-	}
+	// if (draw_mesh.is_valid()) {
+	// 	RS->mesh_clear(draw_mesh);
+	// } else {
+	// 	draw_mesh = RS->mesh_create();
+	// }
 
 	const auto pairs = draw_data.get_array();
 	for (auto i = 0; i < draw_data.size(); ++i) {
@@ -464,9 +464,10 @@ void DragonBones::_draw() {
 			arr[RenderingServer::ARRAY_COLOR] = data.colors;
 			arr[RenderingServer::ARRAY_TEX_UV] = data.uvs;
 
-			RS->mesh_add_surface_from_arrays(draw_mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
+			RS->mesh_clear(data.mesh);
+			RS->mesh_add_surface_from_arrays(data.mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
 			// RS->mesh_surface_set_material(draw_mesh, i, RID()); // TODO
-			RS->canvas_item_add_mesh(get_canvas_item(), draw_mesh, get_canvas_transform(), get_modulate(), data.texture.is_valid() ? data.texture->get_rid() : RID());
+			RS->canvas_item_add_mesh(get_canvas_item(), data.mesh, data.transform, get_modulate(), data.texture.is_valid() ? data.texture->get_rid() : RID());
 		}
 	}
 }
@@ -576,9 +577,9 @@ DragonBones::DragonBones() {
 
 DragonBones::~DragonBones() {
 	_cleanup(true);
-	if (draw_mesh.is_valid()) {
-		RenderingServer::get_singleton()->free_rid(draw_mesh);
-	}
+	// if (draw_mesh.is_valid()) {
+	// 	RenderingServer::get_singleton()->free_rid(draw_mesh);
+	// }
 }
 
 ////////////////

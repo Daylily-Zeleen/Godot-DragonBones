@@ -385,17 +385,16 @@ void Slot_GD::_updateTransform() {
 		pos.y = globalTransformMatrix.ty - (globalTransformMatrix.b * anchorPoint.x - globalTransformMatrix.d * anchorPoint.y);
 	}
 
-	// TODO?????
-	// Transform2D matrix{
-	// 	globalTransformMatrix.a * _textureScale,
-	// 	globalTransformMatrix.b * _textureScale,
-	// 	-globalTransformMatrix.c * _textureScale,
-	// 	-globalTransformMatrix.d * _textureScale,
-	// 	pos.x * _textureScale,
-	// 	pos.y * _textureScale
-	// };
+	Transform2D matrix{
+		globalTransformMatrix.a * _textureScale,
+		globalTransformMatrix.b * _textureScale,
+		-globalTransformMatrix.c * _textureScale,
+		-globalTransformMatrix.d * _textureScale,
+		pos.x * _textureScale,
+		pos.y * _textureScale
+	};
 
-	// _renderDisplay->set_transform(matrix);
+	display->transform = matrix;
 	display->queue_redraw();
 }
 

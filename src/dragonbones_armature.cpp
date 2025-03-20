@@ -7,6 +7,7 @@
 
 #include "dragonbones.h"
 #include "godot_cpp/classes/rendering_server.hpp"
+#include "godot_cpp/variant/transform2d.hpp"
 #include <wrappers/mesh_display.h>
 
 using namespace godot;
@@ -87,8 +88,6 @@ void DragonBonesArmature::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_slots_inherit_material_", "slots_inherit_material"), &DragonBonesArmature::set_slots_inherit_material_);
 	ClassDB::bind_method(D_METHOD("is_slots_inherit_material"), &DragonBonesArmature::is_slots_inherit_material);
-
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug"), "set_debug_", "is_debug");
 
 	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "current_animation", PROPERTY_HINT_ENUM, "", PROPERTY_USAGE_EDITOR), "set_current_animation", "get_current_animation");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "animation_progress", PROPERTY_HINT_RANGE, "0.0,1.0,0.0001", PROPERTY_USAGE_EDITOR), "set_animation_progress", "get_animation_progress");
@@ -227,15 +226,16 @@ void DragonBonesArmature::queue_redraw() const {
 	}
 }
 
-void DragonBonesArmature::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data) const {
+void DragonBonesArmature::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom) const {
 	if (slot && !slot->getVisible()) {
 		return;
 	}
 
+	const Transform2D global_transform = p_base_transfrom * transform;
 	for (const Slot *raw_slot : p_armature->getSlots()) {
 		const Slot_GD *slot = static_cast<const Slot_GD *>(raw_slot);
 		if (auto display = slot->get_display()) {
-			display->append_draw_data(r_data);
+			display->append_draw_data(r_data, global_transform);
 		}
 	}
 }
