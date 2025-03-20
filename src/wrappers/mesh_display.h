@@ -5,16 +5,17 @@
 #include <godot_cpp/templates/local_vector.hpp>
 #include <godot_cpp/templates/vmap.hpp>
 
-
 namespace godot {
 
 struct DrawData {
-	int z_order = 0;
-	Ref<Texture2D> texture;
+	Transform2D transform;
 	PackedVector2Array vertices;
 	PackedInt32Array indices;
 	PackedColorArray colors;
 	PackedVector2Array uvs;
+	Ref<Texture2D> texture;
+	RID mesh;
+	int z_order = 0;
 };
 
 class Display {
@@ -23,21 +24,23 @@ protected:
 	friend class Slot_GD;
 
 public:
+	Transform2D transform{};
+
 	virtual void queue_redraw() const = 0;
-	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data) const = 0;
+	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const = 0;
 };
 
 class MeshDisplay : public Display {
 public:
 	// class DragonBonesArmature *armature{ nullptr };
 	bool b_debug{ false };
-	Color modulate{ 1.0f, 1.0f, 1.0f, 1.0f };
+	// Color modulate{ 1.0f, 1.0f, 1.0f, 1.0f };
 
 private:
 	MeshDisplay(const MeshDisplay &);
 
 public:
-	RID mesh_surface;
+	RID mesh;
 
 	PackedInt32Array indices;
 	PackedColorArray verticesColor;
@@ -53,14 +56,15 @@ public:
 	};
 
 public:
-	MeshDisplay() = default;
+	MeshDisplay();
+	virtual ~MeshDisplay();
 
 	void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) {}
 	void update_modulate(const Color &p_modulate);
 	class DragonBonesArmature *get_armature() const;
 
 	virtual void queue_redraw() const override;
-	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data) const override;
+	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const override;
 };
 
 } //namespace godot

@@ -115,7 +115,7 @@ public:
 	}
 
 	virtual void queue_redraw() const override;
-	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data) const override;
+	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const override;
 
 public:
 	bool is_initialized() const { return p_armature; }

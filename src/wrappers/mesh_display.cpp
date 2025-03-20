@@ -1,10 +1,20 @@
 #include "mesh_display.h"
 #include <dragonbones_armature.h>
+#include <godot_cpp/classes/rendering_server.hpp>
+
 
 namespace godot {
 
+MeshDisplay::MeshDisplay() :
+		mesh(RenderingServer::get_singleton()->mesh_create()) {
+}
+
+MeshDisplay::~MeshDisplay() {
+	RenderingServer::get_singleton()->free_rid(mesh);
+}
+
 void MeshDisplay::update_modulate(const Color &p_modulate) {
-	modulate = p_modulate;
+	// modulate = p_modulate;
 	verticesColor.fill(p_modulate);
 }
 
@@ -18,7 +28,7 @@ void MeshDisplay::queue_redraw() const {
 	get_armature()->queue_redraw();
 }
 
-void MeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data) const {
+void MeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom) const {
 	if (!slot->getVisible()) {
 		return;
 	}
@@ -56,12 +66,16 @@ void MeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data) con
 		r_data.insert(slot->_zOrder, LocalVector<DrawData>());
 	}
 	auto armature = get_armature();
-	r_data[slot->_zOrder].push_back({ slot->_zOrder,
-			armature && armature->get_texture_override().is_valid() ? armature->get_texture_override() : slot->get_texture(),
+	r_data[slot->_zOrder].push_back({
+			p_base_transfrom * transform,
 			verticesPos,
 			indices,
 			verticesColor,
-			verticesUV });
+			verticesUV,
+			armature && armature->get_texture_override().is_valid() ? armature->get_texture_override() : slot->get_texture(),
+			mesh,
+			slot->_zOrder,
+	});
 	// ({ .z_order = slot->_zOrder,
 	// 		.texture = armature ? armature->get_texture_override() : slot->get_texture(),
 	// 		.vertices = verticesPos,

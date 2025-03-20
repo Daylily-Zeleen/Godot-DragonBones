@@ -47,7 +47,7 @@ private:
 
 	bool armatures_inherit_material{ true };
 
-	RID draw_mesh;
+	// RID draw_mesh;
 
 protected:
 	static void _bind_methods();
@@ -166,7 +166,7 @@ protected:
 public:
 	DragonBonesUserData() = default;
 	DragonBonesUserData(dragonBones::UserData *p_user_data) :
-			user_data(p_user_data){};
+			user_data(p_user_data) {};
 
 	bool has_data() const { return user_data; }
 
