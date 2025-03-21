@@ -2,14 +2,12 @@
 
 #include "dragonBones/model/TextureAtlasData.h"
 
-#include "godot_cpp/classes/resource_loader.hpp"
 #include "godot_cpp/classes/texture2d.hpp"
 #include "godot_cpp/core/math.hpp"
-#include "godot_cpp/variant/string.hpp"
 
 namespace godot {
-class GDTextureData : public dragonBones::TextureData {
-	BIND_CLASS_TYPE_B(GDTextureData);
+class DragonBonesTextureData : public dragonBones::TextureData {
+	BIND_CLASS_TYPE_B(DragonBonesTextureData);
 
 private:
 	static bool is_rect_equal(const dragonBones::Rectangle &p_a, const dragonBones::Rectangle &p_b) {
@@ -20,14 +18,14 @@ private:
 	}
 
 public:
-	GDTextureData() { _onClear(); }
-	virtual ~GDTextureData() { _onClear(); }
+	DragonBonesTextureData() { _onClear(); }
+	virtual ~DragonBonesTextureData() { _onClear(); }
 
-	bool operator!=(const GDTextureData &p_other) const {
+	bool operator!=(const DragonBonesTextureData &p_other) const {
 		return !operator==(p_other);
 	}
 
-	bool operator==(const GDTextureData &p_other) const {
+	bool operator==(const DragonBonesTextureData &p_other) const {
 		if ((frame && !p_other.frame) || (!frame && p_other.frame)) {
 			return false;
 		}
@@ -49,21 +47,21 @@ public:
 	}
 };
 
-class GDTextureAtlasData : public dragonBones::TextureAtlasData {
-	BIND_CLASS_TYPE_B(GDTextureAtlasData);
+class DragonBonesTextureAtlasData : public dragonBones::TextureAtlasData {
+	BIND_CLASS_TYPE_B(DragonBonesTextureAtlasData);
 
 private:
 	Ref<Texture2D> display_texture;
 
 public:
-	GDTextureAtlasData() { _onClear(); }
-	virtual ~GDTextureAtlasData() { _onClear(); }
+	DragonBonesTextureAtlasData() { _onClear(); }
+	virtual ~DragonBonesTextureAtlasData() { _onClear(); }
 
 	virtual dragonBones::TextureData *createTexture() const override {
-		return BaseObject::borrowObject<GDTextureData>();
+		return BaseObject::borrowObject<DragonBonesTextureData>();
 	}
 
-	void init(const String &p_image_file_path) { display_texture = ResourceLoader::get_singleton()->load(p_image_file_path); }
+	void init(const Ref<Texture2D> &p_texture) { display_texture = p_texture; }
 	const Ref<Texture2D> &get_display_texture() const { return display_texture; }
 
 	virtual void _onClear() override {
@@ -71,18 +69,8 @@ public:
 		display_texture.unref();
 	}
 
-	void setRenderTexture() {
-		// for (const auto &pair : textures) {
-		// 	const auto textureData = static_cast<GDTextureData *>(pair.second);
-		// 	Rect2i rect(textureData->region.x, textureData->region.y,
-		// 			textureData->rotated ? textureData->region.height : textureData->region.width,
-		// 			textureData->rotated ? textureData->region.width : textureData->region.height);
-		// 	textureData->textureRect = std::move(rect);
-		// }
-	}
-
-	bool operator!=(const GDTextureAtlasData &p_other) const { return !operator==(p_other); }
-	bool operator==(const GDTextureAtlasData &p_other) const {
+	bool operator!=(const DragonBonesTextureAtlasData &p_other) const { return !operator==(p_other); }
+	bool operator==(const DragonBonesTextureAtlasData &p_other) const {
 		if (autoSearch != p_other.autoSearch ||
 				format != p_other.format ||
 				width != p_other.width ||
@@ -102,8 +90,8 @@ public:
 				return false;
 			}
 
-			const auto texture = static_cast<GDTextureData *>(kv.second);
-			const auto other_texture = static_cast<GDTextureData *>(it->second);
+			const auto texture = static_cast<DragonBonesTextureData *>(kv.second);
+			const auto other_texture = static_cast<DragonBonesTextureData *>(it->second);
 
 			if (!texture && !other_texture) {
 				continue;

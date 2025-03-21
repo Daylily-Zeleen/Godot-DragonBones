@@ -1,7 +1,7 @@
 #include "dragonbones_slot.h"
 
 #include "dragonbones_armature.h"
-#include "wrappers/gd_texture_atlas_data.h"
+#include "wrappers/dragonbones_texture_atlas_data.h"
 #include "wrappers/mesh_display.h"
 
 #include <dragonBones/armature/DeformVertices.h>
@@ -14,7 +14,7 @@ using namespace dragonBones;
 Ref<Texture2D> Slot_GD::get_texture() const {
 	ERR_FAIL_COND_V(_textureData == nullptr, Ref<Texture2D>());
 
-	if (auto atlas = static_cast<const GDTextureAtlasData *>(_textureData->getParent())) {
+	if (auto atlas = static_cast<const DragonBonesTextureAtlasData *>(_textureData->getParent())) {
 		return atlas->get_display_texture();
 	}
 	return Ref<Texture2D>();
@@ -164,7 +164,7 @@ void Slot_GD::_updateFrame() {
 	// update_display_texture();
 	auto display = get_display();
 	const auto currentVerticesData = (_deformVertices != nullptr && display == _meshDisplay) ? _deformVertices->verticesData : nullptr;
-	auto currentTextureData = static_cast<GDTextureData *>(_textureData);
+	auto currentTextureData = static_cast<DragonBonesTextureData *>(_textureData);
 
 	if (_displayIndex >= 0 && display != nullptr && currentTextureData != nullptr) {
 		const auto atlas = currentTextureData->getParent();
@@ -190,13 +190,13 @@ void Slot_GD::_updateFrame() {
 			const unsigned uvOffset = vertexOffset + (vertexCount << 1);
 
 			frameDisplay->indices.resize(triangleCount * 3);
-			frameDisplay->verticesColor.resize(vertexCount);
-			frameDisplay->verticesUV.resize(vertexCount);
-			frameDisplay->verticesPos.resize(vertexCount);
+			frameDisplay->colors.resize(vertexCount);
+			frameDisplay->vertices_uv.resize(vertexCount);
+			frameDisplay->vertices.resize(vertexCount);
 			auto indices_ptr = frameDisplay->indices.ptrw();
-			auto verticesColor_ptr = frameDisplay->verticesColor.ptrw();
-			auto verticesUV_ptr = frameDisplay->verticesUV.ptrw();
-			auto verticesPos_ptr = frameDisplay->verticesPos.ptrw();
+			auto verticesColor_ptr = frameDisplay->colors.ptrw();
+			auto verticesUV_ptr = frameDisplay->vertices_uv.ptrw();
+			auto verticesPos_ptr = frameDisplay->vertices.ptrw();
 
 			for (std::size_t i = 0, l = (vertexCount << 1); i < l; i += 2) {
 				std::size_t iH = i >> 1;
@@ -221,13 +221,13 @@ void Slot_GD::_updateFrame() {
 		} else {
 			// Normal texture
 			frameDisplay->indices.resize(6);
-			frameDisplay->verticesColor.resize(4);
-			frameDisplay->verticesUV.resize(4);
-			frameDisplay->verticesPos.resize(4);
+			frameDisplay->colors.resize(4);
+			frameDisplay->vertices_uv.resize(4);
+			frameDisplay->vertices.resize(4);
 			auto indices_ptr = frameDisplay->indices.ptrw();
-			auto verticesColor_ptr = frameDisplay->verticesColor.ptrw();
-			auto verticesUV_ptr = frameDisplay->verticesUV.ptrw();
-			auto verticesPos_ptr = frameDisplay->verticesPos.ptrw();
+			auto verticesColor_ptr = frameDisplay->colors.ptrw();
+			auto verticesUV_ptr = frameDisplay->vertices_uv.ptrw();
+			auto verticesPos_ptr = frameDisplay->vertices.ptrw();
 
 			indices_ptr[0] = 0;
 			indices_ptr[1] = 1;
@@ -273,7 +273,7 @@ void Slot_GD::_updateFrame() {
 
 void Slot_GD::_updateMesh() {
 	const auto scale = _armature->_armatureData->scale;
-	const auto textureData = static_cast<GDTextureData *>(_textureData);
+	const auto textureData = static_cast<DragonBonesTextureData *>(_textureData);
 	const auto &deformVertices = _deformVertices->vertices;
 	const auto hasFFD = !deformVertices.empty();
 	const auto &bones = _deformVertices->bones;
@@ -301,7 +301,7 @@ void Slot_GD::_updateMesh() {
 			weightFloatOffset += 65536;
 		}
 
-		auto verticesPos_ptr = meshDisplay->verticesPos.ptrw();
+		auto verticesPos_ptr = meshDisplay->vertices.ptrw();
 		for (
 				std::size_t i = 0, iD = 0, iB = weightData->offset + (unsigned)BinaryOffset::WeightBoneIndices + weightData->bones.size(), iV = (std::size_t)weightFloatOffset, iF = 0;
 				i < vertexCount;
@@ -327,7 +327,7 @@ void Slot_GD::_updateMesh() {
 				}
 			}
 
-			meshDisplay->verticesPos[i] = Vector2(xG, yG);
+			meshDisplay->vertices[i] = Vector2(xG, yG);
 		}
 	} else if (hasFFD) {
 		const auto data = verticesData->data;
@@ -340,7 +340,7 @@ void Slot_GD::_updateMesh() {
 			vertexOffset += 65536;
 		}
 
-		auto verticesPos_ptr = meshDisplay->verticesPos.ptrw();
+		auto verticesPos_ptr = meshDisplay->vertices.ptrw();
 		for (std::size_t i = 0, l = (vertexCount << 1); i < l; i += 2) {
 			const auto iH = (i >> 1);
 			const auto xG = floatArray[vertexOffset + i] * scale + deformVertices[i];
