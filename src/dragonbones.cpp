@@ -4,7 +4,7 @@
 #include "godot_cpp/classes/engine.hpp"
 
 #include "dragonbones_armature.h"
-#include "godot_cpp/classes/lightmap_gi.hpp"
+#include "godot_cpp/classes/ref.hpp"
 #include "godot_cpp/classes/rendering_server.hpp"
 #include "godot_cpp/templates/vmap.hpp"
 #include "godot_cpp/variant/array.hpp"
@@ -186,6 +186,12 @@ bool DragonBones::is_active() const {
 
 void DragonBones::set_debug(bool _b_debug) {
 	b_debug = _b_debug;
+
+#ifdef DEBUG_ENABLED
+	if (b_debug) {
+		debug_mesh = RenderingServer::get_singleton()->mesh_create();
+	}
+#endif // DEBUG_ENABLED
 }
 
 bool DragonBones::is_debug() const {
@@ -513,8 +519,6 @@ void DragonBones::_draw() {
 			surface_data.vertices.append_array(draw_data.transform.xform(draw_data.vertices));
 			surface_data.colors.append_array(draw_data.colors);
 			surface_data.uv.append_array(draw_data.uvs);
-
-			surface_data.blend_mode = draw_data.blend_mode;
 		}
 	}
 
@@ -543,6 +547,59 @@ void DragonBones::_draw() {
 
 		RS->canvas_item_add_mesh(get_canvas_item(), mesh, get_canvas_transform(), get_modulate(), surfaces[0].texture);
 	}
+
+#ifdef DEBUG_ENABLED
+	if (b_debug) {
+		// Prepare debug mesh data.
+		PackedInt32Array debug_mesh_indices;
+		PackedVector2Array debug_vertices;
+		PackedColorArray debug_colors;
+
+		for (auto i = 0; i < draw_data.size(); ++i) {
+			for (const auto &draw_data : pairs[i].value) {
+				int base_index = debug_vertices.size();
+				int insert_begin_index = debug_mesh_indices.size();
+
+				debug_mesh_indices.resize(debug_mesh_indices.size() + draw_data.indices.size());
+				for (int idx = 0; idx < draw_data.indices.size(); ++idx) {
+					debug_mesh_indices[idx + insert_begin_index] = draw_data.indices[idx] + base_index;
+				}
+
+				debug_vertices.append_array(draw_data.transform.xform(draw_data.vertices));
+
+				PackedColorArray colors;
+				colors.resize(draw_data.vertices.size());
+				colors.fill(draw_data.debug_color);
+				debug_colors.append_array(colors);
+			}
+		}
+
+		// Triangles to lines.
+		PackedInt32Array debug_lines_indices;
+		debug_lines_indices.resize(debug_mesh_indices.size() * 2);
+		for (int i = 0; i < debug_mesh_indices.size(); i += 3) {
+			int base_index = 2 * i;
+			debug_lines_indices[base_index] = debug_mesh_indices[i];
+			debug_lines_indices[base_index + 1] = debug_mesh_indices[i + 1];
+
+			debug_lines_indices[base_index + 2] = debug_mesh_indices[i + 1];
+			debug_lines_indices[base_index + 3] = debug_mesh_indices[i + 2];
+
+			debug_lines_indices[base_index + 4] = debug_mesh_indices[i + 2];
+			debug_lines_indices[base_index + 5] = debug_mesh_indices[i];
+		}
+
+		// Add debug rendering commands.
+		RS->mesh_clear(debug_mesh);
+		Array arr;
+		arr.resize(RenderingServer::ARRAY_MAX);
+		arr[RenderingServer::ARRAY_INDEX] = debug_lines_indices;
+		arr[RenderingServer::ARRAY_VERTEX] = debug_vertices;
+		arr[RenderingServer::ARRAY_COLOR] = debug_colors;
+		RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_LINES, arr);
+		RS->canvas_item_add_mesh(get_canvas_item(), debug_mesh, get_canvas_transform(), get_modulate());
+	}
+#endif // DEBUG_ENABLED
 }
 
 RID DragonBones::get_draw_mesh(int p_index) {
@@ -663,6 +720,12 @@ DragonBones::~DragonBones() {
 	for (auto mesh : draw_meshes) {
 		RenderingServer::get_singleton()->free_rid(mesh);
 	}
+
+#ifdef DEBUG_ENABLED
+	if (debug_mesh.is_valid()) {
+		RenderingServer::get_singleton()->free_rid(debug_mesh);
+	}
+#endif // DEBUG_ENABLED
 }
 
 ////////////////

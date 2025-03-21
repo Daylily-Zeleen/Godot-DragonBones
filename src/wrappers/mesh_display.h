@@ -16,6 +16,9 @@ struct DrawData {
 	RID texture;
 	CanvasItemMaterial::BlendMode blend_mode;
 	int z_order = 0;
+#ifdef DEBUG_ENABLED
+	Color debug_color;
+#endif // DEBUG_ENABLED
 };
 
 class Display {
@@ -48,7 +51,9 @@ public:
 	PackedVector2Array verticesPos;
 	CanvasItemMaterial::BlendMode blend_mode = CanvasItemMaterial::BLEND_MODE_ADD;
 
-	Color col_debug;
+#ifdef DEBUG_ENABLED
+	Color debug_color;
+#endif // DEBUG_ENABLED
 
 public:
 	MeshDisplay();
