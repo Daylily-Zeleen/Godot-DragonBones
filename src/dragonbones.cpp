@@ -153,9 +153,6 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 	// update color and opacity and blending
 	main_armature->update_childs(true, true);
 
-	// update material inheritance
-	main_armature->update_material_inheritance_recursively(armatures_inherit_material);
-
 	main_armature->advance(0);
 
 	notify_property_list_changed();
@@ -164,17 +161,6 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 
 Ref<DragonBonesFactory> DragonBones::get_factory() const {
 	return m_res;
-}
-
-void DragonBones::set_inherit_material(bool _b_enable) {
-	armatures_inherit_material = _b_enable;
-	if (main_armature->is_initialized()) {
-		main_armature->update_material_inheritance_recursively(armatures_inherit_material);
-	}
-}
-
-bool DragonBones::is_material_inherited() const {
-	return armatures_inherit_material;
 }
 
 void DragonBones::set_active(bool _b_active) {
@@ -627,9 +613,6 @@ void DragonBones::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_factory", "dbfactory"), &DragonBones::set_factory);
 	ClassDB::bind_method(D_METHOD("get_factory"), &DragonBones::get_factory);
 
-	ClassDB::bind_method(D_METHOD("set_inherit_material"), &DragonBones::set_inherit_material);
-	ClassDB::bind_method(D_METHOD("is_material_inherited"), &DragonBones::is_material_inherited);
-
 	ClassDB::bind_method(D_METHOD("set_flip_x", "enable_flip"), &DragonBones::set_flip_x);
 	ClassDB::bind_method(D_METHOD("is_flipped_x"), &DragonBones::is_flipped_x);
 	ClassDB::bind_method(D_METHOD("set_flip_y", "enable_flip"), &DragonBones::set_flip_y);
@@ -731,7 +714,7 @@ DragonBones::~DragonBones() {
 #endif // DEBUG_ENABLED
 }
 
-////////////////
+#pragma region DragonBonesUserData
 PackedInt32Array DragonBonesUserData::get_ints() const {
 	PackedInt32Array ret;
 	if (!user_data) {
@@ -854,3 +837,5 @@ void DragonBonesUserData::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::PACKED_FLOAT32_ARRAY, "floats", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_READ_ONLY), "set_floats_readonly", "get_floats");
 	ADD_PROPERTY(PropertyInfo(Variant::PACKED_STRING_ARRAY, "strings", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_READ_ONLY), "set_strings_readonly", "get_strings");
 }
+
+#pragma endregion DragonBonesUserData

@@ -53,7 +53,7 @@ protected:
 	std::map<std::string, Ref<DragonBonesSlot>> _slots;
 
 public:
-	DragonBonesArmature();
+	DragonBonesArmature() = default;
 	virtual ~DragonBonesArmature() override;
 
 	dragonBones::Slot *getSlot(const std::string &name) const;
@@ -80,8 +80,6 @@ public:
 
 	void setup_recursively();
 	void update_childs(bool _b_color, bool _b_blending = false);
-	// void update_texture_atlas(const Ref<Texture> &_m_texture_atlas);
-	void update_material_inheritance_recursively(bool p_inheritance);
 
 	//
 	dragonBones::Slot *getSlot(const String &p_name) const { return p_armature->getSlot(to_std_str(p_name)); }
