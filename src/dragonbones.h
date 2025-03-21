@@ -45,8 +45,6 @@ private:
 	bool b_flip_x{ false };
 	bool b_flip_y{ false };
 
-	bool armatures_inherit_material{ true };
-
 	LocalVector<RID> draw_meshes;
 	RID get_draw_mesh(int p_index);
 
@@ -82,9 +80,6 @@ public:
 	// setters/getters
 	void set_factory(const Ref<DragonBonesFactory> &_p_data);
 	Ref<DragonBonesFactory> get_factory() const;
-
-	void set_inherit_material(bool _b_enable);
-	bool is_material_inherited() const;
 
 	void set_active(bool _b_active);
 	bool is_active() const;

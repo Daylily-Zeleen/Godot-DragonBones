@@ -15,11 +15,6 @@ using namespace dragonBones;
 
 #define SNAME(sn) ([] {static const StringName ret{sn};return ret; }())
 
-DragonBonesArmature::DragonBonesArmature() {
-	// TODO: 默认使用父级材质，直接配置 DragonBones 节点的材质。
-	// set_use_parent_material(true);
-}
-
 DragonBonesArmature::~DragonBonesArmature() {
 	dispose(true);
 }
@@ -772,28 +767,6 @@ void DragonBonesArmature::set_slots_inherit_material(bool p_slots_inherit_materi
 
 bool DragonBonesArmature::is_slots_inherit_material() const {
 	return slots_inherit_material;
-}
-
-// void DragonBonesArmature::update_texture_atlas(const Ref<Texture> &_m_texture_atlas) {
-// 	if (!p_armature) {
-// 		return;
-// 	}
-
-// 	for (Slot *slot : p_armature->getSlots()) {
-// 		if (!slot) {
-// 			continue;
-// 		}
-// 		if (auto display = static_cast<MeshDisplay *>(slot->getRawDisplay())) {
-// 			display->texture = _m_texture_atlas;
-// 			request_redraw();
-// 		}
-// 	}
-// }
-
-void DragonBonesArmature::update_material_inheritance_recursively(bool p_inheritance) {
-	for_each_armature([p_inheritance](auto p_child_armature) {
-		p_child_armature->update_material_inheritance_recursively(p_inheritance);
-	});
 }
 
 //
