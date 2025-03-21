@@ -50,6 +50,10 @@ private:
 	LocalVector<RID> draw_meshes;
 	RID get_draw_mesh(int p_index);
 
+#ifdef DEBUG_ENABLED
+	RID debug_mesh;
+#endif // DEBUG_ENABLED
+
 protected:
 	static void _bind_methods();
 	_DEFINE_TO_STRING()

@@ -6,13 +6,15 @@
 namespace godot {
 
 MeshDisplay::MeshDisplay() :
-		// mesh(RenderingServer::get_singleton()->mesh_create()),
-		col_debug{
+#ifdef DEBUG_ENABLED
+		debug_color{
 			static_cast<float>(UtilityFunctions::randf_range(0.5f, 1.0f)),
 			static_cast<float>(UtilityFunctions::randf_range(0.3f, 1.0f)),
 			static_cast<float>(UtilityFunctions::randf_range(0.3f, 1.0f)),
 			1.0f,
-		} {
+		}
+#endif // DEBUG_ENABLED
+{
 }
 
 MeshDisplay::~MeshDisplay() {
@@ -89,6 +91,9 @@ void MeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, con
 			texture,
 			blend_mode,
 			slot->_zOrder,
+#ifdef DEBUG_ENABLED
+			debug_color,
+#endif // DEBUG_ENABLED
 	});
 	// ({ .z_order = slot->_zOrder,
 	// 		.texture = armature ? armature->get_texture_override() : slot->get_texture(),
