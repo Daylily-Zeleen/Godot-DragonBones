@@ -4,6 +4,7 @@
 #include "godot_cpp/classes/engine.hpp"
 
 #include "dragonbones_armature.h"
+#include "godot_cpp/classes/lightmap_gi.hpp"
 #include "godot_cpp/classes/rendering_server.hpp"
 #include "godot_cpp/templates/vmap.hpp"
 #include "godot_cpp/variant/array.hpp"
@@ -441,10 +442,23 @@ void DragonBones::_notification(int p_what) {
 	}
 }
 
+static const Ref<CanvasItemMaterial> &get_blend_material(CanvasItemMaterial::BlendMode p_blend_mode) {
+	static VMap<CanvasItemMaterial::BlendMode, Ref<CanvasItemMaterial>> blend_materials;
+	auto idx = blend_materials.find(p_blend_mode);
+	if (idx < 0) {
+		Ref<CanvasItemMaterial> mat;
+		mat.instantiate();
+		mat->set_blend_mode(p_blend_mode);
+		idx = blend_materials.insert(p_blend_mode, mat);
+	}
+	return blend_materials.getv(idx);
+}
+
 void DragonBones::_draw() {
 	if (!main_armature) {
 		return;
 	}
+
 	VMap<int, LocalVector<DrawData>> draw_data;
 	main_armature->append_draw_data(draw_data);
 
@@ -462,48 +476,54 @@ void DragonBones::_draw() {
 	const auto pairs = draw_data.get_array();
 
 	RID texture; // TODO 根据纹理不同创建不同的材质或另外的mesh
-	CanvasItemMaterial::BlendMode blend_mode = draw_data.getv(0)[0].blend_mode;
 
 	struct SurfaceData {
 		PackedInt32Array indices;
 		PackedVector2Array vertices;
 		PackedColorArray colors;
 		PackedVector2Array uv;
+
+		CanvasItemMaterial::BlendMode blend_mode;
+
+		SurfaceData() :
+				blend_mode(CanvasItemMaterial::BLEND_MODE_MIX) {}
+		SurfaceData(CanvasItemMaterial::BlendMode p_blend_mode) :
+				blend_mode(p_blend_mode) {}
 	};
 
-	LocalVector<SurfaceData> surfaces{ SurfaceData() };
+	LocalVector<SurfaceData> surfaces{ SurfaceData(draw_data.getv(0)[0].blend_mode) };
 
 	for (auto i = 0; i < draw_data.size(); ++i) {
-		for (const auto &data : pairs[i].value) {
-			if (blend_mode != data.blend_mode) {
-				surfaces.push_back(SurfaceData());
-				blend_mode = data.blend_mode;
+		for (const auto &draw_data : pairs[i].value) {
+			auto &surface_data = surfaces[surfaces.size() - 1];
+
+			if (surface_data.blend_mode != draw_data.blend_mode) {
+				surfaces.push_back(SurfaceData(draw_data.blend_mode));
+				surface_data = surfaces[surfaces.size() - 1];
 			}
 
-			auto &surface = surfaces[surfaces.size() - 1];
-			int base_index = surface.vertices.size();
-			int insert_begin_index = surface.indices.size();
+			int base_index = surface_data.vertices.size();
+			int insert_begin_index = surface_data.indices.size();
 
-			surface.indices.resize(surface.indices.size() + data.indices.size());
-			for (int idx = 0; idx < data.indices.size(); ++idx) {
-				surface.indices[idx + insert_begin_index] = data.indices[idx] + base_index;
+			surface_data.indices.resize(surface_data.indices.size() + draw_data.indices.size());
+			for (int idx = 0; idx < draw_data.indices.size(); ++idx) {
+				surface_data.indices[idx + insert_begin_index] = draw_data.indices[idx] + base_index;
 			}
 
-			// for (int idx : data.indices) {
-			// 	surface.indices.append(idx + base_index);
-			// }
+			surface_data.vertices.append_array(draw_data.transform.xform(draw_data.vertices));
+			surface_data.colors.append_array(draw_data.colors);
+			surface_data.uv.append_array(draw_data.uvs);
 
-			surface.vertices.append_array(data.transform.xform(data.vertices));
-			surface.colors.append_array(data.colors);
-			surface.uv.append_array(data.uvs);
+			surface_data.blend_mode = draw_data.blend_mode;
 
-			if (data.texture.is_valid()) {
-				texture = data.texture->get_rid();
+			if (draw_data.texture.is_valid()) {
+				texture = draw_data.texture->get_rid();
 			}
 		}
 	}
 
-	for (const auto &surface_data : surfaces) {
+	for (int i = 0; i < surfaces.size(); ++i) {
+		const SurfaceData &surface_data = surfaces[i];
 		Array arr;
 		arr.resize(RenderingServer::ARRAY_MAX);
 		arr[RenderingServer::ARRAY_INDEX] = surface_data.indices;
@@ -511,9 +531,11 @@ void DragonBones::_draw() {
 		arr[RenderingServer::ARRAY_COLOR] = surface_data.colors;
 		arr[RenderingServer::ARRAY_TEX_UV] = surface_data.uv;
 
-		// RS->mesh_clear(data.mesh);
 		RS->mesh_add_surface_from_arrays(draw_mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
-		// RS->mesh_surface_set_material(draw_mesh, i, RID()); // TODO
+		if (surface_data.blend_mode != CanvasItemMaterial::BLEND_MODE_MIX) {
+			auto mat = get_blend_material(surface_data.blend_mode);
+			RS->mesh_surface_set_material(draw_mesh, i, mat->get_rid());
+		}
 	}
 
 	RS->canvas_item_add_mesh(get_canvas_item(), draw_mesh, get_canvas_transform(), get_modulate(), texture);
