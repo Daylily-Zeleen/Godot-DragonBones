@@ -17,13 +17,9 @@ MeshDisplay::MeshDisplay() :
 {
 }
 
-MeshDisplay::~MeshDisplay() {
-	// RenderingServer::get_singleton()->free_rid(mesh);
-}
-
 void MeshDisplay::update_modulate(const Color &p_modulate) {
 	// modulate = p_modulate;
-	verticesColor.fill(p_modulate);
+	colors.fill(p_modulate);
 }
 
 DragonBonesArmature *MeshDisplay::get_armature() const {
@@ -41,35 +37,6 @@ void MeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, con
 		return;
 	}
 
-	// auto d = std::make_unique<DrawData>();
-	// d->z_order = slot->_zOrder;
-
-	// if (armature) {
-	// 	d->texture = armature->get_texture_override();
-	// } else {
-	// 	d->texture = slot->get_texture();
-	// }
-
-	// d->vertices = verticesPos;
-	// d->indices = indices;
-	// d->colors = verticesColor;
-	// d->uvs = verticesUV;
-
-	// d->vertices.resize(d->vertices.size() + verticesPos.size());
-	// d->indices.resize(d->indices.size() + indices.size());
-	// d->colors.resize(d->colors.size() + verticesColor.size());
-	// d->uvs.resize(d->uvs.size() + verticesUV.size());
-
-	// auto vertices_ptr = d->vertices.ptr() + d->vertices.size();
-	// auto indices_ptr = d->indices.ptr() + d->indices.size();
-	// auto colors_ptr = d->colors.ptr() + d->colors.size();
-	// auto uvs_ptr = d->uvs.ptr() + d->uvs.size();
-
-	// memcpy(vertices_ptr, verticesPos.ptr(), sizeof(Vector2) * verticesPos.size());
-	// memcpy(indices_ptr, indices.ptr(), sizeof(int32_t) * indices.size());
-	// memcpy(colors_ptr, verticesColor.ptr(), sizeof(Color) * verticesColor.size());
-	// memcpy(uvs_ptr, verticesUV.ptr(), sizeof(Vector2) * verticesUV.size());
-
 	if (!r_data.has(slot->_zOrder)) {
 		r_data.insert(slot->_zOrder, LocalVector<DrawData>());
 	}
@@ -84,10 +51,10 @@ void MeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, con
 
 	r_data[slot->_zOrder].push_back({
 			p_base_transfrom * transform,
-			verticesPos,
+			vertices,
 			indices,
-			verticesColor,
-			verticesUV,
+			colors,
+			vertices_uv,
 			texture,
 			blend_mode,
 			slot->_zOrder,
@@ -95,11 +62,5 @@ void MeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, con
 			debug_color,
 #endif // DEBUG_ENABLED
 	});
-	// ({ .z_order = slot->_zOrder,
-	// 		.texture = armature ? armature->get_texture_override() : slot->get_texture(),
-	// 		.vertices = verticesPos,
-	// 		.indices = indices,
-	// 		.colors = verticesColor,
-	// 		.uvs = verticesUV });
 }
 } //namespace godot

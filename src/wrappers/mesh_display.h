@@ -12,7 +12,7 @@ struct DrawData {
 	PackedVector2Array vertices;
 	PackedInt32Array indices;
 	PackedColorArray colors;
-	PackedVector2Array uvs;
+	PackedVector2Array vertices_uv;
 	RID texture;
 	CanvasItemMaterial::BlendMode blend_mode;
 	int z_order = 0;
@@ -34,21 +34,14 @@ public:
 };
 
 class MeshDisplay : public Display {
-public:
-	// class DragonBonesArmature *armature{ nullptr };
-	bool b_debug{ false };
-	// Color modulate{ 1.0f, 1.0f, 1.0f, 1.0f };
-
 private:
 	MeshDisplay(const MeshDisplay &);
 
 public:
-	// RID mesh;
-
 	PackedInt32Array indices;
-	PackedColorArray verticesColor;
-	PackedVector2Array verticesUV;
-	PackedVector2Array verticesPos;
+	PackedColorArray colors;
+	PackedVector2Array vertices_uv;
+	PackedVector2Array vertices;
 	CanvasItemMaterial::BlendMode blend_mode = CanvasItemMaterial::BLEND_MODE_ADD;
 
 #ifdef DEBUG_ENABLED
@@ -57,7 +50,6 @@ public:
 
 public:
 	MeshDisplay();
-	virtual ~MeshDisplay();
 
 	void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) {}
 	void update_modulate(const Color &p_modulate);

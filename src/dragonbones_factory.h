@@ -35,7 +35,7 @@ protected:
 	void set_building_dragon_bones(dragonBones::DragonBones *p_building_instance) { _dragonBones = p_building_instance; }
 
 	dragonBones::DragonBonesData *loadDragonBonesData(const char *_p_data_loaded, const std::string &name = "");
-	dragonBones::TextureAtlasData *loadTextureAtlasData(const char *_p_data_loaded, Ref<Texture> *_p_atlasTexture, const std::string &name = "", float scale = 1.0f);
+	dragonBones::TextureAtlasData *loadTextureAtlasData(const char *_p_data_loaded, String *p_atlas_data_file_path, const std::string &name = "", float scale = 1.0f);
 	class DragonBonesArmature *buildArmatureDisplay(const std::string &armatureName, const std::string &dragonBonesName, const std::string &skinName = "", const std::string &textureAtlasName = "") const;
 
 	virtual dragonBones::TextureAtlasData *_buildTextureAtlasData(dragonBones::TextureAtlasData *textureAtlasData, void *textureAtlas) const override;
@@ -63,7 +63,7 @@ public:
 
 	bool can_create_dragon_bones_instance() const;
 
-	dragonBones::DragonBones *create_dragon_bones(dragonBones::IEventDispatcher *p_event_manager, DragonBonesArmature *p_main_armature, const String &p_dragonbones_data_name = "", const String &p_armature_name = "", const String &p_skin_name = "");
+	dragonBones::DragonBones *create_dragon_bones(dragonBones::IEventDispatcher *p_event_manager, DragonBonesArmature *p_main_armature, const String &p_dragon_bones_data_name = "", const String &p_armature_name = "", const String &p_skin_name = "");
 
 private:
 	//  Binding

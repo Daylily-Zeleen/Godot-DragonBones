@@ -85,10 +85,12 @@ void DragonBones::_on_resource_changed() {
 #ifdef TOOLS_ENABLED
 	auto armatures_settings = get_armature_settings();
 #endif // TOOLS_ENABLED
+
 	// 重设资源本身
 	auto to_set = m_res;
 	set_factory({});
 	set_factory(to_set);
+
 #ifdef TOOLS_ENABLED
 	if (main_armature->is_initialized()) {
 		set_armature_settings(armatures_settings);
@@ -191,6 +193,7 @@ void DragonBones::set_debug(bool _b_debug) {
 	if (b_debug) {
 		debug_mesh = RenderingServer::get_singleton()->mesh_create();
 	}
+	queue_redraw();
 #endif // DEBUG_ENABLED
 }
 
@@ -480,7 +483,7 @@ void DragonBones::_draw() {
 		PackedInt32Array indices;
 		PackedVector2Array vertices;
 		PackedColorArray colors;
-		PackedVector2Array uv;
+		PackedVector2Array vertices_uv;
 		RID texture;
 		CanvasItemMaterial::BlendMode blend_mode;
 
@@ -518,7 +521,7 @@ void DragonBones::_draw() {
 
 			surface_data.vertices.append_array(draw_data.transform.xform(draw_data.vertices));
 			surface_data.colors.append_array(draw_data.colors);
-			surface_data.uv.append_array(draw_data.uvs);
+			surface_data.vertices_uv.append_array(draw_data.vertices_uv);
 		}
 	}
 
@@ -538,7 +541,7 @@ void DragonBones::_draw() {
 			arr[RenderingServer::ARRAY_INDEX] = surface_data.indices;
 			arr[RenderingServer::ARRAY_VERTEX] = surface_data.vertices;
 			arr[RenderingServer::ARRAY_COLOR] = surface_data.colors;
-			arr[RenderingServer::ARRAY_TEX_UV] = surface_data.uv;
+			arr[RenderingServer::ARRAY_TEX_UV] = surface_data.vertices_uv;
 
 			RS->mesh_add_surface_from_arrays(mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
 			auto mat = get_blend_material(surface_data.blend_mode);
