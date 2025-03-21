@@ -13,7 +13,7 @@ struct DrawData {
 	PackedInt32Array indices;
 	PackedColorArray colors;
 	PackedVector2Array uvs;
-	Ref<Texture2D> texture;
+	RID texture;
 	CanvasItemMaterial::BlendMode blend_mode;
 	int z_order = 0;
 };
