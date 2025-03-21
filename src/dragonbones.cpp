@@ -459,6 +459,7 @@ void DragonBones::_draw() {
 		return;
 	}
 
+	// Collect draw data.
 	VMap<int, LocalVector<DrawData>> draw_data;
 	main_armature->append_draw_data(draw_data);
 
@@ -467,39 +468,38 @@ void DragonBones::_draw() {
 	}
 
 	const auto RS = RenderingServer::get_singleton();
-	if (draw_mesh.is_valid()) {
-		RS->mesh_clear(draw_mesh);
-	} else {
-		draw_mesh = RS->mesh_create();
-	}
-
 	const auto pairs = draw_data.get_array();
-
-	RID texture; // TODO 根据纹理不同创建不同的材质或另外的mesh
 
 	struct SurfaceData {
 		PackedInt32Array indices;
 		PackedVector2Array vertices;
 		PackedColorArray colors;
 		PackedVector2Array uv;
-
+		RID texture;
 		CanvasItemMaterial::BlendMode blend_mode;
 
 		SurfaceData() :
 				blend_mode(CanvasItemMaterial::BLEND_MODE_MIX) {}
-		SurfaceData(CanvasItemMaterial::BlendMode p_blend_mode) :
-				blend_mode(p_blend_mode) {}
+		SurfaceData(RID p_texture, CanvasItemMaterial::BlendMode p_blend_mode) :
+				texture(p_texture), blend_mode(p_blend_mode) {}
 	};
 
-	LocalVector<SurfaceData> surfaces{ SurfaceData(draw_data.getv(0)[0].blend_mode) };
-
+	// Prepare mesh data.
+	const auto &first_draw_data = pairs[0].value[0];
+	using Surfaces = LocalVector<SurfaceData>;
+	LocalVector<Surfaces> meshes{ { { first_draw_data.texture, first_draw_data.blend_mode } } };
 	for (auto i = 0; i < draw_data.size(); ++i) {
 		for (const auto &draw_data : pairs[i].value) {
+			Surfaces &surfaces = meshes[meshes.size() - 1];
 			auto &surface_data = surfaces[surfaces.size() - 1];
 
-			if (surface_data.blend_mode != draw_data.blend_mode) {
-				surfaces.push_back(SurfaceData(draw_data.blend_mode));
-				surface_data = surfaces[surfaces.size() - 1];
+			if (surface_data.texture != draw_data.texture) {
+				surface_data = SurfaceData(draw_data.texture, draw_data.blend_mode);
+				surfaces = Surfaces{ std::move(surface_data) };
+				meshes.push_back(std::move(surfaces));
+			} else if (surface_data.blend_mode != draw_data.blend_mode) {
+				surface_data = SurfaceData(draw_data.texture, draw_data.blend_mode);
+				surfaces.push_back(std::move(surface_data));
 			}
 
 			int base_index = surface_data.vertices.size();
@@ -515,30 +515,43 @@ void DragonBones::_draw() {
 			surface_data.uv.append_array(draw_data.uvs);
 
 			surface_data.blend_mode = draw_data.blend_mode;
-
-			if (draw_data.texture.is_valid()) {
-				texture = draw_data.texture->get_rid();
-			}
 		}
 	}
 
-	for (int i = 0; i < surfaces.size(); ++i) {
-		const SurfaceData &surface_data = surfaces[i];
-		Array arr;
-		arr.resize(RenderingServer::ARRAY_MAX);
-		arr[RenderingServer::ARRAY_INDEX] = surface_data.indices;
-		arr[RenderingServer::ARRAY_VERTEX] = surface_data.vertices;
-		arr[RenderingServer::ARRAY_COLOR] = surface_data.colors;
-		arr[RenderingServer::ARRAY_TEX_UV] = surface_data.uv;
+	// Clear surfaces.
+	for (RID mesh : draw_meshes) {
+		RS->mesh_clear(mesh);
+	}
 
-		RS->mesh_add_surface_from_arrays(draw_mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
-		if (surface_data.blend_mode != CanvasItemMaterial::BLEND_MODE_MIX) {
+	// Add rendering commands.
+	for (int mesh_idx = 0; mesh_idx < meshes.size(); ++mesh_idx) {
+		const RID mesh = get_draw_mesh(mesh_idx);
+		const Surfaces &surfaces = meshes[mesh_idx];
+		for (int surface_idx = 0; surface_idx < surfaces.size(); ++surface_idx) {
+			const SurfaceData &surface_data = surfaces[surface_idx];
+			Array arr;
+			arr.resize(RenderingServer::ARRAY_MAX);
+			arr[RenderingServer::ARRAY_INDEX] = surface_data.indices;
+			arr[RenderingServer::ARRAY_VERTEX] = surface_data.vertices;
+			arr[RenderingServer::ARRAY_COLOR] = surface_data.colors;
+			arr[RenderingServer::ARRAY_TEX_UV] = surface_data.uv;
+
+			RS->mesh_add_surface_from_arrays(mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
 			auto mat = get_blend_material(surface_data.blend_mode);
-			RS->mesh_surface_set_material(draw_mesh, i, mat->get_rid());
+			RS->mesh_surface_set_material(mesh, surface_idx, mat->get_rid());
 		}
-	}
 
-	RS->canvas_item_add_mesh(get_canvas_item(), draw_mesh, get_canvas_transform(), get_modulate(), texture);
+		RS->canvas_item_add_mesh(get_canvas_item(), mesh, get_canvas_transform(), get_modulate(), surfaces[0].texture);
+	}
+}
+
+RID DragonBones::get_draw_mesh(int p_index) {
+	if (p_index < draw_meshes.size()) {
+		return draw_meshes[p_index];
+	} else {
+		draw_meshes.push_back(RenderingServer::get_singleton()->mesh_create());
+		return draw_meshes[draw_meshes.size() - 1];
+	}
 }
 
 void DragonBones::for_each_armature_(const Callable &p_action) {
@@ -646,8 +659,9 @@ DragonBones::DragonBones() {
 
 DragonBones::~DragonBones() {
 	_cleanup(true);
-	if (draw_mesh.is_valid()) {
-		RenderingServer::get_singleton()->free_rid(draw_mesh);
+
+	for (auto mesh : draw_meshes) {
+		RenderingServer::get_singleton()->free_rid(mesh);
 	}
 }
 

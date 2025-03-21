@@ -72,13 +72,21 @@ void MeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, con
 		r_data.insert(slot->_zOrder, LocalVector<DrawData>());
 	}
 	auto armature = get_armature();
+
+	RID texture;
+	if (armature && armature->get_texture_override().is_valid()) {
+		texture = armature->get_texture_override()->get_rid();
+	} else if (slot->get_texture().is_valid()) {
+		texture = slot->get_texture()->get_rid();
+	}
+
 	r_data[slot->_zOrder].push_back({
 			p_base_transfrom * transform,
 			verticesPos,
 			indices,
 			verticesColor,
 			verticesUV,
-			armature && armature->get_texture_override().is_valid() ? armature->get_texture_override() : slot->get_texture(),
+			texture,
 			blend_mode,
 			slot->_zOrder,
 	});
