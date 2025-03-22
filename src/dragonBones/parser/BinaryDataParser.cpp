@@ -55,7 +55,7 @@ TimelineData* BinaryDataParser::_parseBinaryTimeline(TimelineType type, unsigned
     return timeline;
 }
 
-void BinaryDataParser::_parseVertices(const rapidjson::Value& rawData, VerticesData& vertices)
+void BinaryDataParser::_parseVertices(const JsonValue& rawData, VerticesData& vertices)
 {
     vertices.offset = rawData[OFFSET].GetUint();
 
@@ -87,12 +87,12 @@ void BinaryDataParser::_parseVertices(const rapidjson::Value& rawData, VerticesD
     }
 }
 
-void BinaryDataParser::_parseMesh(const rapidjson::Value& rawData, MeshDisplayData& mesh)
+void BinaryDataParser::_parseMesh(const JsonValue& rawData, MeshDisplayData& mesh)
 {
     _parseVertices(rawData, mesh.vertices);
 }
 
-AnimationData* BinaryDataParser::_parseAnimation(const rapidjson::Value& rawData)
+AnimationData* BinaryDataParser::_parseAnimation(const JsonValue& rawData)
 {
     const auto animation =  BaseObject::borrowObject<AnimationData>();
     animation->frameCount = std::max(_getNumber(rawData, DURATION, 1), 1);
@@ -195,7 +195,7 @@ AnimationData* BinaryDataParser::_parseAnimation(const rapidjson::Value& rawData
     return animation;
 }
 
-void BinaryDataParser::_parseArray(const rapidjson::Value& rawData)
+void BinaryDataParser::_parseArray(const JsonValue& rawData)
 {
     const auto& offsets = rawData[OFFSET];
 
@@ -225,7 +225,7 @@ DragonBonesData* BinaryDataParser::parseDragonBonesData(const char* rawData, flo
 
     const auto headerLength = (std::size_t)(((uint32_t*)(rawData + 8))[0]);
     const auto headerBytes = rawData + 8 + 4;
-    rapidjson::Document document;
+    JsonDocument document;
     document.Parse(headerBytes, headerLength);
 
     _binaryOffset = 8 + 4 + headerLength;
