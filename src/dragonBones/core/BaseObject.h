@@ -25,6 +25,8 @@
 
 #include "DragonBones.h"
 
+#include <godot_cpp/core/memory.hpp>
+
 DRAGONBONES_NAMESPACE_BEGIN
 /**
  * - The BaseObject is the base class for all objects in the DragonBones framework.
@@ -105,7 +107,7 @@ public:
             }
         }
 
-        const auto object = new (std::nothrow) T();
+        const auto object = memnew(T());
 
         return object;
     }

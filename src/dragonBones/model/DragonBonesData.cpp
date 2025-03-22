@@ -14,7 +14,7 @@ void DragonBonesData::_onClear()
 
     if (binary != nullptr)
     {
-        delete binary;
+        godot::memdelete_arr(binary);
     }
 
     if (userData != nullptr)

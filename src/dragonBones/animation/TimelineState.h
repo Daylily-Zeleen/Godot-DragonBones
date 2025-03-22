@@ -129,9 +129,9 @@ private:
 
 public:
     SlotColorTimelineState() :
-        _current(new int[8]{ 0 }),
-        _delta(new int[8]{ 0 }),
-        _result(new float[8]{ 0.0f })
+        _current(godot::memnew_arr(int, 8)),
+        _delta(godot::memnew_arr(int, 8)),
+        _result(godot::memnew_arr(float, 8))
     { 
         _onClear(); 
     }
@@ -139,9 +139,9 @@ public:
     {
         _onClear();
 
-        delete _current;
-        delete _delta;
-        delete _result;
+        godot::memdelete_arr(_current);
+        godot::memdelete_arr(_delta);
+        godot::memdelete_arr(_result);
     }
 
 protected:
