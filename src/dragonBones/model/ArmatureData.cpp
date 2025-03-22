@@ -293,7 +293,7 @@ void BoneData::_onClear()
 ColorTransform SlotData::DEFAULT_COLOR;
 ColorTransform* SlotData::createColor()
 {
-    return new ColorTransform();
+    return memnew(ColorTransform);
 }
 
 void SlotData::_onClear()
@@ -305,7 +305,7 @@ void SlotData::_onClear()
 
     if (color != nullptr && color != &DEFAULT_COLOR)
     {
-        delete color;
+        godot::memdelete(color);
     }
 
     blendMode = BlendMode::Normal;

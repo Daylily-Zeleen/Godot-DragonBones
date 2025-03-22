@@ -1894,7 +1894,7 @@ DragonBonesData* JSONDataParser::_parseDragonBonesData(const JsonValue& rawData,
                 const auto l5 = _frameArray.size() * 2;
                 const auto l6 = _timelineArray.size() * 2;
                 
-                auto binary = new char[l1 + l2 + l3 + l4 + l5 + l6];
+                auto binary = godot::memnew_arr(char, l1 + l2 + l3 + l4 + l5 + l6);
                 auto intArray = (int16_t*)binary;
                 auto floatArray = (float*)(binary + l1);
                 auto frameIntArray = (int16_t*)(binary + l1 + l2);
