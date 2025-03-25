@@ -1,9 +1,9 @@
 #pragma once
 
-#include "dragonbones_factory.h"
-#include "godot_cpp/classes/editor_export_plugin.hpp"
-#include "godot_cpp/classes/editor_import_plugin.hpp"
-#include "godot_cpp/classes/editor_plugin.hpp"
+#include "../factory.h"
+#include <godot_cpp/classes/editor_export_plugin.hpp>
+#include <godot_cpp/classes/editor_import_plugin.hpp>
+#include <godot_cpp/classes/editor_plugin.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
 
 namespace godot {

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "dragonBones/model/TextureAtlasData.h"
+#include <dragonBones/model/TextureAtlasData.h>
 
-#include "godot_cpp/classes/texture2d.hpp"
-#include "godot_cpp/core/math.hpp"
+#include <godot_cpp/classes/texture2d.hpp>
+#include <godot_cpp/core/math.hpp>
 
 namespace godot {
 class DragonBonesTextureData : public dragonBones::TextureData {

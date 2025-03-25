@@ -1,8 +1,7 @@
 #pragma once
 
-#include "dragonBones/armature/Bone.h"
-#include "godot_cpp/classes/node2d.hpp"
-#include "godot_cpp/classes/ref_counted.hpp"
+#include <dragonBones/armature/Bone.h>
+#include <godot_cpp/classes/ref_counted.hpp>
 
 namespace godot {
 

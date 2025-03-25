@@ -1,8 +1,10 @@
 #pragma once
 
-#include "dragonBones/core/DragonBones.h"
-#include "dragonbones_armature.h"
-#include "dragonbones_factory.h"
+#include <dragonBones/core/DragonBones.h>
+#include <godot_cpp/classes/node2d.hpp>
+
+#include "armature.h"
+#include "factory.h"
 
 namespace godot {
 /// TODO: 修改dragonBones库的new delete,供给Godot追踪内存

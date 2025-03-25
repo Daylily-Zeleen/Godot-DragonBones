@@ -1,6 +1,6 @@
 #pragma once
 
-#include "godot_cpp/variant/string.hpp"
+#include <godot_cpp/variant/string.hpp>
 #include <string>
 
 namespace godot {
@@ -15,5 +15,7 @@ _FORCE_INLINE_ std::string to_std_str(const String &p_gd_str) {
 
 #define _DEFINE_TO_STRING() \
 	::godot::String _to_string() const { return vformat("<%s#%s>", get_class_static(), get_instance_id()); }
+
+#define SNAME(sn) ([] {static const StringName ret{sn};return ret; }())
 
 }; //namespace godot

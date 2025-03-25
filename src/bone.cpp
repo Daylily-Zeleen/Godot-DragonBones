@@ -1,5 +1,6 @@
-#include "dragonbones_bone.h"
-#include "dragonbones_armature.h"
+#include <armature.h>
+#include <bone.h>
+
 
 using namespace godot;
 

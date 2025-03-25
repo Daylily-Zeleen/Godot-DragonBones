@@ -1,11 +1,14 @@
 #include "mesh_display.h"
-#include "godot_cpp/variant/utility_functions.hpp"
-#include <dragonbones_armature.h>
+
 #include <godot_cpp/classes/rendering_server.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
+
+
+#include "armature.h"
 
 namespace godot {
 
-MeshDisplay::MeshDisplay() :
+DragonBonesMeshDisplay::DragonBonesMeshDisplay() :
 #ifdef DEBUG_ENABLED
 		debug_color{
 			static_cast<float>(UtilityFunctions::randf_range(0.5f, 1.0f)),
@@ -17,22 +20,22 @@ MeshDisplay::MeshDisplay() :
 {
 }
 
-void MeshDisplay::update_modulate(const Color &p_modulate) {
+void DragonBonesMeshDisplay::update_modulate(const Color &p_modulate) {
 	// modulate = p_modulate;
 	colors.fill(p_modulate);
 }
 
-DragonBonesArmature *MeshDisplay::get_armature() const {
+DragonBonesArmature *DragonBonesMeshDisplay::get_armature() const {
 	ERR_FAIL_NULL_V(slot->getArmature()->getProxy(), nullptr);
 	return static_cast<DragonBonesArmature *>(slot->getArmature()->getProxy());
 }
 
-void MeshDisplay::queue_redraw() const {
+void DragonBonesMeshDisplay::queue_redraw() const {
 	ERR_FAIL_NULL(get_armature());
 	get_armature()->queue_redraw();
 }
 
-void MeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom) const {
+void DragonBonesMeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom) const {
 	if (!slot->getVisible()) {
 		return;
 	}

@@ -1,12 +1,12 @@
-#include "dragonbones_slot.h"
-
-#include "dragonbones_armature.h"
-#include "wrappers/dragonbones_texture_atlas_data.h"
-#include "wrappers/mesh_display.h"
+#include "slot.h"
 
 #include <dragonBones/armature/DeformVertices.h>
 #include <dragonBones/model/DisplayData.h>
 #include <dragonBones/model/DragonBonesData.h>
+
+#include "armature.h"
+#include "mesh_display.h"
+#include "texture_atlas_data.h"
 
 using namespace godot;
 using namespace dragonBones;
@@ -109,7 +109,7 @@ void Slot_GD::_disposeDisplay(void *value, bool isRelease) {
 }
 
 void Slot_GD::_onUpdateDisplay() {
-	// MeshDisplay *new_display = static_cast<MeshDisplay *>(getDisplay() ? getDisplay() : getRawDisplay());
+	// DragonBonesMeshDisplay *new_display = static_cast<DragonBonesMeshDisplay *>(getDisplay() ? getDisplay() : getRawDisplay());
 	// if (new_display == _renderDisplay) {
 	// 	return;
 	// }
@@ -131,7 +131,7 @@ void Slot_GD::_replaceDisplay(void *value, bool isArmatureDisplay) {
 	// _renderDisplay->visible = true;
 
 	// if (value != nullptr) {
-	// 	static_cast<MeshDisplay *>(value)->visible = false;
+	// 	static_cast<DragonBonesMeshDisplay *>(value)->visible = false;
 	// }
 	// queue_redraw();
 
@@ -169,7 +169,7 @@ void Slot_GD::_updateFrame() {
 	if (_displayIndex >= 0 && display != nullptr && currentTextureData != nullptr) {
 		const auto atlas = currentTextureData->getParent();
 		const auto &region = currentTextureData->region;
-		auto frameDisplay = static_cast<MeshDisplay *>(display);
+		auto frameDisplay = static_cast<DragonBonesMeshDisplay *>(display);
 
 		if (currentVerticesData != nullptr) {
 			// Mesh.
@@ -279,7 +279,7 @@ void Slot_GD::_updateMesh() {
 	const auto &bones = _deformVertices->bones;
 	const auto verticesData = _deformVertices->verticesData;
 	const auto weightData = verticesData->weight;
-	const auto meshDisplay = dynamic_cast<MeshDisplay *>(get_display());
+	const auto meshDisplay = dynamic_cast<DragonBonesMeshDisplay *>(get_display());
 
 	if (!textureData || !meshDisplay) {
 		return;

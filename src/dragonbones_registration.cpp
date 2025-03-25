@@ -1,16 +1,15 @@
-#include <dragonbones_registration.h>
+#include "dragonbones_registration.h"
 
-#include "dragonbones.h"
-#include "godot_cpp/classes/editor_plugin_registration.hpp"
+#include <godot_cpp/classes/editor_plugin_registration.hpp>
 
 #ifdef TOOLS_ENABLED
-#include "editor/dragonbones_editor_plugin.h"
+#include <editor/dragonbones_editor_plugin.h>
 #endif //TOOLS_ENABLED
 
-#include "wrappers/mesh_display.h"
+#include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/classes/resource_saver.hpp>
 
-#include "godot_cpp/classes/resource_loader.hpp"
-#include "godot_cpp/classes/resource_saver.hpp"
+#include "dragonbones.h"
 
 using namespace godot;
 

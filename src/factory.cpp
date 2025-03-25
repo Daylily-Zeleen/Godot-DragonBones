@@ -1,20 +1,22 @@
-#include "dragonbones_factory.h"
-#include "dragonBones/animation/WorldClock.h"
-#include "dragonBones/core/DragonBones.h"
-#include "godot_cpp/classes/dir_access.hpp"
-#include "godot_cpp/classes/engine.hpp"
-#include "godot_cpp/classes/file_access.hpp"
+#include "factory.h"
 
-#include "dragonbones_armature.h"
-#include "godot_cpp/classes/image.hpp"
-#include "godot_cpp/classes/resource.hpp"
-#include "godot_cpp/classes/resource_loader.hpp"
-#include "godot_cpp/classes/resource_saver.hpp"
-#include "godot_cpp/classes/resource_uid.hpp"
-#include "godot_cpp/variant/utility_functions.hpp"
+#include <dragonBones/animation/WorldClock.h>
+#include <dragonBones/core/DragonBones.h>
+
+#include <godot_cpp/classes/dir_access.hpp>
+#include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/file_access.hpp>
+#include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/classes/resource.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/classes/resource_saver.hpp>
+#include <godot_cpp/classes/resource_uid.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
+
+#include "armature.h"
+#include "mesh_display.h"
+#include "texture_atlas_data.h"
 #include "utils.h"
-#include "wrappers/dragonbones_texture_atlas_data.h"
-#include "wrappers/mesh_display.h"
 
 using namespace godot;
 using namespace dragonBones;
@@ -109,7 +111,7 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 
 Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, const SlotData *slotData, Armature *armature) const {
 	auto slot = BaseObject::borrowObject<Slot_GD>();
-	auto mesh_display = memnew(MeshDisplay);
+	auto mesh_display = memnew(DragonBonesMeshDisplay);
 
 	slot->init(slotData, armature, mesh_display, mesh_display);
 	slot->update(0);

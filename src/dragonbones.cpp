@@ -1,17 +1,15 @@
 #include "dragonbones.h"
 
-#include "dragonBones/event/EventObject.h"
-#include "godot_cpp/classes/engine.hpp"
+#include <dragonBones/event/EventObject.h>
+#include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/ref.hpp>
+#include <godot_cpp/classes/rendering_server.hpp>
+#include <godot_cpp/templates/vmap.hpp>
+#include <godot_cpp/variant/array.hpp>
 
-#include "dragonbones_armature.h"
-#include "godot_cpp/classes/ref.hpp"
-#include "godot_cpp/classes/rendering_server.hpp"
-#include "godot_cpp/templates/vmap.hpp"
-#include "godot_cpp/variant/array.hpp"
+#include "armature.h"
 
 using namespace godot;
-
-#define SNAME(sn) ([] {static const StringName ret{sn};return ret; }())
 
 /////////////////////////////////////////////////////////////////
 void DragonBones::_cleanup(bool p_for_destructor) {

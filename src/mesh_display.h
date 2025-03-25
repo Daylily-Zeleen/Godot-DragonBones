@@ -33,9 +33,9 @@ public:
 	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const = 0;
 };
 
-class MeshDisplay : public Display {
+class DragonBonesMeshDisplay : public Display {
 private:
-	MeshDisplay(const MeshDisplay &);
+	DragonBonesMeshDisplay(const DragonBonesMeshDisplay &);
 
 public:
 	PackedInt32Array indices;
@@ -49,7 +49,7 @@ public:
 #endif // DEBUG_ENABLED
 
 public:
-	MeshDisplay();
+	DragonBonesMeshDisplay();
 
 	void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) {}
 	void update_modulate(const Color &p_modulate);

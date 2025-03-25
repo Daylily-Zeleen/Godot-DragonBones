@@ -1,14 +1,14 @@
-#include "dragonbones_armature.h"
+#include "armature.h"
 
-#include "dragonBones/event/EventObject.h"
-#include "godot_cpp/classes/engine.hpp"
-#include "godot_cpp/classes/global_constants.hpp"
-#include "godot_cpp/classes/ref.hpp"
+#include <dragonBones/event/EventObject.h>
+#include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/global_constants.hpp>
+#include <godot_cpp/classes/ref.hpp>
+#include <godot_cpp/classes/rendering_server.hpp>
+#include <godot_cpp/variant/transform2d.hpp>
 
 #include "dragonbones.h"
-#include "godot_cpp/classes/rendering_server.hpp"
-#include "godot_cpp/variant/transform2d.hpp"
-#include <wrappers/mesh_display.h>
+#include "mesh_display.h"
 
 using namespace godot;
 using namespace dragonBones;
@@ -713,7 +713,7 @@ void DragonBonesArmature::setup_recursively() {
 		});
 
 		// TODO
-		// if (auto display = static_cast<MeshDisplay *>(slot->getRawDisplay())) {
+		// if (auto display = static_cast<DragonBonesMeshDisplay *>(slot->getRawDisplay())) {
 		// 	display->p_owner = this;
 		// }
 	}
@@ -753,7 +753,7 @@ void DragonBonesArmature::set_slots_inherit_material(bool p_slots_inherit_materi
 			continue;
 		}
 
-		// if (auto display = static_cast<MeshDisplay *>(slot->getRawDisplay())) {
+		// if (auto display = static_cast<DragonBonesMeshDisplay *>(slot->getRawDisplay())) {
 		// 	display->set_use_parent_material(p_slots_inherit_material);
 		// }
 	}

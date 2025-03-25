@@ -1,13 +1,12 @@
 #pragma once
 
-#include "dragonBones/armature/Armature.h"
-#include "dragonBones/armature/IArmatureProxy.h"
-#include "dragonbones_bone.h"
-#include "dragonbones_slot.h"
-
-#include "godot_cpp/classes/texture2d.hpp"
-
+#include <dragonBones/armature/Armature.h>
+#include <dragonBones/armature/IArmatureProxy.h>
+#include <godot_cpp/classes/texture2d.hpp>
 #include <godot_cpp/core/version.hpp>
+
+#include "bone.h"
+#include "slot.h"
 
 #if GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
 #include "godot_cpp/variant/typed_dictionary.hpp"
