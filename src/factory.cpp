@@ -87,10 +87,9 @@ TextureAtlasData *DragonBonesFactory::_buildTextureAtlasData(TextureAtlasData *t
 	auto atlas_data = static_cast<DragonBonesTextureAtlasData *>(textureAtlasData);
 	const String *file_path = static_cast<String *>(textureAtlas);
 	auto image_path = file_path->get_base_dir().path_join(to_gd_str(atlas_data->imagePath));
-	static const String STexture2D{ "Texture2D" };
-	ERR_FAIL_COND_V_MSG(!ResourceLoader::get_singleton()->exists(image_path, STexture2D), atlas_data, vformat("Unsupport texture atlas file: \"%s\", missing atlas image.", *file_path));
+	ERR_FAIL_COND_V_MSG(!ResourceLoader::get_singleton()->exists(image_path, "Texture2D"), atlas_data, vformat("Unsupport texture atlas file: \"%s\", missing atlas image.", *file_path));
 
-	atlas_data->init(ResourceLoader::get_singleton()->load(image_path, STexture2D));
+	atlas_data->init(ResourceLoader::get_singleton()->load(image_path));
 	return atlas_data;
 }
 

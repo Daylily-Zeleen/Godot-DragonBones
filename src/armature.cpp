@@ -13,8 +13,6 @@
 using namespace godot;
 using namespace dragonBones;
 
-#define SNAME(sn) ([] {static const StringName ret{sn};return ret; }())
-
 DragonBonesArmature::~DragonBonesArmature() {
 	dispose(true);
 }
