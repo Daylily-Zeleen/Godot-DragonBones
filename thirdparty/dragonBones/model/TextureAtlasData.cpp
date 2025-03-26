@@ -58,7 +58,7 @@ void TextureAtlasData::addTexture(TextureData* value)
 
 Rectangle* TextureData::createRectangle()
 {
-    return memnew(Rectangle);
+    return DRAGONBONES_NEW(Rectangle);
 }
 
 TextureData::~TextureData()
@@ -69,7 +69,7 @@ void TextureData::_onClear()
 {
     if (frame != nullptr)
     {
-        godot::memdelete(frame);
+        DRAGONBONES_DELETE(frame);
     }
 
     rotated = false;
@@ -92,7 +92,7 @@ void TextureData::copyFrom(const TextureData &value)
     }
     else if (frame != nullptr && value.frame == nullptr)
     {
-        godot::memdelete(frame);
+        DRAGONBONES_DELETE(frame);
         frame = nullptr;
     }
 

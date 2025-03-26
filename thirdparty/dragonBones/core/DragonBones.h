@@ -33,6 +33,16 @@
 #include <functional>
 #include <sstream>
 #include <assert.h>
+
+// dragonBones new delete
+#ifndef DRAGONBONES_NEW
+#define DRAGONBONES_NEW(T) new T
+#endif // DRAGONBONES_NEW
+
+#ifndef DRAGONBONES_DELETE
+#define DRAGONBONES_DELETE(ptr) delete ptr 
+#endif // DRAGONBONES_DELETE
+
 // dragonBones assert
 #define DRAGONBONES_ASSERT(cond, msg) \
 do { \

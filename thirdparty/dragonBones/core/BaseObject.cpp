@@ -26,7 +26,7 @@ void BaseObject::_returnObject(BaseObject* object)
     }
     else
     {
-        godot::memdelete(object);
+        DRAGONBONES_DELETE(object);
     }
 }
 
@@ -42,7 +42,7 @@ void BaseObject::setMaxCount(std::size_t classType, unsigned maxCount)
             {
                 for (auto i = (size_t)maxCount, l = pool.size(); i < l; ++i)
                 {
-                    godot::memdelete(pool[i]);
+                    DRAGONBONES_DELETE(pool[i]);
                 }
 
                 pool.resize(maxCount);
@@ -61,7 +61,7 @@ void BaseObject::setMaxCount(std::size_t classType, unsigned maxCount)
             {
                 for (auto i = (size_t)maxCount, l = pool.size(); i < l; ++i)
                 {
-                    godot::memdelete(pool[i]);
+                    DRAGONBONES_DELETE(pool[i]);
                 }
 
                 pool.resize(maxCount);
@@ -87,7 +87,7 @@ void BaseObject::clearPool(std::size_t classType)
             {
                 for (auto object : pool)
                 {
-                    godot::memdelete(object);
+                    DRAGONBONES_DELETE(object);
                 }
 
                 pool.clear();
@@ -103,7 +103,7 @@ void BaseObject::clearPool(std::size_t classType)
             {
                 for (auto object : pool)
                 {
-                    godot::memdelete(object);
+                    DRAGONBONES_DELETE(object);
                 }
 
                 pool.clear();

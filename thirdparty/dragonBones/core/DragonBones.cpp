@@ -20,7 +20,7 @@ DragonBones::DragonBones(IEventDispatcher* eventManager) :
     _clock(nullptr),
     _eventManager(eventManager)
 {
-    _clock = memnew(WorldClock);
+    _clock = DRAGONBONES_NEW(WorldClock);
     _eventManager = eventManager;
 }
 
@@ -28,7 +28,7 @@ DragonBones::~DragonBones()
 {
     if (_clock != nullptr)
     {
-        godot::memdelete(_clock);
+        DRAGONBONES_DELETE(_clock);
     }
 
     _clock = nullptr;
