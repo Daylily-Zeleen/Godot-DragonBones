@@ -16,9 +16,9 @@ void DragonBones::_cleanup(bool p_for_destructor) {
 	b_initialized = false;
 
 	if (!p_for_destructor) {
-		// 析构时子节点已被释放
 		if (main_armature) {
-			main_armature->dispose(true);
+			main_armature->returnToPool();
+			main_armature = nullptr;
 		} else {
 			ERR_PRINT("Unreachable case.");
 		}
@@ -692,7 +692,7 @@ void DragonBones::_bind_methods() {
 
 DragonBones::DragonBones() {
 	// 内部节点
-	main_armature = memnew(DragonBonesArmature);
+	main_armature = dragonBones::BaseObject::borrowObject<DragonBonesArmature>();
 	main_armature->dragon_bones = this;
 }
 

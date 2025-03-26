@@ -101,7 +101,7 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 		// 主Armature作为内部节点将被重用
 		armatureDisplay = building_main_armature;
 	} else {
-		armatureDisplay = memnew(DragonBonesArmature);
+		armatureDisplay = BaseObject::borrowObject<DragonBonesArmature>();
 	}
 
 	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
@@ -110,7 +110,7 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 
 Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, const SlotData *slotData, Armature *armature) const {
 	auto slot = BaseObject::borrowObject<Slot_GD>();
-	auto mesh_display = memnew(DragonBonesMeshDisplay);
+	auto mesh_display = BaseObject::borrowObject<DragonBonesMeshDisplay>();
 
 	slot->init(slotData, armature, mesh_display, mesh_display);
 	slot->update(0);

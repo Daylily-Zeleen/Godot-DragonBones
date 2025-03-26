@@ -20,13 +20,6 @@ Ref<Texture2D> Slot_GD::get_texture() const {
 	return Ref<Texture2D>();
 }
 
-void Slot_GD::clear_display() {
-	for (auto display : getDisplayList()) {
-		static_cast<Display *>(display.first)->slot = nullptr;
-		//// TODO: memdelete?
-	}
-}
-
 void Slot_GD::_updateZOrder() {
 	ERR_FAIL_NULL(get_display());
 	get_display()->queue_redraw();
@@ -68,27 +61,9 @@ void Slot_GD::_updateBlendMode() {
 void Slot_GD::_updateColor() {
 	ERR_FAIL_NULL(get_display());
 	get_display()->queue_redraw();
-	// if (!_renderDisplay)
-	// 	return;
-
-	// Color color(_colorTransform.redMultiplier,
-	// 		_colorTransform.greenMultiplier,
-	// 		_colorTransform.blueMultiplier,
-	// 		_colorTransform.alphaMultiplier);
-
-	// // if (auto armature = _renderDisplay->armature) {
-	// // 	color *= armature->get_modulate();
-	// // }
-
-	// _renderDisplay->update_modulate(color);
-	// queue_redraw();
 }
 
 void Slot_GD::_initDisplay(void *value, bool isRetain) {
-	// if (isRetain) {
-	// 	return;
-	// }
-
 	if (!value) {
 		return;
 	}
@@ -96,45 +71,23 @@ void Slot_GD::_initDisplay(void *value, bool isRetain) {
 	static_cast<Display *>(value)->slot = this;
 }
 
-void Slot_GD::_disposeDisplay(void *value, bool isRelease) {
-	if (isRelease) {
-		return;
-	}
+void Slot_GD::_disposeDisplay(void *value, bool _isRelease) {
+	/**
+		基类里错误处理：
+		isRelease == false 时和 true 时一样没有保持对指针的引用，将导致内存泄漏。
+		因此这里统一以 true 时一样处理
+	*/
 
 	if (auto display = static_cast<Display *>(value)) {
-		if (auto sub_armature = dynamic_cast<DragonBonesArmature *>(display)) {
-			sub_armature->dispose(true);
-		}
+		display->returnToPool();
 	}
 }
 
-void Slot_GD::_onUpdateDisplay() {
-	// DragonBonesMeshDisplay *new_display = static_cast<DragonBonesMeshDisplay *>(getDisplay() ? getDisplay() : getRawDisplay());
-	// if (new_display == _renderDisplay) {
-	// 	return;
-	// }
-
-	// if (_renderDisplay) {
-	// 	_renderDisplay->slot = nullptr;
-	// }
-
-	// _renderDisplay = new_display;
-
-	// if (_renderDisplay) {
-	// 	_renderDisplay->slot = this;
-	// }
-}
+void Slot_GD::_onUpdateDisplay() {}
 
 void Slot_GD::_addDisplay() {}
 
 void Slot_GD::_replaceDisplay(void *value, bool isArmatureDisplay) {
-	// _renderDisplay->visible = true;
-
-	// if (value != nullptr) {
-	// 	static_cast<DragonBonesMeshDisplay *>(value)->visible = false;
-	// }
-	// queue_redraw();
-
 	ERR_FAIL_NULL(get_display());
 	get_display()->queue_redraw();
 }
@@ -144,12 +97,6 @@ void Slot_GD::_removeDisplay() {
 
 void Slot_GD::__get_uv_pt(Point2 &_pt, bool _is_rot, float _u, float _v, const Rectangle &_reg, const TextureAtlasData *_p_atlas) {
 	Size2 tex_size(_p_atlas->width, _p_atlas->height);
-	// auto texture_override = get_texture();
-
-	// if (_renderDisplay && _renderDisplay->texture.is_valid()) {
-	// 	// 以实际纹理为准
-	// 	tex_size = _renderDisplay->texture->get_size();
-	// }
 
 	if (_is_rot) {
 		_pt.x = (_reg.x + (1.f - _v) * _reg.width) / tex_size.x;
@@ -394,7 +341,6 @@ void Slot_GD::_onClear() {
 	Slot::_onClear();
 
 	_textureScale = 1.0f;
-	clear_display();
 }
 
 /* GODOT CLASS WRAPPER FOR GIVING SCRIPT ACCESS */

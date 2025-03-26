@@ -7,6 +7,14 @@
 
 namespace godot {
 
+void Display::_onClear() {
+	transform = Transform2D();
+	if (slot) {
+		slot->returnToPool();
+		slot = nullptr;
+	}
+}
+
 DragonBonesMeshDisplay::DragonBonesMeshDisplay()
 #ifdef DEBUG_ENABLED
 		:
@@ -59,11 +67,20 @@ void DragonBonesMeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &
 			colors,
 			vertices_uv,
 			texture,
-			blend_mode,
+			slot->blend_mode,
 			slot->_zOrder,
 #ifdef DEBUG_ENABLED
 			debug_color,
 #endif // DEBUG_ENABLED
 	});
+}
+
+void DragonBonesMeshDisplay::_onClear() {
+	Display::_onClear();
+
+	indices.clear();
+	colors.clear();
+	vertices_uv.clear();
+	vertices.clear();
 }
 } //namespace godot

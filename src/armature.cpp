@@ -13,9 +13,7 @@
 using namespace godot;
 using namespace dragonBones;
 
-DragonBonesArmature::~DragonBonesArmature() {
-	dispose(true);
-}
+DragonBonesArmature::~DragonBonesArmature() { _onClear(); }
 
 void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("for_each_armature", "action"), &DragonBonesArmature::for_each_armature_);
@@ -682,7 +680,9 @@ void DragonBonesArmature::dbClear() {
 void DragonBonesArmature::dbUpdate() {
 }
 
-void DragonBonesArmature::dispose(bool _disposeProxy) {
+void DragonBonesArmature::_onClear() {
+	Display::_onClear();
+
 	_bones.clear();
 	_slots.clear();
 
@@ -693,6 +693,7 @@ void DragonBonesArmature::dispose(bool _disposeProxy) {
 		}
 		p_armature = nullptr;
 	}
+	// TODO: 检查清理是否完全
 }
 
 void DragonBonesArmature::setup_recursively() {

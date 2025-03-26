@@ -7,7 +7,6 @@
 #include "mesh_display.h"
 #include "utils.h"
 
-
 namespace godot {
 
 class Slot_GD : public dragonBones::Slot {
@@ -15,11 +14,10 @@ class Slot_GD : public dragonBones::Slot {
 
 private:
 	float _textureScale;
-	CanvasItemMaterial::BlendMode blend_mode{ CanvasItemMaterial::BLEND_MODE_MIX };
-
-	void clear_display();
 
 public:
+	CanvasItemMaterial::BlendMode blend_mode{ CanvasItemMaterial::BLEND_MODE_MIX };
+
 	Ref<Texture2D> get_texture() const;
 	// void update_display_texture() const;
 
@@ -36,7 +34,7 @@ protected:
 	virtual void _onUpdateDisplay() override;
 	virtual void _addDisplay() override;
 	virtual void _replaceDisplay(void *value, bool isArmatureDisplay) override;
-	virtual void _removeDisplay() override;
+	virtual void _removeDisplay() override; // 不被调用的纯虚函数
 	virtual void _updateZOrder() override;
 
 	virtual void _updateFrame() override;
@@ -49,7 +47,6 @@ protected:
 	void __get_uv_pt(Point2 &_pt, bool _is_rot, float _u, float _v, const dragonBones::Rectangle &_reg, const dragonBones::TextureAtlasData *_p_atlas);
 };
 
-// TODO: 是否需要对每个Slot单独设置继承父级材质？
 class DragonBonesSlot : public RefCounted {
 	GDCLASS(DragonBonesSlot, RefCounted);
 
