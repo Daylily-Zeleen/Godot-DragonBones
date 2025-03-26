@@ -448,7 +448,7 @@ static const Ref<CanvasItemMaterial> &get_blend_material(CanvasItemMaterial::Ble
 }
 
 void DragonBones::_draw() {
-	if (!main_armature) {
+	if (!main_armature || !main_armature->is_initialized()) {
 		return;
 	}
 
