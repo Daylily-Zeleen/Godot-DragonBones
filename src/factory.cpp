@@ -538,7 +538,6 @@ Error ResourceFormatSaverDragonBones::_save(const Ref<Resource> &resource, const
 }
 
 // ===========================================
-
 PackedStringArray ResourceFormatLoaderDragonBones::_get_recognized_extensions() const {
 	return Array::make(DragonBonesFactory::SAVED_EXT);
 }
@@ -555,6 +554,11 @@ String ResourceFormatLoaderDragonBones::_get_resource_type(const String &path) c
 }
 
 int64_t ResourceFormatLoaderDragonBones::_get_resource_uid(const String &path) const {
+	if (!path.to_lower().ends_with(DragonBonesFactory::SAVED_EXT)) {
+		// 这里应该由 godot 引擎自身处理才对 （_get_recognized_extensions）。
+		return ResourceUID::INVALID_ID;
+	}
+
 	auto fa = FileAccess::open(path, FileAccess::READ);
 	if (fa.is_null()) {
 		ERR_PRINT(vformat("Cannot open file '%s' for reading uid: %s.", path, UtilityFunctions::error_string(FileAccess::get_open_error())));
