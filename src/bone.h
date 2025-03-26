@@ -1,8 +1,7 @@
 #pragma once
 
-#include "dragonBones/armature/Bone.h"
-#include "godot_cpp/classes/node2d.hpp"
-#include "godot_cpp/classes/ref_counted.hpp"
+#include <dragonBones/armature/Bone.h>
+#include <godot_cpp/classes/ref_counted.hpp>
 
 namespace godot {
 
@@ -11,7 +10,7 @@ class DragonBonesBone : public RefCounted {
 
 protected:
 	dragonBones::Bone *boneData{ nullptr }; // 生命周期由 dragonBones::Armature 管理
-	Node2D *armature{ nullptr };
+	class DragonBonesArmature *armature{ nullptr };
 
 public:
 	enum OffsetMode {
@@ -21,7 +20,7 @@ public:
 	};
 
 	DragonBonesBone() = default;
-	DragonBonesBone(dragonBones::Bone *p_bone_data, Node2D *p_armature) :
+	DragonBonesBone(dragonBones::Bone *p_bone_data, DragonBonesArmature *p_armature) :
 			boneData(p_bone_data), armature(p_armature) {}
 
 	~DragonBonesBone() = default;
@@ -30,7 +29,7 @@ public:
 	static void _bind_methods();
 	String _to_string() const { return vformat("<%s#%s>", get_class_static(), get_instance_id()); }
 
-	bool has_data() const;
+	bool is_valid() const;
 	String get_name() const;
 	Ref<DragonBonesBone> get_parent() const;
 

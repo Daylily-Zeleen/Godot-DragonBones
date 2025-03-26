@@ -1,7 +1,12 @@
 #pragma once
 
-#include "dragonBones/armature/Slot.h"
-#include "wrappers/GDDisplay.h"
+#include <dragonBones/armature/Slot.h>
+#include <godot_cpp/classes/canvas_item_material.hpp>
+#include <godot_cpp/classes/texture2d.hpp>
+
+#include "mesh_display.h"
+#include "utils.h"
+
 
 namespace godot {
 
@@ -10,12 +15,15 @@ class Slot_GD : public dragonBones::Slot {
 
 private:
 	float _textureScale;
-	GDDisplay *_renderDisplay{ nullptr };
-
-public:
-	void update_display_texture() const;
+	CanvasItemMaterial::BlendMode blend_mode{ CanvasItemMaterial::BLEND_MODE_MIX };
 
 	void clear_display();
+
+public:
+	Ref<Texture2D> get_texture() const;
+	// void update_display_texture() const;
+
+	Display *get_display() const { return static_cast<Display *>(getDisplay()); }
 
 public:
 	virtual void _updateVisible() override;

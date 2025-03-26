@@ -174,9 +174,9 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 endif()
 
 # Get Sources
-file(GLOB_RECURSE SOURCES src/*.c**)
+file(GLOB_RECURSE SOURCES src/*.c** thirdparty/*.c**)
 
-file(GLOB_RECURSE HEADERS src/*.h**)
+file(GLOB_RECURSE HEADERS src/*.h** thirdparty/*.h**)
 
 # Define our library
 if(BUILD_SHARED)
@@ -191,6 +191,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM
 	${CPP_BINDINGS_BUILD_PATH}/gen/include
 	${GODOT_GDEXTENSION_DIR}
 	./src
+	./thirdparty
 )
 
 set(compiler_is_msvc "$<CXX_COMPILER_ID:MSVC>")

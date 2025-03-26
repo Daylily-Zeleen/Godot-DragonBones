@@ -1,15 +1,22 @@
-#include "dragonbones_factory.h"
-#include "dragonBones/core/DragonBones.h"
-#include "godot_cpp/classes/dir_access.hpp"
-#include "godot_cpp/classes/file_access.hpp"
+#include "factory.h"
 
-#include "dragonbones_armature.h"
-#include "godot_cpp/classes/resource.hpp"
-#include "godot_cpp/classes/resource_saver.hpp"
-#include "godot_cpp/classes/resource_uid.hpp"
-#include "godot_cpp/variant/utility_functions.hpp"
-#include "wrappers/GDMesh.h"
-#include "wrappers/GDTextureAtlasData.h"
+#include <dragonBones/animation/WorldClock.h>
+#include <dragonBones/core/DragonBones.h>
+
+#include <godot_cpp/classes/dir_access.hpp>
+#include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/file_access.hpp>
+#include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/classes/resource.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/classes/resource_saver.hpp>
+#include <godot_cpp/classes/resource_uid.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
+
+#include "armature.h"
+#include "mesh_display.h"
+#include "texture_atlas_data.h"
+#include "utils.h"
 
 using namespace godot;
 using namespace dragonBones;
@@ -60,20 +67,12 @@ DragonBonesData *DragonBonesFactory::loadDragonBonesData(const char *_p_data_loa
 	return parseDragonBonesData(_p_data_loaded, name, 1.0f);
 }
 
-TextureAtlasData *DragonBonesFactory::loadTextureAtlasData(const char *_p_data_loaded, Ref<Texture> *_p_atlasTexture, const std::string &name, float scale) {
-	return BaseFactory::parseTextureAtlasData(_p_data_loaded, _p_atlasTexture, name, scale);
+TextureAtlasData *DragonBonesFactory::loadTextureAtlasData(const char *_p_data_loaded, String *p_atlas_data_file_path, const std::string &name, float scale) {
+	return BaseFactory::parseTextureAtlasData(_p_data_loaded, p_atlas_data_file_path, name, scale);
 }
 
 DragonBonesArmature *DragonBonesFactory::buildArmatureDisplay(const std::string &armatureName, const std::string &dragonBonesName, const std::string &skinName, const std::string &textureAtlasName) const {
 	const auto armature = buildArmature(armatureName, dragonBonesName, skinName, textureAtlasName);
-
-	// 初始化纹理
-	for (const auto slot : armature->getSlots()) {
-		if (auto slot_gd = static_cast<Slot_GD *>(slot)) {
-			slot_gd->update_display_texture();
-		}
-	}
-
 	if (armature != nullptr) {
 		_dragonBones->getClock()->add(armature);
 		return static_cast<DragonBonesArmature *>(armature->getDisplay());
@@ -82,14 +81,16 @@ DragonBonesArmature *DragonBonesFactory::buildArmatureDisplay(const std::string 
 }
 
 TextureAtlasData *DragonBonesFactory::_buildTextureAtlasData(TextureAtlasData *textureAtlasData, void *textureAtlas) const {
-	auto textureAtlasData_ = static_cast<GDTextureAtlasData *>(textureAtlasData);
-
-	if (textureAtlasData != nullptr) {
-		textureAtlasData_->setRenderTexture();
-	} else {
-		textureAtlasData_ = BaseObject::borrowObject<GDTextureAtlasData>();
+	if (textureAtlasData == nullptr && textureAtlas == nullptr) {
+		return BaseObject::borrowObject<DragonBonesTextureAtlasData>();
 	}
-	return textureAtlasData_;
+	auto atlas_data = static_cast<DragonBonesTextureAtlasData *>(textureAtlasData);
+	const String *file_path = static_cast<String *>(textureAtlas);
+	auto image_path = file_path->get_base_dir().path_join(to_gd_str(atlas_data->imagePath));
+	ERR_FAIL_COND_V_MSG(!ResourceLoader::get_singleton()->exists(image_path, "Texture2D"), atlas_data, vformat("Unsupport texture atlas file: \"%s\", missing atlas image.", *file_path));
+
+	atlas_data->init(ResourceLoader::get_singleton()->load(image_path));
+	return atlas_data;
 }
 
 Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPackage) const {
@@ -104,15 +105,14 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 	}
 
 	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
-	armatureDisplay->set_name(to_gd_str(armature->getName()));
 	return armature;
 }
 
 Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, const SlotData *slotData, Armature *armature) const {
 	auto slot = BaseObject::borrowObject<Slot_GD>();
-	auto wrapperDisplay = memnew(GDMesh);
+	auto mesh_display = memnew(DragonBonesMeshDisplay);
 
-	slot->init(slotData, armature, wrapperDisplay, wrapperDisplay);
+	slot->init(slotData, armature, mesh_display, mesh_display);
 	slot->update(0);
 
 	// slot->update_display_texture();
@@ -121,7 +121,6 @@ Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, co
 
 	const auto proxy = static_cast<DragonBonesArmature *>(slot->getArmature()->getDisplay());
 	proxy->add_slot(slot->getName(), tree_slot);
-	wrapperDisplay->set_name(to_gd_str(slot->getName()));
 
 	return slot;
 }
@@ -139,16 +138,7 @@ Armature *DragonBonesFactory::_buildChildArmature(const BuildArmaturePackage *da
 		childArmature = buildArmatureDisplay(displayData->path, displayData->getParent()->parent->parent->name);
 	}
 
-	if (childArmature == nullptr) {
-		ERR_PRINT("Child armature is null");
-		return nullptr;
-	}
-
-	childArmature->set_z_index(slot->_zOrder);
-	childArmature->getArmature()->setFlipY(true);
-	childArmature->hide();
-	proxy->add_child(childArmature, false, Node::INTERNAL_MODE_BACK);
-
+	ERR_FAIL_NULL_V_MSG(childArmature, nullptr, "Child armature is null");
 	return childArmature->getArmature();
 }
 
@@ -287,7 +277,7 @@ Error DragonBonesFactory::load_texture_atlas_json_file_list(PackedStringArray p_
 	texture_atlas_json_file_list = p_files;
 
 	// 加载
-	for (const auto &file_path : p_files) {
+	for (auto &file_path : p_files) {
 		if (file_path.is_empty()) {
 			continue;
 		}
@@ -295,25 +285,8 @@ Error DragonBonesFactory::load_texture_atlas_json_file_list(PackedStringArray p_
 		auto raw_data = get_file_data(file_path);
 		ERR_CONTINUE_MSG(raw_data.is_empty(), (err = ERR_PARSE_ERROR, vformat("Load DragonBones tex file failed: \"%s\".", file_path)));
 
-		const auto data = static_cast<GDTextureAtlasData *>(loadTextureAtlasData((const char *)raw_data.ptr(), nullptr));
+		const auto data = static_cast<DragonBonesTextureAtlasData *>(loadTextureAtlasData((const char *)raw_data.ptr(), &file_path));
 		ERR_CONTINUE_MSG(!data, (err = ERR_PARSE_ERROR, vformat("Parse failed: \"%s\"", file_path)));
-
-		if (data->imagePath.empty()) {
-			auto datas = getTextureAtlasData(data->name);
-			if (datas) {
-				for (auto it = datas->begin(); it != datas->end(); ++it) {
-					if (*it != data) {
-						continue;
-					}
-					datas->erase(it);
-				}
-			}
-
-			err = ERR_PARSE_ERROR;
-			ERR_CONTINUE_MSG(false, vformat("Unsupport texture atlas file: \"%s\", need \"imagePath\" field.", file_path));
-		}
-
-		data->init(file_path.get_base_dir().path_join(to_gd_str(data->imagePath)));
 	}
 	return err;
 }
@@ -384,11 +357,11 @@ bool DragonBonesFactory::can_create_dragon_bones_instance() const {
 }
 
 dragonBones::DragonBones *DragonBonesFactory::create_dragon_bones(
-		dragonBones::IEventDispatcher *p_event_manager, DragonBonesArmature *p_main_armature, const String &p_dragonbones_data_name, const String &p_armature_name, const String &p_skin_name) {
+		dragonBones::IEventDispatcher *p_event_manager, DragonBonesArmature *p_main_armature, const String &p_dragon_bones_data_name, const String &p_armature_name, const String &p_skin_name) {
 	const auto &dragon_bones_data_list = getAllDragonBonesData();
 	ERR_FAIL_COND_V(dragon_bones_data_list.size() <= 0, nullptr);
 
-	dragonBones::DragonBonesData *dragon_bones_data = getDragonBonesData(to_std_str(p_dragonbones_data_name));
+	dragonBones::DragonBonesData *dragon_bones_data = getDragonBonesData(to_std_str(p_dragon_bones_data_name));
 	if (dragon_bones_data == nullptr) {
 		dragon_bones_data = dragon_bones_data_list.begin()->second;
 	}

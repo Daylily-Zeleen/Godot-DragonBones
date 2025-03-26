@@ -1,15 +1,15 @@
 #include "dragonbones_editor_plugin.h"
 
-#include "godot_cpp/classes/config_file.hpp"
-#include "godot_cpp/classes/dir_access.hpp"
-#include "godot_cpp/classes/editor_file_system.hpp"
-#include "godot_cpp/classes/editor_file_system_directory.hpp"
-#include "godot_cpp/classes/editor_interface.hpp"
-#include "godot_cpp/classes/file_access.hpp"
-#include "godot_cpp/classes/file_system_dock.hpp"
-#include "godot_cpp/classes/resource_loader.hpp"
-#include "godot_cpp/classes/resource_saver.hpp"
-#include "godot_cpp/variant/utility_functions.hpp"
+#include <godot_cpp/classes/config_file.hpp>
+#include <godot_cpp/classes/dir_access.hpp>
+#include <godot_cpp/classes/editor_file_system.hpp>
+#include <godot_cpp/classes/editor_file_system_directory.hpp>
+#include <godot_cpp/classes/editor_interface.hpp>
+#include <godot_cpp/classes/file_access.hpp>
+#include <godot_cpp/classes/file_system_dock.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/classes/resource_saver.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
 
 using namespace godot;
 

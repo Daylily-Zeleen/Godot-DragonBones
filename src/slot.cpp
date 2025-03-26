@@ -1,104 +1,99 @@
-#include "dragonbones_slot.h"
+#include "slot.h"
 
-#include "dragonbones_armature.h"
+#include <dragonBones/armature/DeformVertices.h>
+#include <dragonBones/model/DisplayData.h>
+#include <dragonBones/model/DragonBonesData.h>
 
-#include "wrappers/GDDisplay.h"
-#include "wrappers/GDMesh.h"
-#include "wrappers/GDTextureAtlasData.h"
+#include "armature.h"
+#include "mesh_display.h"
+#include "texture_atlas_data.h"
 
 using namespace godot;
 using namespace dragonBones;
 
-void Slot_GD::update_display_texture() const {
-	if (!_renderDisplay || !_textureData) {
-		return;
+Ref<Texture2D> Slot_GD::get_texture() const {
+	ERR_FAIL_COND_V(_textureData == nullptr, Ref<Texture2D>());
+
+	if (auto atlas = static_cast<const DragonBonesTextureAtlasData *>(_textureData->getParent())) {
+		return atlas->get_display_texture();
 	}
-	if (auto atlas = static_cast<GDTextureAtlasData *>(_textureData->parent)) {
-		_renderDisplay->texture = atlas->get_display_texture();
-	}
+	return Ref<Texture2D>();
 }
 
 void Slot_GD::clear_display() {
-	_meshDisplay = nullptr;
-	_rawDisplay = nullptr;
-	if (_renderDisplay) {
-		_renderDisplay->slot = nullptr;
+	for (auto display : getDisplayList()) {
+		static_cast<Display *>(display.first)->slot = nullptr;
+		//// TODO: memdelete?
 	}
-	_renderDisplay = nullptr;
 }
 
 void Slot_GD::_updateZOrder() {
-	_renderDisplay->set_z_index(_zOrder);
+	ERR_FAIL_NULL(get_display());
+	get_display()->queue_redraw();
 }
 
 void Slot_GD::_updateVisible() {
-	if (_parent->getVisible())
-		_renderDisplay->show();
-	else
-		_renderDisplay->hide();
+	ERR_FAIL_NULL(get_display());
+	get_display()->queue_redraw();
 }
 
 void Slot_GD::_updateBlendMode() {
-	if (_renderDisplay) {
-		CanvasItemMaterial::BlendMode __blend = CanvasItemMaterial::BLEND_MODE_MIX;
+	ERR_FAIL_NULL(get_display());
+	get_display()->queue_redraw();
 
-		switch (_blendMode) {
-			case BlendMode::Normal:
-				__blend = CanvasItemMaterial::BLEND_MODE_MIX;
-				break;
+	switch (_blendMode) {
+		case BlendMode::Normal: {
+			blend_mode = CanvasItemMaterial::BLEND_MODE_MIX;
+		} break;
 
-			case BlendMode::Add:
-				__blend = CanvasItemMaterial::BLEND_MODE_ADD;
-				break;
+		case BlendMode::Add: {
+			blend_mode = CanvasItemMaterial::BLEND_MODE_ADD;
+		} break;
 
-			case BlendMode::Multiply:
-				__blend = CanvasItemMaterial::BLEND_MODE_MUL;
-				break;
+		case BlendMode::Multiply: {
+			blend_mode = CanvasItemMaterial::BLEND_MODE_MUL;
+		} break;
 
-			case BlendMode::Subtract:
-				__blend = CanvasItemMaterial::BLEND_MODE_SUB;
-				break;
+		case BlendMode::Subtract: {
+			blend_mode = CanvasItemMaterial::BLEND_MODE_SUB;
+		} break;
 
-			default:
-				break;
-		}
-		_renderDisplay->set_blend_mode(__blend);
-		_renderDisplay->queue_redraw();
-	} else if (_childArmature) {
-		for (const auto slot : _childArmature->getSlots()) {
-			slot->_blendMode = _blendMode;
-			slot->_updateBlendMode();
-		}
+		default: {
+			ERR_PRINT_ONCE("Unsupported DragonBones BlendMode: " + itos((int)_blendMode) + ", use 'CanvasItemMaterial::BLEND_MODE_MIX' instead.");
+			blend_mode = CanvasItemMaterial::BLEND_MODE_MIX;
+		} break;
 	}
 }
 
 void Slot_GD::_updateColor() {
-	if (!_renderDisplay)
-		return;
+	ERR_FAIL_NULL(get_display());
+	get_display()->queue_redraw();
+	// if (!_renderDisplay)
+	// 	return;
 
-	Color __color(_colorTransform.redMultiplier,
-			_colorTransform.greenMultiplier,
-			_colorTransform.blueMultiplier,
-			_colorTransform.alphaMultiplier);
+	// Color color(_colorTransform.redMultiplier,
+	// 		_colorTransform.greenMultiplier,
+	// 		_colorTransform.blueMultiplier,
+	// 		_colorTransform.alphaMultiplier);
 
-	GDOwnerNode *__p_owner = _renderDisplay->p_owner;
-	if (__p_owner) {
-		__color *= __p_owner->get_modulate();
-	}
+	// // if (auto armature = _renderDisplay->armature) {
+	// // 	color *= armature->get_modulate();
+	// // }
 
-	_renderDisplay->update_modulate(__color);
-	_renderDisplay->queue_redraw();
+	// _renderDisplay->update_modulate(color);
+	// queue_redraw();
 }
 
 void Slot_GD::_initDisplay(void *value, bool isRetain) {
-	if (isRetain) {
+	// if (isRetain) {
+	// 	return;
+	// }
+
+	if (!value) {
 		return;
 	}
-	_renderDisplay = static_cast<GDDisplay *>(value);
-	_renderDisplay->slot = this;
 
-	DragonBonesArmature *proxy = static_cast<DragonBonesArmature *>(_armature->getProxy());
-	_renderDisplay->set_use_parent_material(proxy->is_slots_inherit_material());
+	static_cast<Display *>(value)->slot = this;
 }
 
 void Slot_GD::_disposeDisplay(void *value, bool isRelease) {
@@ -106,49 +101,42 @@ void Slot_GD::_disposeDisplay(void *value, bool isRelease) {
 		return;
 	}
 
-	if (auto display = static_cast<GDDisplay *>(getRawDisplay())) {
-		if (display->is_queued_for_deletion()) {
-			return;
-		}
-
-		if (display->get_parent()) {
-			display->get_parent()->remove_child(display);
-		}
-
-		if (DragonBonesArmature *sub_armature = Object::cast_to<DragonBonesArmature>(display)) {
+	if (auto display = static_cast<Display *>(value)) {
+		if (auto sub_armature = dynamic_cast<DragonBonesArmature *>(display)) {
 			sub_armature->dispose(true);
-			sub_armature->p_owner = nullptr;
 		}
-
-		display->queue_free();
 	}
 }
 
 void Slot_GD::_onUpdateDisplay() {
-	GDDisplay *new_display = static_cast<GDDisplay *>(getDisplay() ? getDisplay() : getRawDisplay());
-	if (new_display == _renderDisplay) {
-		return;
-	}
+	// DragonBonesMeshDisplay *new_display = static_cast<DragonBonesMeshDisplay *>(getDisplay() ? getDisplay() : getRawDisplay());
+	// if (new_display == _renderDisplay) {
+	// 	return;
+	// }
 
-	if (_renderDisplay) {
-		_renderDisplay->slot = nullptr;
-	}
+	// if (_renderDisplay) {
+	// 	_renderDisplay->slot = nullptr;
+	// }
 
-	_renderDisplay = new_display;
+	// _renderDisplay = new_display;
 
-	if (_renderDisplay) {
-		_renderDisplay->slot = this;
-	}
+	// if (_renderDisplay) {
+	// 	_renderDisplay->slot = this;
+	// }
 }
 
 void Slot_GD::_addDisplay() {}
 
 void Slot_GD::_replaceDisplay(void *value, bool isArmatureDisplay) {
-	_renderDisplay->show();
+	// _renderDisplay->visible = true;
 
-	if (value != nullptr) {
-		static_cast<GDDisplay *>(value)->hide();
-	}
+	// if (value != nullptr) {
+	// 	static_cast<DragonBonesMeshDisplay *>(value)->visible = false;
+	// }
+	// queue_redraw();
+
+	ERR_FAIL_NULL(get_display());
+	get_display()->queue_redraw();
 }
 
 void Slot_GD::_removeDisplay() {
@@ -156,10 +144,12 @@ void Slot_GD::_removeDisplay() {
 
 void Slot_GD::__get_uv_pt(Point2 &_pt, bool _is_rot, float _u, float _v, const Rectangle &_reg, const TextureAtlasData *_p_atlas) {
 	Size2 tex_size(_p_atlas->width, _p_atlas->height);
-	if (_renderDisplay && _renderDisplay->texture.is_valid()) {
-		// 以实际纹理为准
-		tex_size = _renderDisplay->texture->get_size();
-	}
+	// auto texture_override = get_texture();
+
+	// if (_renderDisplay && _renderDisplay->texture.is_valid()) {
+	// 	// 以实际纹理为准
+	// 	tex_size = _renderDisplay->texture->get_size();
+	// }
 
 	if (_is_rot) {
 		_pt.x = (_reg.x + (1.f - _v) * _reg.width) / tex_size.x;
@@ -171,14 +161,15 @@ void Slot_GD::__get_uv_pt(Point2 &_pt, bool _is_rot, float _u, float _v, const R
 }
 
 void Slot_GD::_updateFrame() {
-	update_display_texture();
-	const auto currentVerticesData = (_deformVertices != nullptr && _display == _meshDisplay) ? _deformVertices->verticesData : nullptr;
-	auto currentTextureData = static_cast<GDTextureData *>(_textureData);
+	// update_display_texture();
+	auto display = get_display();
+	const auto currentVerticesData = (_deformVertices != nullptr && display == _meshDisplay) ? _deformVertices->verticesData : nullptr;
+	auto currentTextureData = static_cast<DragonBonesTextureData *>(_textureData);
 
-	if (_displayIndex >= 0 && _display != nullptr && currentTextureData != nullptr) {
+	if (_displayIndex >= 0 && display != nullptr && currentTextureData != nullptr) {
 		const auto atlas = currentTextureData->getParent();
 		const auto &region = currentTextureData->region;
-		auto frameDisplay = static_cast<GDMesh *>(_renderDisplay);
+		auto frameDisplay = static_cast<DragonBonesMeshDisplay *>(display);
 
 		if (currentVerticesData != nullptr) {
 			// Mesh.
@@ -199,13 +190,13 @@ void Slot_GD::_updateFrame() {
 			const unsigned uvOffset = vertexOffset + (vertexCount << 1);
 
 			frameDisplay->indices.resize(triangleCount * 3);
-			frameDisplay->verticesColor.resize(vertexCount);
-			frameDisplay->verticesUV.resize(vertexCount);
-			frameDisplay->verticesPos.resize(vertexCount);
+			frameDisplay->colors.resize(vertexCount);
+			frameDisplay->vertices_uv.resize(vertexCount);
+			frameDisplay->vertices.resize(vertexCount);
 			auto indices_ptr = frameDisplay->indices.ptrw();
-			auto verticesColor_ptr = frameDisplay->verticesColor.ptrw();
-			auto verticesUV_ptr = frameDisplay->verticesUV.ptrw();
-			auto verticesPos_ptr = frameDisplay->verticesPos.ptrw();
+			auto verticesColor_ptr = frameDisplay->colors.ptrw();
+			auto verticesUV_ptr = frameDisplay->vertices_uv.ptrw();
+			auto verticesPos_ptr = frameDisplay->vertices.ptrw();
 
 			for (std::size_t i = 0, l = (vertexCount << 1); i < l; i += 2) {
 				std::size_t iH = i >> 1;
@@ -226,17 +217,17 @@ void Slot_GD::_updateFrame() {
 			}
 
 			_textureScale = 1.0f;
-			_identityTransform();
+			// _identityTransform();
 		} else {
 			// Normal texture
 			frameDisplay->indices.resize(6);
-			frameDisplay->verticesColor.resize(4);
-			frameDisplay->verticesUV.resize(4);
-			frameDisplay->verticesPos.resize(4);
+			frameDisplay->colors.resize(4);
+			frameDisplay->vertices_uv.resize(4);
+			frameDisplay->vertices.resize(4);
 			auto indices_ptr = frameDisplay->indices.ptrw();
-			auto verticesColor_ptr = frameDisplay->verticesColor.ptrw();
-			auto verticesUV_ptr = frameDisplay->verticesUV.ptrw();
-			auto verticesPos_ptr = frameDisplay->verticesPos.ptrw();
+			auto verticesColor_ptr = frameDisplay->colors.ptrw();
+			auto verticesUV_ptr = frameDisplay->vertices_uv.ptrw();
+			auto verticesPos_ptr = frameDisplay->vertices.ptrw();
 
 			indices_ptr[0] = 0;
 			indices_ptr[1] = 1;
@@ -267,29 +258,30 @@ void Slot_GD::_updateFrame() {
 			_pivotY = 0;
 			_pivotX = 0;
 			_textureScale = scale;
-			_identityTransform();
+			// _identityTransform();
 		}
 
 		_visibleDirty = true;
 		_blendModeDirty = true;
 		_colorDirty = true;
-		_renderDisplay->queue_redraw();
+		display->queue_redraw();
 		return;
 	}
-	_renderDisplay->hide();
+
+	// _renderDisplay->visible = false;
 }
 
 void Slot_GD::_updateMesh() {
 	const auto scale = _armature->_armatureData->scale;
-	const auto textureData = static_cast<GDTextureData *>(_textureData);
+	const auto textureData = static_cast<DragonBonesTextureData *>(_textureData);
 	const auto &deformVertices = _deformVertices->vertices;
 	const auto hasFFD = !deformVertices.empty();
 	const auto &bones = _deformVertices->bones;
 	const auto verticesData = _deformVertices->verticesData;
 	const auto weightData = verticesData->weight;
-	const auto meshDisplay = static_cast<GDMesh *>(_renderDisplay);
+	const auto meshDisplay = dynamic_cast<DragonBonesMeshDisplay *>(get_display());
 
-	if (!textureData) {
+	if (!textureData || !meshDisplay) {
 		return;
 	}
 
@@ -309,7 +301,7 @@ void Slot_GD::_updateMesh() {
 			weightFloatOffset += 65536;
 		}
 
-		auto verticesPos_ptr = meshDisplay->verticesPos.ptrw();
+		auto verticesPos_ptr = meshDisplay->vertices.ptrw();
 		for (
 				std::size_t i = 0, iD = 0, iB = weightData->offset + (unsigned)BinaryOffset::WeightBoneIndices + weightData->bones.size(), iV = (std::size_t)weightFloatOffset, iF = 0;
 				i < vertexCount;
@@ -335,7 +327,7 @@ void Slot_GD::_updateMesh() {
 				}
 			}
 
-			meshDisplay->verticesPos[i] = Vector2(xG, yG);
+			meshDisplay->vertices[i] = Vector2(xG, yG);
 		}
 	} else if (hasFFD) {
 		const auto data = verticesData->data;
@@ -348,7 +340,7 @@ void Slot_GD::_updateMesh() {
 			vertexOffset += 65536;
 		}
 
-		auto verticesPos_ptr = meshDisplay->verticesPos.ptrw();
+		auto verticesPos_ptr = meshDisplay->vertices.ptrw();
 		for (std::size_t i = 0, l = (vertexCount << 1); i < l; i += 2) {
 			const auto iH = (i >> 1);
 			const auto xG = floatArray[vertexOffset + i] * scale + deformVertices[i];
@@ -358,19 +350,21 @@ void Slot_GD::_updateMesh() {
 		}
 	}
 
-	_renderDisplay->queue_redraw();
+	meshDisplay->queue_redraw();
 }
 
+// 用不上
 void Slot_GD::_identityTransform() {
-	Transform2D matrix;
-	matrix.scale({ _textureScale, _textureScale });
-	_renderDisplay->set_transform(matrix);
-	_renderDisplay->queue_redraw();
+	// Transform2D matrix;
+	// matrix.scale({ _textureScale, _textureScale });
+	// _renderDisplay->set_transform(matrix);
+	// queue_redraw();
 }
 
 void Slot_GD::_updateTransform() {
 	Vector2 pos = Vector2(0, 0);
-	if (((void *)_renderDisplay) == _rawDisplay || ((void *)_renderDisplay) == _meshDisplay) {
+	auto display = get_display();
+	if (display == _rawDisplay || display == _meshDisplay) {
 		pos.x = globalTransformMatrix.tx - (globalTransformMatrix.a * _pivotX + globalTransformMatrix.c * _pivotY);
 		pos.y = globalTransformMatrix.ty - (globalTransformMatrix.b * _pivotX + globalTransformMatrix.d * _pivotY);
 	} else if (_childArmature) {
@@ -392,8 +386,8 @@ void Slot_GD::_updateTransform() {
 		pos.y * _textureScale
 	};
 
-	_renderDisplay->set_transform(matrix);
-	_renderDisplay->queue_redraw();
+	display->transform = matrix;
+	display->queue_redraw();
 }
 
 void Slot_GD::_onClear() {

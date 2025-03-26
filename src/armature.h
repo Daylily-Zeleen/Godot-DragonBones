@@ -1,18 +1,26 @@
 #pragma once
 
-#include "wrappers/GDDisplay.h"
+#include <dragonBones/armature/Armature.h>
+#include <dragonBones/armature/IArmatureProxy.h>
+#include <godot_cpp/classes/texture2d.hpp>
+#include <godot_cpp/core/version.hpp>
 
-#include "dragonBones/armature/Armature.h"
-#include "dragonBones/armature/IArmatureProxy.h"
-#include "dragonbones_bone.h"
-#include "dragonbones_slot.h"
+#include "bone.h"
+#include "slot.h"
 
-#include "godot_cpp/classes/texture2d.hpp"
+#if GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
+#include "godot_cpp/variant/typed_dictionary.hpp"
+using SlotsDictionary = godot::TypedDictionary<godot::String, godot::Ref<godot::DragonBonesSlot>>;
+using BonesDictionary = godot::TypedDictionary<godot::String, godot::Ref<godot::DragonBonesBone>>;
+#else // GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
+using SlotsDictionary = godot::Dictionary;
+using BonesDictionary = godot::Dictionary;
+#endif // GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
 
 namespace godot {
 
-class DragonBonesArmature : public GDDisplay, public dragonBones::IArmatureProxy {
-	GDCLASS(DragonBonesArmature, GDDisplay)
+class DragonBonesArmature : public Object, public Display, public dragonBones::IArmatureProxy {
+	GDCLASS(DragonBonesArmature, Object)
 public:
 	enum AnimFadeOutMode {
 		FADE_OUT_NONE,
@@ -24,11 +32,19 @@ public:
 	};
 
 private:
+	class Slot_GD *slot{ nullptr };
+	friend class Slot_GD;
+
 	// bool active{ true };
 	// bool processing{ false };
 	// float time_scale{ 1.0f };
 
 	bool slots_inherit_material{ true };
+
+	Ref<Texture2D> texture_override;
+
+	class DragonBones *dragon_bones{ nullptr };
+	friend class DragonBones;
 
 protected:
 	dragonBones::Armature *p_armature{ nullptr };
@@ -36,27 +52,8 @@ protected:
 	std::map<std::string, Ref<DragonBonesSlot>> _slots;
 
 public:
-	DragonBonesArmature();
+	DragonBonesArmature() = default;
 	virtual ~DragonBonesArmature() override;
-
-	virtual void update_modulate(const Color &p_modulate) override {
-		GDDisplay::update_modulate(p_modulate);
-		update_childs(true);
-	}
-
-	virtual void dispatch_event(const String &_str_type, const dragonBones::EventObject *_p_value) override {
-		if (p_owner) {
-			p_owner->dispatch_event(_str_type, _p_value);
-		}
-	}
-
-	virtual void dispatch_sound_event(const String &_str_type, const dragonBones::EventObject *_p_value) override {
-		if (p_owner) {
-			p_owner->dispatch_sound_event(_str_type, _p_value);
-		}
-	}
-
-	virtual Ref<CanvasItemMaterial> get_material_to_set_blend_mode(bool p_required) override;
 
 	dragonBones::Slot *getSlot(const std::string &name) const;
 
@@ -68,9 +65,8 @@ public:
 	virtual bool hasDBEventListener(const std::string &_type) const override { return true; }
 	virtual void addDBEventListener(const std::string &_type, const std::function<void(dragonBones::EventObject *)> &_listener) override {}
 	virtual void removeDBEventListener(const std::string &_type, const std::function<void(dragonBones::EventObject *)> &_listener) override {}
-	virtual void dispatchDBEvent(const std::string &_type, dragonBones::EventObject *_value) override {
-		this->dispatch_event(to_gd_str(_type), _value);
-	}
+
+	virtual void dispatchDBEvent(const std::string &_type, dragonBones::EventObject *_value) override;
 
 	void dbInit(dragonBones::Armature *_p_armature) override;
 	void dbClear() override;
@@ -81,10 +77,8 @@ public:
 	virtual dragonBones::Armature *getArmature() const override { return p_armature; }
 	virtual dragonBones::Animation *getAnimation() const override { return p_armature->getAnimation(); }
 
-	void setup_recursively(bool _b_debug);
+	void setup_recursively();
 	void update_childs(bool _b_color, bool _b_blending = false);
-	// void update_texture_atlas(const Ref<Texture> &_m_texture_atlas);
-	void update_material_inheritance_recursively(bool p_inheritance);
 
 	//
 	dragonBones::Slot *getSlot(const String &p_name) const { return p_armature->getSlot(to_std_str(p_name)); }
@@ -127,6 +121,9 @@ public:
 		});
 	}
 
+	virtual void queue_redraw() const override;
+	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const override;
+
 public:
 	bool is_initialized() const { return p_armature; }
 
@@ -160,7 +157,7 @@ public:
 
 	bool has_slot(const String &_slot_name) const;
 	Ref<DragonBonesSlot> get_slot(const String &_slot_name);
-	Dictionary get_slots();
+	SlotsDictionary get_slots();
 
 	void set_slot_display_index(const String &_slot_name, int _index);
 	void set_slot_by_item_name(const String &_slot_name, const String &_item_name);
@@ -176,7 +173,7 @@ public:
 	void set_ik_constraint(const String &name, Vector2 position);
 	void set_ik_constraint_bend_positive(const String &name, bool bend_positive);
 
-	Dictionary get_bones();
+	BonesDictionary get_bones();
 	Ref<DragonBonesBone> get_bone(const String &name);
 
 	Rect2 get_rect() const;
@@ -188,10 +185,6 @@ public:
 
 	void set_animation_progress(float p_progress);
 	float get_animation_progress() const;
-
-	void set_debug_(bool p_debug) { set_debug(p_debug); }
-	void set_debug(bool _b_debug, bool p_recursively = false);
-	bool is_debug() const { return b_debug; }
 
 	void set_flip_x_(bool p_flip_x) { set_flip_x(p_flip_x); }
 	void set_flip_x(bool p_flip_x, bool p_recursively = false);

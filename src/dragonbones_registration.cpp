@@ -1,16 +1,15 @@
-#include <dragonbones_registration.h>
+#include "dragonbones_registration.h"
 
-#include "dragonbones.h"
-#include "godot_cpp/classes/editor_plugin_registration.hpp"
+#include <godot_cpp/classes/editor_plugin_registration.hpp>
 
 #ifdef TOOLS_ENABLED
-#include "editor/dragonbones_editor_plugin.h"
+#include <editor/dragonbones_editor_plugin.h>
 #endif //TOOLS_ENABLED
 
-#include "wrappers/GDMesh.h"
+#include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/classes/resource_saver.hpp>
 
-#include "godot_cpp/classes/resource_loader.hpp"
-#include "godot_cpp/classes/resource_saver.hpp"
+#include "dragonbones.h"
 
 using namespace godot;
 
@@ -35,7 +34,6 @@ void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(DragonBonesFactory);
 	GDREGISTER_CLASS(DragonBones);
 
-	GDREGISTER_INTERNAL_CLASS(GDMesh);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesBone);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesSlot);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesArmature);

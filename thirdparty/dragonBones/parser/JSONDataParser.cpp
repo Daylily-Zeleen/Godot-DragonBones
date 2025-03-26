@@ -20,7 +20,7 @@ void JSONDataParser::_getCurvePoint(
     result.y = kA * y1 + kB * y2 + kC * y3 + kD * y4;
 }
 
-void JSONDataParser::_samplingEasingCurve(const rapidjson::Value& curve, std::vector<float>& samples)
+void JSONDataParser::_samplingEasingCurve(const JsonValue& curve, std::vector<float>& samples)
 {
     int curveCount = curve.Size();
     int stepIndex = -2;
@@ -61,7 +61,7 @@ void JSONDataParser::_samplingEasingCurve(const rapidjson::Value& curve, std::ve
     }
 }
 
-void JSONDataParser::_parseActionDataInFrame(const rapidjson::Value& rawData, unsigned frameStart, BoneData* bone, SlotData* slot)
+void JSONDataParser::_parseActionDataInFrame(const JsonValue& rawData, unsigned frameStart, BoneData* bone, SlotData* slot)
 {
     if (rawData.HasMember(EVENT))
     {
@@ -89,7 +89,7 @@ void JSONDataParser::_parseActionDataInFrame(const rapidjson::Value& rawData, un
     }
 }
 
-void JSONDataParser::_mergeActionFrame(const rapidjson::Value& rawData, unsigned frameStart, ActionType type, BoneData* bone, SlotData* slot)
+void JSONDataParser::_mergeActionFrame(const JsonValue& rawData, unsigned frameStart, ActionType type, BoneData* bone, SlotData* slot)
 {
     const auto actionOffset = _armature->actions.size();
     const auto& actions = _parseActionData(rawData, type, bone, slot);
@@ -145,7 +145,7 @@ unsigned JSONDataParser::_parseCacheActionFrame(ActionFrame& frame)
     return frameOffset;
 }
 
-ArmatureData* JSONDataParser::_parseArmature(const rapidjson::Value& rawData, float scale)
+ArmatureData* JSONDataParser::_parseArmature(const JsonValue& rawData, float scale)
 {
     const auto armature = BaseObject::borrowObject<ArmatureData>();
     armature->name = _getString(rawData, NAME, "");
@@ -338,7 +338,7 @@ ArmatureData* JSONDataParser::_parseArmature(const rapidjson::Value& rawData, fl
     return armature;
 }
 
-BoneData* JSONDataParser::_parseBone(const rapidjson::Value& rawData)
+BoneData* JSONDataParser::_parseBone(const JsonValue& rawData)
 {
     const auto bone = BaseObject::borrowObject<BoneData>();
     bone->inheritTranslation = _getBoolean(rawData, INHERIT_TRANSLATION, true);
@@ -356,7 +356,7 @@ BoneData* JSONDataParser::_parseBone(const rapidjson::Value& rawData)
     return bone;
 }
 
-ConstraintData* JSONDataParser::_parseIKConstraint(const rapidjson::Value& rawData)
+ConstraintData* JSONDataParser::_parseIKConstraint(const JsonValue& rawData)
 {
     const auto bone = _armature->getBone(_getString(rawData, BONE, ""));
     if (bone == nullptr)
@@ -393,7 +393,7 @@ ConstraintData* JSONDataParser::_parseIKConstraint(const rapidjson::Value& rawDa
     return constraint;
 }
 
-SlotData* JSONDataParser::_parseSlot(const rapidjson::Value& rawData, int zOrder)
+SlotData* JSONDataParser::_parseSlot(const JsonValue& rawData, int zOrder)
 {
     const auto slot = BaseObject::borrowObject<SlotData>();
     slot->displayIndex = _getNumber(rawData, DISPLAY_INDEX, (int)0);
@@ -428,7 +428,7 @@ SlotData* JSONDataParser::_parseSlot(const rapidjson::Value& rawData, int zOrder
     return slot;
 }
 
-SkinData * JSONDataParser::_parseSkin(const rapidjson::Value& rawData)
+SkinData * JSONDataParser::_parseSkin(const JsonValue& rawData)
 {
     const auto skin = BaseObject::borrowObject<SkinData>();
     skin->name = _getString(rawData, NAME, DEFAULT_NAME);
@@ -478,7 +478,7 @@ SkinData * JSONDataParser::_parseSkin(const rapidjson::Value& rawData)
     return skin;
 }
 
-DisplayData* JSONDataParser::_parseDisplay(const rapidjson::Value& rawData)
+DisplayData* JSONDataParser::_parseDisplay(const JsonValue& rawData)
 {
     const auto& name = _getString(rawData, NAME, "");
     const auto& path = _getString(rawData, PATH, "");
@@ -592,7 +592,7 @@ DisplayData* JSONDataParser::_parseDisplay(const rapidjson::Value& rawData)
     return display;
 }
 
-void JSONDataParser::_parsePivot(const rapidjson::Value& rawData, ImageDisplayData& display)
+void JSONDataParser::_parsePivot(const JsonValue& rawData, ImageDisplayData& display)
 {
     if (rawData.HasMember(PIVOT))
     {
@@ -607,7 +607,7 @@ void JSONDataParser::_parsePivot(const rapidjson::Value& rawData, ImageDisplayDa
     }
 }
 
-void JSONDataParser::_parseMesh(const rapidjson::Value& rawData, MeshDisplayData& mesh)
+void JSONDataParser::_parseMesh(const JsonValue& rawData, MeshDisplayData& mesh)
 {
     const auto& rawVertices = rawData[VERTICES];
     const auto& rawUVs = rawData[UVS];
@@ -718,7 +718,7 @@ void JSONDataParser::_parseMesh(const rapidjson::Value& rawData, MeshDisplayData
     }
 }
 
-BoundingBoxData* JSONDataParser::_parseBoundingBox(const rapidjson::Value& rawData)
+BoundingBoxData* JSONDataParser::_parseBoundingBox(const JsonValue& rawData)
 {
     BoundingBoxData* boundingBox = nullptr;
     BoundingBoxType type = BoundingBoxType::Rectangle;
@@ -759,7 +759,7 @@ BoundingBoxData* JSONDataParser::_parseBoundingBox(const rapidjson::Value& rawDa
     return boundingBox;
 }
 
-PolygonBoundingBoxData* JSONDataParser::_parsePolygonBoundingBox(const rapidjson::Value& rawData)
+PolygonBoundingBoxData* JSONDataParser::_parsePolygonBoundingBox(const JsonValue& rawData)
 {
     const auto polygonBoundingBox = BaseObject::borrowObject<PolygonBoundingBoxData>();
 
@@ -818,7 +818,7 @@ PolygonBoundingBoxData* JSONDataParser::_parsePolygonBoundingBox(const rapidjson
     return polygonBoundingBox;
 }
 
-AnimationData* JSONDataParser::_parseAnimation(const rapidjson::Value& rawData)
+AnimationData* JSONDataParser::_parseAnimation(const JsonValue& rawData)
 {
     const auto animation = BaseObject::borrowObject<AnimationData>();
     animation->frameCount = std::max(_getNumber(rawData, DURATION, (unsigned)1), (unsigned)1);
@@ -1008,9 +1008,9 @@ AnimationData* JSONDataParser::_parseAnimation(const rapidjson::Value& rawData)
 }
 
 TimelineData* JSONDataParser::_parseTimeline(
-    const rapidjson::Value& rawData, const char* framesKey, TimelineType type,
+    const JsonValue& rawData, const char* framesKey, TimelineType type,
     bool addIntOffset, bool addFloatOffset, unsigned frameValueCount,
-    const std::function<unsigned(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)>& frameParser
+    const std::function<unsigned(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)>& frameParser
 )
 {
     if (!rawData.HasMember(framesKey))
@@ -1090,7 +1090,7 @@ TimelineData* JSONDataParser::_parseTimeline(
     return timeline;
 }
 
-void JSONDataParser::_parseBoneTimeline(const rapidjson::Value& rawData)
+void JSONDataParser::_parseBoneTimeline(const JsonValue& rawData)
 {
     const auto bone = _armature->getBone(_getString(rawData, NAME, ""));
     if (bone == nullptr) 
@@ -1157,7 +1157,7 @@ void JSONDataParser::_parseBoneTimeline(const rapidjson::Value& rawData)
     _slot = nullptr;
 }
 
-void JSONDataParser::_parseSlotTimeline(const rapidjson::Value& rawData)
+void JSONDataParser::_parseSlotTimeline(const JsonValue& rawData)
 {
     const auto slot = _armature->getSlot(_getString(rawData, NAME, ""));
     if (slot == nullptr) 
@@ -1216,7 +1216,7 @@ void JSONDataParser::_parseSlotTimeline(const rapidjson::Value& rawData)
     _slot = nullptr;
 }
 
-unsigned JSONDataParser::_parseFrame(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)
+unsigned JSONDataParser::_parseFrame(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)
 {
     const auto frameOffset = _frameArray.size();
     _frameArray.resize(_frameArray.size() + 1);
@@ -1225,7 +1225,7 @@ unsigned JSONDataParser::_parseFrame(const rapidjson::Value& rawData, unsigned f
     return frameOffset;
 }
 
-unsigned JSONDataParser::_parseTweenFrame(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)
+unsigned JSONDataParser::_parseTweenFrame(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)
 {
     const auto frameOffset = _parseFrame(rawData, frameStart, frameCount);
 
@@ -1308,7 +1308,7 @@ unsigned JSONDataParser::_parseActionFrame(const ActionFrame& frame, unsigned fr
     return frameOffset;
 }
 
-unsigned JSONDataParser::_parseZOrderFrame(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)
+unsigned JSONDataParser::_parseZOrderFrame(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)
 {
     const auto frameOffset = _parseFrame(rawData, frameStart, frameCount);
 
@@ -1378,7 +1378,7 @@ unsigned JSONDataParser::_parseZOrderFrame(const rapidjson::Value& rawData, unsi
     return frameOffset;
 }
 
-unsigned JSONDataParser::_parseBoneAllFrame(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)
+unsigned JSONDataParser::_parseBoneAllFrame(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)
 {
     _helpTransform.identity();
     if (rawData.HasMember(TRANSFORM))
@@ -1422,7 +1422,7 @@ unsigned JSONDataParser::_parseBoneAllFrame(const rapidjson::Value& rawData, uns
     return frameOffset;
 }
 
-unsigned JSONDataParser::_parseBoneTranslateFrame(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)
+unsigned JSONDataParser::_parseBoneTranslateFrame(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)
 {
     const auto frameOffset = _parseTweenFrame(rawData, frameStart, frameCount);
     auto frameFloatOffset = _frameFloatArray.size();
@@ -1433,7 +1433,7 @@ unsigned JSONDataParser::_parseBoneTranslateFrame(const rapidjson::Value& rawDat
     return frameOffset;
 }
 
-unsigned JSONDataParser::_parseBoneRotateFrame(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)
+unsigned JSONDataParser::_parseBoneRotateFrame(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)
 {
     // Modify rotation.
     auto rotation = _getNumber(rawData, ROTATE, 0.0f) * Transform::DEG_RAD;
@@ -1466,7 +1466,7 @@ unsigned JSONDataParser::_parseBoneRotateFrame(const rapidjson::Value& rawData, 
     return frameOffset;
 }
 
-unsigned JSONDataParser::_parseBoneScaleFrame(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)
+unsigned JSONDataParser::_parseBoneScaleFrame(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)
 {
     const auto frameOffset = _parseTweenFrame(rawData, frameStart, frameCount);
 
@@ -1478,7 +1478,7 @@ unsigned JSONDataParser::_parseBoneScaleFrame(const rapidjson::Value& rawData, u
     return frameOffset;
 }
 
-unsigned JSONDataParser::_parseSlotDisplayFrame(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)
+unsigned JSONDataParser::_parseSlotDisplayFrame(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)
 {
     const auto frameOffset = _parseFrame(rawData, frameStart, frameCount);
 
@@ -1498,7 +1498,7 @@ unsigned JSONDataParser::_parseSlotDisplayFrame(const rapidjson::Value& rawData,
     return frameOffset;
 }
 
-unsigned JSONDataParser::_parseSlotColorFrame(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)
+unsigned JSONDataParser::_parseSlotColorFrame(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)
 {
     const auto frameOffset = _parseTweenFrame(rawData, frameStart, frameCount);
     auto colorOffset = -1;
@@ -1558,7 +1558,7 @@ unsigned JSONDataParser::_parseSlotColorFrame(const rapidjson::Value& rawData, u
     return frameOffset;
 }
 
-unsigned JSONDataParser::_parseSlotFFDFrame(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)
+unsigned JSONDataParser::_parseSlotFFDFrame(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)
 {
     const auto frameFloatOffset = _frameFloatArray.size();
     const auto frameOffset = _parseTweenFrame(rawData, frameStart, frameCount);
@@ -1669,7 +1669,7 @@ unsigned JSONDataParser::_parseSlotFFDFrame(const rapidjson::Value& rawData, uns
     return frameOffset;
 }
 
-unsigned JSONDataParser::_parseIKConstraintFrame(const rapidjson::Value& rawData, unsigned frameStart, unsigned frameCount)
+unsigned JSONDataParser::_parseIKConstraintFrame(const JsonValue& rawData, unsigned frameStart, unsigned frameCount)
 {
     const auto frameOffset = _parseTweenFrame(rawData, frameStart, frameCount);
 
@@ -1681,7 +1681,7 @@ unsigned JSONDataParser::_parseIKConstraintFrame(const rapidjson::Value& rawData
     return frameOffset;
 }
 
-const std::vector<ActionData*>& JSONDataParser::_parseActionData(const rapidjson::Value& rawData, ActionType type, BoneData* bone, SlotData* slot)
+const std::vector<ActionData*>& JSONDataParser::_parseActionData(const JsonValue& rawData, ActionType type, BoneData* bone, SlotData* slot)
 {
     static std::vector<ActionData*> actions;
     actions.clear();
@@ -1789,7 +1789,7 @@ const std::vector<ActionData*>& JSONDataParser::_parseActionData(const rapidjson
     return actions;
 }
 
-void JSONDataParser::_parseTransform(const rapidjson::Value& rawData, Transform& transform, float scale)
+void JSONDataParser::_parseTransform(const JsonValue& rawData, Transform& transform, float scale)
 {
     transform.x = _getNumber(rawData, X, 0.0f) * scale;
     transform.y = _getNumber(rawData, Y, 0.0f) * scale;
@@ -1809,7 +1809,7 @@ void JSONDataParser::_parseTransform(const rapidjson::Value& rawData, Transform&
     transform.scaleY = _getNumber(rawData, SCALE_Y, 1.0f);
 }
 
-void JSONDataParser::_parseColorTransform(const rapidjson::Value& rawData, ColorTransform& color)
+void JSONDataParser::_parseColorTransform(const JsonValue& rawData, ColorTransform& color)
 {
     color.alphaMultiplier = _getNumber(rawData, ALPHA_MULTIPLIER, (int)100) * 0.01f;
     color.redMultiplier = _getNumber(rawData, RED_MULTIPLIER, (int)100) * 0.01f;
@@ -1821,7 +1821,7 @@ void JSONDataParser::_parseColorTransform(const rapidjson::Value& rawData, Color
     color.blueOffset = _getNumber(rawData, BLUE_OFFSET, (int)0);
 }
 
-void JSONDataParser::_parseArray(const rapidjson::Value& rawData)
+void JSONDataParser::_parseArray(const JsonValue& rawData)
 {
     _intArray.clear();
     _floatArray.clear();
@@ -1831,7 +1831,7 @@ void JSONDataParser::_parseArray(const rapidjson::Value& rawData)
     _timelineArray.clear();
 }
 
-DragonBonesData* JSONDataParser::_parseDragonBonesData(const rapidjson::Value& rawData, float scale)
+DragonBonesData* JSONDataParser::_parseDragonBonesData(const JsonValue& rawData, float scale)
 {
     const auto& version = _getString(rawData, VERSION, "");
     const auto& compatibleVersion = _getString(rawData, COMPATIBLE_VERSION, "");
@@ -1894,7 +1894,7 @@ DragonBonesData* JSONDataParser::_parseDragonBonesData(const rapidjson::Value& r
                 const auto l5 = _frameArray.size() * 2;
                 const auto l6 = _timelineArray.size() * 2;
                 
-                auto binary = new char[l1 + l2 + l3 + l4 + l5 + l6];
+                auto binary = godot::memnew_arr(char, l1 + l2 + l3 + l4 + l5 + l6);
                 auto intArray = (int16_t*)binary;
                 auto floatArray = (float*)(binary + l1);
                 auto frameIntArray = (int16_t*)(binary + l1 + l2);
@@ -1947,7 +1947,7 @@ DragonBonesData* JSONDataParser::_parseDragonBonesData(const rapidjson::Value& r
 
         if (rawData.HasMember(TEXTURE_ATLAS))
         {
-            _rawTextureAtlases = (rapidjson::Value*)&(rawData[TEXTURE_ATLAS]);
+            _rawTextureAtlases = (JsonValue*)&(rawData[TEXTURE_ATLAS]);
         }
 
         return data;
@@ -1965,7 +1965,7 @@ DragonBonesData* JSONDataParser::_parseDragonBonesData(const rapidjson::Value& r
     return nullptr;
 }
 
-void JSONDataParser::_parseTextureAtlasData(const rapidjson::Value& rawData, TextureAtlasData& textureAtlasData, float scale)
+void JSONDataParser::_parseTextureAtlasData(const JsonValue& rawData, TextureAtlasData& textureAtlasData, float scale)
 {
     textureAtlasData.format = _getTextureFormat(_getString(rawData, FORMAT, ""));
     textureAtlasData.width = _getNumber(rawData, WIDTH, (unsigned)0);
@@ -2008,7 +2008,7 @@ DragonBonesData* JSONDataParser::parseDragonBonesData(const char* rawData, float
 {
     DRAGONBONES_ASSERT(rawData != nullptr, "");
 
-    rapidjson::Document document;
+    JsonDocument document;
     document.Parse(rawData);
 
     return _parseDragonBonesData(document, scale);
@@ -2034,7 +2034,7 @@ bool JSONDataParser::parseTextureAtlasData(const char* rawData, TextureAtlasData
         return true;
     }
 
-    rapidjson::Document document;
+    JsonDocument document;
     document.Parse(rawData);
     _parseTextureAtlasData(document, textureAtlasData, scale);
 
