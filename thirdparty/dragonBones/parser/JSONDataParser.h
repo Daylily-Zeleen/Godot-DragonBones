@@ -3,14 +3,34 @@
 
 #include "DataParser.h"
 
-#include <memory/allocator.h>
 #include <rapidjson/document.h>
 
-
-using JsonDocument = rapidjson::GenericDocument<rapidjson::UTF8<>, GodotMemoryPoolAllocator, GodotAllocator>;
-using JsonValue = rapidjson::GenericValue<rapidjson::UTF8<>, GodotMemoryPoolAllocator>;
-
 DRAGONBONES_NAMESPACE_BEGIN
+
+class JsonAllocator {
+public:
+    static const bool kNeedFree = true;
+    void *Malloc(size_t size) {
+        if (size) //  behavior of malloc(0) is implementation defined.
+            return DRAGONBONES_MALLOC(size);
+        else
+            return NULL; // standardize to returning NULL.
+    }
+    void *Realloc(void *originalPtr, size_t originalSize, size_t newSize) {
+        (void)originalSize;
+        if (newSize == 0) {
+            DRAGONBONES_FREE(originalPtr);
+            return NULL;
+        }
+        return DRAGONBONES_REALLOC(originalPtr, newSize);
+    }
+    static void Free(void *ptr) { DRAGONBONES_FREE(ptr); }
+};
+
+using JsonMemoryPoolAllocator = rapidjson::MemoryPoolAllocator<JsonAllocator>;
+
+using JsonDocument = rapidjson::GenericDocument<rapidjson::UTF8<>, JsonMemoryPoolAllocator, JsonAllocator>;
+using JsonValue = rapidjson::GenericValue<rapidjson::UTF8<>, JsonMemoryPoolAllocator>;
 
 class ActionFrame 
 {
