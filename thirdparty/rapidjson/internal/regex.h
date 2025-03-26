@@ -114,7 +114,7 @@ public:
     template <typename, typename> friend class GenericRegexSearch;
 
     GenericRegex(const Ch* source, Allocator* allocator = 0) : 
-        ownAllocator_(allocator ? 0 : RAPIDJSON_NEW(Allocator)()), allocator_(allocator ? allocator : ownAllocator_), 
+        ownAllocator_(allocator ? 0 : RAPIDJSON_NEW(Allocator)), allocator_(allocator ? allocator : ownAllocator_), 
         states_(allocator_, 256), ranges_(allocator_, 256), root_(kRegexInvalidState), stateCount_(), rangeCount_(), 
         anchorBegin_(), anchorEnd_()
     {
@@ -614,7 +614,7 @@ public:
     {
         RAPIDJSON_ASSERT(regex_.IsValid());
         if (!allocator_)
-            ownAllocator_ = allocator_ = RAPIDJSON_NEW(Allocator)();
+            ownAllocator_ = allocator_ = RAPIDJSON_NEW(Allocator);
         stateSet_ = static_cast<unsigned*>(allocator_->Malloc(GetStateSetSize()));
         state0_.template Reserve<SizeType>(regex_.stateCount_);
         state1_.template Reserve<SizeType>(regex_.stateCount_);

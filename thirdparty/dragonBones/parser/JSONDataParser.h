@@ -2,9 +2,10 @@
 #define DRAGONBONES_JSON_DATA_PARSER_H
 
 #include "DataParser.h"
-#include <rapidjson/document.h>
 
 #include <memory/allocator.h>
+#include <rapidjson/document.h>
+
 
 using JsonDocument = rapidjson::GenericDocument<rapidjson::UTF8<>, GodotMemoryPoolAllocator, GodotAllocator>;
 using JsonValue = rapidjson::GenericValue<rapidjson::UTF8<>, GodotMemoryPoolAllocator>;

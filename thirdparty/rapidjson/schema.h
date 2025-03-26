@@ -1533,7 +1533,7 @@ public:
         schemaRef_(allocator, kInitialSchemaRefSize)
     {
         if (!allocator_)
-            ownAllocator_ = allocator_ = RAPIDJSON_NEW(Allocator)();
+            ownAllocator_ = allocator_ = RAPIDJSON_NEW(Allocator);
 
         Ch noUri[1] = {0};
         uri_.SetString(uri ? uri : noUri, uriLength, *allocator_);
@@ -2225,7 +2225,7 @@ private:
 
     StateAllocator& GetStateAllocator() {
         if (!stateAllocator_)
-            stateAllocator_ = ownStateAllocator_ = RAPIDJSON_NEW(StateAllocator)();
+            stateAllocator_ = ownStateAllocator_ = RAPIDJSON_NEW(StateAllocator);
         return *stateAllocator_;
     }
 

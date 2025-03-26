@@ -1,7 +1,23 @@
 #pragma once
 
-#include <rapidjson/allocators.h>
 #include <godot_cpp/core/memory.hpp>
+
+///////////////////////////////////////////////////////////////////////////////
+// malloc/realloc/free
+
+#define RAPIDJSON_MALLOC(size) memalloc(size)
+#define RAPIDJSON_REALLOC(ptr, new_size) memrealloc(ptr, new_size)
+#define RAPIDJSON_FREE(ptr) memfree(ptr)
+
+///////////////////////////////////////////////////////////////////////////////
+// new/delete
+
+#define RAPIDJSON_NEW(TypeName) memnew(TypeName())
+#define RAPIDJSON_DELETE(x) godot::memdelete(x)
+
+///////////////////////////////////////////////////////////////////////////////
+
+#include <rapidjson/allocators.h>
 
 class GodotAllocator {
 public:
