@@ -1,9 +1,10 @@
 name: 🛠️ Builds
-on:
-    workflow_dispatch:
-    push:
-        # branches:
-        #     - master
+on: [push, pull_request, merge_group]
+
+concurrency:
+    group: ${{ github.workflow }}|${{ github.ref_name }}
+    cancel-in-progress: true
+
 jobs:
     build:
         runs-on: ${{ matrix.runner }}
