@@ -9,10 +9,7 @@ namespace godot {
 
 void Display::_onClear() {
 	transform = Transform2D();
-	if (slot) {
-		slot->returnToPool();
-		slot = nullptr;
-	}
+	slot = nullptr; // 不只需要置空，需要回池 （销毁操作是由 slot 触发）
 }
 
 DragonBonesMeshDisplay::DragonBonesMeshDisplay()
