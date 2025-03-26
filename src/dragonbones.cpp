@@ -667,8 +667,6 @@ void DragonBones::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "instantiate_armature_name", PROPERTY_HINT_ENUM_SUGGESTION, "[default]"), "set_instantiate_armature_name", "get_instantiate_armature_name");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "instantiate_skin_name", PROPERTY_HINT_ENUM_SUGGESTION, "[default]"), "set_instantiate_skin_name", "get_instantiate_skin_name");
 
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "armatures_use_this_material"), "set_inherit_material", "is_material_inherited");
-
 	// 信号
 	const auto armature_prop = PropertyInfo(Variant::OBJECT, "armature", PROPERTY_HINT_NONE, "", PROPERTY_HINT_NONE, DragonBonesArmature::get_class_static());
 	const auto anim_name_prop = PropertyInfo(Variant::STRING, "anim_name");
