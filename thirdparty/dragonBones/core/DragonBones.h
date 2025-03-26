@@ -35,13 +35,6 @@
 #include <assert.h>
 
 // dragonBones Memory Macros
-#ifndef DRAGONBONES_NEW
-#define DRAGONBONES_NEW(T) new T
-#endif // DRAGONBONES_NEW
-#ifndef DRAGONBONES_DELETE
-#define DRAGONBONES_DELETE(ptr) delete ptr 
-#endif // DRAGONBONES_DELETE
-
 #ifndef DRAGONBONES_MALLOC
 #define DRAGONBONES_MALLOC(size) malloc(size)
 #endif // DRAGONBONES_MALLOC
@@ -51,6 +44,13 @@
 #ifndef DRAGONBONES_FREE
 #define DRAGONBONES_FREE(ptr) std::free(ptr)
 #endif // DRAGONBONES_MALLOC
+
+#ifndef DRAGONBONES_NEW
+#define DRAGONBONES_NEW(T) new T
+#endif // DRAGONBONES_NEW
+#ifndef DRAGONBONES_DELETE
+#define DRAGONBONES_DELETE(ptr) delete ptr 
+#endif // DRAGONBONES_DELETE
 
 // dragonBones assert
 #define DRAGONBONES_ASSERT(cond, msg) \

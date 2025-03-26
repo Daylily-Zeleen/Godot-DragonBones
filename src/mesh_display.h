@@ -1,6 +1,8 @@
 #pragma once
 
-#include "dragonBones/core/BaseObject.h"
+#include <godot_dragonbones.h>
+
+#include <dragonBones/core/BaseObject.h>
 #include <godot_cpp/classes/canvas_item_material.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
 #include <godot_cpp/templates/local_vector.hpp>

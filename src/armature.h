@@ -1,5 +1,7 @@
 #pragma once
 
+#include <godot_dragonbones.h>
+
 #include <dragonBones/armature/Armature.h>
 #include <dragonBones/armature/IArmatureProxy.h>
 #include <godot_cpp/classes/texture2d.hpp>

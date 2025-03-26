@@ -1,5 +1,7 @@
 #pragma once
 
+#include <godot_dragonbones.h>
+
 #include <dragonBones/factory/BaseFactory.h>
 
 #include <godot_cpp/classes/project_settings.hpp>

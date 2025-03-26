@@ -16,7 +16,7 @@
 #include "armature.h"
 #include "mesh_display.h"
 #include "texture_atlas_data.h"
-#include "utils.h"
+#include "godot_dragonbones.h"
 
 using namespace godot;
 using namespace dragonBones;
