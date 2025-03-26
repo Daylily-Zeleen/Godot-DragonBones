@@ -75,7 +75,7 @@ public:
 	void dbClear() override;
 	void dbUpdate() override;
 
-	void dispose(bool disposeProxy) override {} // IArmatureProxy, 不被调用的纯虚函数
+	void dispose(bool disposeProxy) override;
 	virtual void _onClear() override; // Display
 
 	virtual dragonBones::Armature *getArmature() const override { return p_armature; }

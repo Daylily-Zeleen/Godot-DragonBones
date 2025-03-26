@@ -153,45 +153,6 @@ private:
 #endif // TOOLS_ENABLED
 };
 
-/**
- */
-class DragonBonesUserData : public RefCounted {
-	GDCLASS(DragonBonesUserData, RefCounted)
-
-	using v_size_t = int64_t;
-
-private:
-	dragonBones::UserData *user_data{ nullptr };
-
-protected:
-	static void _bind_methods();
-	_DEFINE_TO_STRING()
-
-public:
-	DragonBonesUserData() = default;
-	DragonBonesUserData(dragonBones::UserData *p_user_data) :
-			user_data(p_user_data){};
-
-	bool has_data() const { return user_data; }
-
-	PackedInt32Array get_ints() const;
-	void set_ints(const PackedInt32Array &); // readonly
-
-	PackedFloat32Array get_floats() const;
-	void set_floats(const PackedFloat32Array &); // readonly
-
-	PackedStringArray get_strings() const;
-	void set_strings(const PackedStringArray &); // readonly
-
-	int get_int(v_size_t p_index = 0) const;
-	float get_float(v_size_t p_index = 0) const;
-	String get_string(v_size_t p_index = 0) const;
-
-	v_size_t get_ints_size() const;
-	v_size_t get_floats_size() const;
-	v_size_t get_strings_size() const;
-};
-
 } //namespace godot
 
 VARIANT_ENUM_CAST(godot::DragonBones::AnimationCallbackModeProcess);

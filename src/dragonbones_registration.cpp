@@ -10,6 +10,7 @@
 #include <godot_cpp/classes/resource_saver.hpp>
 
 #include "dragonbones.h"
+#include "event_object.h"
 
 using namespace godot;
 
@@ -38,6 +39,7 @@ void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesSlot);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesArmature);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesUserData);
+	GDREGISTER_ABSTRACT_CLASS(DragonBonesEventObject);
 
 	GDREGISTER_INTERNAL_CLASS(ResourceFormatSaverDragonBones);
 	GDREGISTER_INTERNAL_CLASS(ResourceFormatLoaderDragonBones);

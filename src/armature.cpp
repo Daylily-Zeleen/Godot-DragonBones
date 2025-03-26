@@ -8,6 +8,7 @@
 #include <godot_cpp/variant/transform2d.hpp>
 
 #include "dragonbones.h"
+#include "event_object.h"
 #include "mesh_display.h"
 
 using namespace godot;
@@ -89,6 +90,8 @@ void DragonBonesArmature::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_y"), "set_flip_y_", "is_flipped_y");
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "texture_override", PROPERTY_HINT_RESOURCE_TYPE, Texture2D::get_class_static()), "set_texture_override", "get_texture_override");
+
+	ADD_SIGNAL(MethodInfo("event_dispatched", PropertyInfo(Variant::OBJECT, "event_object", PROPERTY_HINT_NONE, "", PROPERTY_HINT_NONE, DragonBonesEventObject::get_class_static())));
 
 	// Enum
 	BIND_ENUM_CONSTANT(FADE_OUT_NONE);
@@ -175,34 +178,8 @@ void DragonBonesArmature::dispatchDBEvent(const std::string &p_type, dragonBones
 		return;
 	}
 
-	// DragonBonesArmature *armature_proxy = static_cast<DragonBonesArmature *>(p_value->getArmature()->getDisplay());
-	String anim_name = to_gd_str(p_value->animationState->name);
-
-	if (p_type == EventObject::START) {
-		emit_signal("start", anim_name);
-	} else if (p_type == EventObject::LOOP_COMPLETE) {
-		emit_signal("loop_completed", anim_name);
-	} else if (p_type == EventObject::COMPLETE) {
-		emit_signal("completed", anim_name);
-	} else if (p_type == EventObject::FADE_IN) {
-		emit_signal("fade_in_start", anim_name);
-	} else if (p_type == EventObject::FADE_IN_COMPLETE) {
-		emit_signal("fade_in_completed", anim_name);
-	} else if (p_type == EventObject::FADE_OUT) {
-		emit_signal("fade_out_start", anim_name);
-	} else if (p_type == EventObject::FADE_OUT_COMPLETE) {
-		emit_signal("fade_out_completed", anim_name);
-	} else if (p_type == EventObject::FRAME_EVENT) {
-		String event_name = to_gd_str(p_value->name);
-		Ref<DragonBonesUserData> user_data{ memnew(DragonBonesUserData(p_value->getData())) };
-		// TODO:: 是否需要包装 EventObj 与 ActionData？
-		emit_signal("frame_event", anim_name, event_name, user_data);
-	} else if (p_type == EventObject::SOUND_EVENT) {
-		String anim_name = to_gd_str(p_value->animationState->name);
-		String event_name = to_gd_str(p_value->name);
-		Ref<DragonBonesUserData> user_data{ memnew(DragonBonesUserData(p_value->getData())) };
-		emit_signal("sound_event", anim_name, event_name, user_data);
-	}
+	ERR_FAIL_NULL(p_value);
+	emit_signal(SNAME("event_dispatched"), Ref<DragonBonesEventObject>(memnew(DragonBonesEventObject(p_value))));
 }
 
 void DragonBonesArmature::for_each_armature_(const Callable &p_action) {
@@ -678,6 +655,10 @@ void DragonBonesArmature::dbClear() {
 }
 
 void DragonBonesArmature::dbUpdate() {
+}
+
+void DragonBonesArmature::dispose(bool disposeProxy) {
+	DragonBonesArmature::_onClear();
 }
 
 void DragonBonesArmature::_onClear() {

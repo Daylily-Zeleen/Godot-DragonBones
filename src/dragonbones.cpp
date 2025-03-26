@@ -1,6 +1,5 @@
 #include "dragonbones.h"
 
-#include <dragonBones/event/EventObject.h>
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
@@ -8,6 +7,7 @@
 #include <godot_cpp/variant/array.hpp>
 
 #include "armature.h"
+#include "event_object.h"
 
 using namespace godot;
 
@@ -17,10 +17,14 @@ void DragonBones::_cleanup(bool p_for_destructor) {
 
 	if (!p_for_destructor) {
 		if (main_armature) {
-			main_armature->returnToPool();
-			main_armature = nullptr;
+			main_armature->dispose(false);
 		} else {
 			ERR_PRINT("Unreachable case.");
+		}
+	} else {
+		if (main_armature) {
+			main_armature->returnToPool();
+			main_armature = nullptr;
 		}
 	}
 
@@ -38,34 +42,8 @@ void DragonBones::dispatchDBEvent(const std::string &p_type, dragonBones::EventO
 		return;
 	}
 
-	DragonBonesArmature *armature_proxy = static_cast<DragonBonesArmature *>(p_value->getArmature()->getDisplay());
-	String anim_name = to_gd_str(p_value->animationState->name);
-
-	if (p_type == EventObject::START) {
-		emit_signal("start", armature_proxy, anim_name);
-	} else if (p_type == EventObject::LOOP_COMPLETE) {
-		emit_signal("loop_completed", armature_proxy, anim_name);
-	} else if (p_type == EventObject::COMPLETE) {
-		emit_signal("completed", armature_proxy, anim_name);
-	} else if (p_type == EventObject::FADE_IN) {
-		emit_signal("fade_in_start", armature_proxy, anim_name);
-	} else if (p_type == EventObject::FADE_IN_COMPLETE) {
-		emit_signal("fade_in_completed", armature_proxy, anim_name);
-	} else if (p_type == EventObject::FADE_OUT) {
-		emit_signal("fade_out_start", armature_proxy, anim_name);
-	} else if (p_type == EventObject::FADE_OUT_COMPLETE) {
-		emit_signal("fade_out_completed", armature_proxy, anim_name);
-	} else if (p_type == EventObject::FRAME_EVENT) {
-		String event_name = to_gd_str(p_value->name);
-		Ref<DragonBonesUserData> user_data{ memnew(DragonBonesUserData(p_value->getData())) };
-		// TODO:: 是否需要包装 EventObj 与 ActionData？
-		emit_signal("frame_event", armature_proxy, anim_name, event_name, user_data);
-	} else if (p_type == EventObject::SOUND_EVENT) {
-		String anim_name = to_gd_str(p_value->animationState->name);
-		String event_name = to_gd_str(p_value->name);
-		Ref<DragonBonesUserData> user_data{ memnew(DragonBonesUserData(p_value->getData())) };
-		emit_signal("sound_event", armature_proxy, anim_name, event_name, user_data);
-	}
+	ERR_FAIL_NULL(p_value);
+	emit_signal(SNAME("event_dispatched"), Ref<DragonBonesEventObject>(memnew(DragonBonesEventObject(p_value))));
 }
 
 void DragonBones::_set_process(bool p_process, bool p_force) {
@@ -668,22 +646,7 @@ void DragonBones::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "instantiate_skin_name", PROPERTY_HINT_ENUM_SUGGESTION, "[default]"), "set_instantiate_skin_name", "get_instantiate_skin_name");
 
 	// 信号
-	const auto armature_prop = PropertyInfo(Variant::OBJECT, "armature", PROPERTY_HINT_NONE, "", PROPERTY_HINT_NONE, DragonBonesArmature::get_class_static());
-	const auto anim_name_prop = PropertyInfo(Variant::STRING, "anim_name");
-
-	ADD_SIGNAL(MethodInfo("start", armature_prop, anim_name_prop));
-	ADD_SIGNAL(MethodInfo("completed", armature_prop, anim_name_prop));
-	ADD_SIGNAL(MethodInfo("loop_completed", armature_prop, anim_name_prop));
-	ADD_SIGNAL(MethodInfo("fade_in_start", armature_prop, anim_name_prop));
-	ADD_SIGNAL(MethodInfo("fade_in_completed", armature_prop, anim_name_prop));
-	ADD_SIGNAL(MethodInfo("fade_out_start", armature_prop, anim_name_prop));
-	ADD_SIGNAL(MethodInfo("fade_out_completed", armature_prop, anim_name_prop));
-
-	const auto event_name_prop = PropertyInfo(Variant::STRING, "event_name");
-	const auto user_data_prop = PropertyInfo(Variant::OBJECT, "event_data", PROPERTY_HINT_NONE, "", PROPERTY_HINT_NONE, DragonBonesUserData::get_class_static());
-	ADD_SIGNAL(MethodInfo("frame_event", armature_prop, anim_name_prop, event_name_prop, user_data_prop));
-	ADD_SIGNAL(MethodInfo("sound_event", armature_prop, anim_name_prop, event_name_prop, user_data_prop));
-
+	ADD_SIGNAL(MethodInfo("event_dispatched", PropertyInfo(Variant::OBJECT, "event_object", PROPERTY_HINT_NONE, "", PROPERTY_HINT_NONE, DragonBonesEventObject::get_class_static())));
 	// 枚举
 	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS);
 	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_IDLE);
@@ -709,129 +672,3 @@ DragonBones::~DragonBones() {
 	}
 #endif // DEBUG_ENABLED
 }
-
-#pragma region DragonBonesUserData
-PackedInt32Array DragonBonesUserData::get_ints() const {
-	PackedInt32Array ret;
-	if (!user_data) {
-		return ret;
-	}
-
-	if (user_data->ints.size()) {
-		ret.resize(user_data->ints.size());
-		memcpy(ret.ptrw(), user_data->ints.data(), user_data->ints.size() * sizeof(int));
-	}
-
-	return ret;
-}
-
-void DragonBonesUserData::set_ints(const PackedInt32Array &) {
-	ERR_FAIL_MSG("\"ints\" is readonly.");
-}
-
-PackedFloat32Array DragonBonesUserData::get_floats() const {
-	PackedFloat32Array ret;
-	if (!user_data) {
-		return ret;
-	}
-
-	if (user_data->floats.size()) {
-		ret.resize(user_data->floats.size());
-		memcpy(ret.ptrw(), user_data->floats.data(), user_data->floats.size() * sizeof(int));
-	}
-
-	return ret;
-}
-
-void DragonBonesUserData::set_floats(const PackedFloat32Array &) {
-	ERR_FAIL_MSG("\"floats\" is readonly.");
-}
-
-PackedStringArray DragonBonesUserData::get_strings() const {
-	PackedStringArray ret;
-	if (!user_data) {
-		return ret;
-	}
-
-	if (user_data->strings.size()) {
-		for (size_t i = 0; i < user_data->strings.size(); ++i) {
-			ret[i] = to_gd_str(user_data->strings[i]);
-		}
-	}
-
-	return ret;
-}
-
-void DragonBonesUserData::set_strings(const PackedStringArray &) {
-	ERR_FAIL_MSG("\"strings\" is readonly.");
-}
-
-int DragonBonesUserData::get_int(DragonBonesUserData::v_size_t p_index) const {
-	if (!user_data) {
-		return {};
-	}
-	ERR_FAIL_INDEX_V(p_index, user_data->ints.size(), {});
-	return user_data->ints[p_index];
-}
-
-float DragonBonesUserData::get_float(DragonBonesUserData::v_size_t p_index) const {
-	if (!user_data) {
-		return {};
-	}
-	ERR_FAIL_INDEX_V(p_index, user_data->floats.size(), {});
-	return user_data->floats[p_index];
-}
-
-String DragonBonesUserData::get_string(DragonBonesUserData::v_size_t p_index) const {
-	if (!user_data) {
-		return {};
-	}
-	ERR_FAIL_INDEX_V(p_index, user_data->strings.size(), {});
-	return to_gd_str(user_data->strings[p_index]);
-}
-
-DragonBonesUserData::v_size_t DragonBonesUserData::get_ints_size() const {
-	if (!user_data) {
-		return {};
-	}
-	return user_data->ints.size();
-}
-DragonBonesUserData::v_size_t DragonBonesUserData::get_floats_size() const {
-	if (!user_data) {
-		return {};
-	}
-	return user_data->floats.size();
-}
-DragonBonesUserData::v_size_t DragonBonesUserData::get_strings_size() const {
-	if (!user_data) {
-		return {};
-	}
-	return user_data->strings.size();
-}
-
-void DragonBonesUserData::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("has_data"), &DragonBonesUserData::has_data);
-
-	ClassDB::bind_method(D_METHOD("get_ints_size"), &DragonBonesUserData::get_ints_size);
-	ClassDB::bind_method(D_METHOD("get_floats_size"), &DragonBonesUserData::get_floats_size);
-	ClassDB::bind_method(D_METHOD("get_strings_size"), &DragonBonesUserData::get_strings_size);
-
-	ClassDB::bind_method(D_METHOD("get_int", "index"), &DragonBonesUserData::get_int, DEFVAL(0));
-	ClassDB::bind_method(D_METHOD("get_float", "index"), &DragonBonesUserData::get_float, DEFVAL(0));
-	ClassDB::bind_method(D_METHOD("get_string", "index"), &DragonBonesUserData::get_string, DEFVAL(0));
-
-	ClassDB::bind_method(D_METHOD("get_ints"), &DragonBonesUserData::get_ints);
-	ClassDB::bind_method(D_METHOD("set_ints_readonly", "_val"), &DragonBonesUserData::set_ints);
-
-	ClassDB::bind_method(D_METHOD("get_floats"), &DragonBonesUserData::get_floats);
-	ClassDB::bind_method(D_METHOD("set_floats_readonly", "_val"), &DragonBonesUserData::set_floats);
-
-	ClassDB::bind_method(D_METHOD("get_strings"), &DragonBonesUserData::get_strings);
-	ClassDB::bind_method(D_METHOD("set_strings_readonly", "_val"), &DragonBonesUserData::set_strings);
-
-	ADD_PROPERTY(PropertyInfo(Variant::PACKED_INT32_ARRAY, "ints", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_READ_ONLY), "set_ints_readonly", "get_ints");
-	ADD_PROPERTY(PropertyInfo(Variant::PACKED_FLOAT32_ARRAY, "floats", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_READ_ONLY), "set_floats_readonly", "get_floats");
-	ADD_PROPERTY(PropertyInfo(Variant::PACKED_STRING_ARRAY, "strings", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_READ_ONLY), "set_strings_readonly", "get_strings");
-}
-
-#pragma endregion DragonBonesUserData
