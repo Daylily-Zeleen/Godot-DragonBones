@@ -52,6 +52,13 @@
 #define DRAGONBONES_DELETE(ptr) delete ptr 
 #endif // DRAGONBONES_DELETE
 
+#ifndef DRAGONBONES_NEW_ARR
+#define DRAGONBONES_NEW_ARR(T, size) new T[size]
+#endif // DRAGONBONES_NEW_ARR
+#ifndef DRAGONBONES_DELETE_ARR
+#define DRAGONBONES_DELETE_ARR(ptr) delete ptr
+#endif // DRAGONBONES_DELETE_ARR
+
 // dragonBones assert
 #define DRAGONBONES_ASSERT(cond, msg) \
 do { \

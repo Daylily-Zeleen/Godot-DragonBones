@@ -21,7 +21,7 @@ private:
 
 public:
 	DragonBonesTextureData() { _onClear(); }
-	virtual ~DragonBonesTextureData() { _onClear(); }
+	virtual ~DragonBonesTextureData() override { _onClear(); }
 
 	bool operator!=(const DragonBonesTextureData &p_other) const {
 		return !operator==(p_other);

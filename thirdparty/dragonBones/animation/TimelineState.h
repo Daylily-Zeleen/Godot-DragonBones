@@ -129,9 +129,9 @@ private:
 
 public:
     SlotColorTimelineState() :
-        _current(godot::memnew_arr(int, 8)),
-        _delta(godot::memnew_arr(int, 8)),
-        _result(godot::memnew_arr(float, 8))
+        _current(DRAGONBONES_NEW_ARR(int, 8)),
+        _delta(DRAGONBONES_NEW_ARR(int, 8)),
+        _result(DRAGONBONES_NEW_ARR(float, 8))
     { 
         _onClear(); 
     }
@@ -139,9 +139,9 @@ public:
     {
         _onClear();
 
-        godot::memdelete_arr(_current);
-        godot::memdelete_arr(_delta);
-        godot::memdelete_arr(_result);
+        DRAGONBONES_DELETE_ARR(_current);
+        DRAGONBONES_DELETE_ARR(_delta);
+        DRAGONBONES_DELETE_ARR(_result);
     }
 
 protected:

@@ -11,6 +11,9 @@
 #define DRAGONBONES_NEW(T) memnew(T)
 #define DRAGONBONES_DELETE(ptr) godot::memdelete(ptr)
 
+#define DRAGONBONES_NEW_ARR(T) godot::memnew_arr(T)
+#define DRAGONBONES_DELETE_ARR(ptr) godot::memdelete_arr(ptr)
+
 ///////////////////////////////////////////////////////////////////////////////
 #define RAPIDJSON_MALLOC(size) DRAGONBONES_MALLOC(size)
 #define RAPIDJSON_REALLOC(ptr, new_size) DRAGONBONES_REALLOC(ptr, new_size)
