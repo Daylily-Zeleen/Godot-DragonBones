@@ -3,13 +3,13 @@
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
-
 #include "armature.h"
 
 namespace godot {
 
-DragonBonesMeshDisplay::DragonBonesMeshDisplay() :
+DragonBonesMeshDisplay::DragonBonesMeshDisplay()
 #ifdef DEBUG_ENABLED
+		:
 		debug_color{
 			static_cast<float>(UtilityFunctions::randf_range(0.5f, 1.0f)),
 			static_cast<float>(UtilityFunctions::randf_range(0.3f, 1.0f)),
