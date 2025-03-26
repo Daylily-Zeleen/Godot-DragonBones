@@ -8,7 +8,6 @@
 #include <godot_cpp/classes/resource_format_saver.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
 
-
 #ifdef TOOLS_ENABLED
 #include <godot_cpp/templates/hash_map.hpp>
 #endif // TOOLS_ENABLED

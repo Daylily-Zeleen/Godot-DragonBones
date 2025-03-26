@@ -277,7 +277,7 @@ Error DragonBonesFactory::load_texture_atlas_json_file_list(PackedStringArray p_
 	texture_atlas_json_file_list = p_files;
 
 	// 加载
-	for (const auto &file_path : p_files) {
+	for (auto &file_path : p_files) {
 		if (file_path.is_empty()) {
 			continue;
 		}
@@ -285,8 +285,7 @@ Error DragonBonesFactory::load_texture_atlas_json_file_list(PackedStringArray p_
 		auto raw_data = get_file_data(file_path);
 		ERR_CONTINUE_MSG(raw_data.is_empty(), (err = ERR_PARSE_ERROR, vformat("Load DragonBones tex file failed: \"%s\".", file_path)));
 
-		String dir = file_path.get_base_dir();
-		const auto data = static_cast<DragonBonesTextureAtlasData *>(loadTextureAtlasData((const char *)raw_data.ptr(), &dir));
+		const auto data = static_cast<DragonBonesTextureAtlasData *>(loadTextureAtlasData((const char *)raw_data.ptr(), &file_path));
 		ERR_CONTINUE_MSG(!data, (err = ERR_PARSE_ERROR, vformat("Parse failed: \"%s\"", file_path)));
 	}
 	return err;
