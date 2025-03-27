@@ -610,21 +610,22 @@ void DragonBonesArmature::_onClear() {
 	_bones.clear();
 	_slots.clear();
 
+	if (dragon_bones) {
+		dragon_bones->advance(0.0f);
+	}
+
 	if (armature_instance) {
 		armature_instance->dispose();
-		if (dragon_bones) {
-			dragon_bones->advance(0.0f);
-		}
 		armature_instance = nullptr;
 	}
-	// TODO: 检查清理是否完全
+
+	slot = nullptr;
+	dragon_bones = nullptr;
+	texture_override.unref();
 }
 
 void DragonBonesArmature::setup_recursively() {
-	if (!armature_instance) {
-		return;
-	}
-
+	ERR_FAIL_NULL(armature_instance);
 	for (Slot *slot : armature_instance->getSlots()) {
 		if (!slot) {
 			continue;
@@ -794,7 +795,7 @@ Dictionary DragonBonesArmature::get_settings() const {
 std::vector<PropertyInfo> DragonBonesArmatureProxy::armature_property_list{};
 
 bool DragonBonesArmatureProxy::_set(const StringName &p_name, const Variant &p_val) {
-	if (!armature_node || !armature_node->is_initialized()) {
+	if (!armature || !armature->is_valid()) {
 		return false;
 	}
 
@@ -804,9 +805,9 @@ bool DragonBonesArmatureProxy::_set(const StringName &p_name, const Variant &p_v
 
 	for (const auto &prop_info : armature_property_list) {
 		if (prop_info.name == p_name) {
-			armature_node->set(p_name, p_val);
+			armature->set(p_name, p_val);
 			if (prop_info.name.ends_with("modulate")) {
-				armature_node->queue_redraw();
+				armature->queue_redraw();
 			} else {
 				notify_property_list_changed();
 			}
@@ -818,18 +819,18 @@ bool DragonBonesArmatureProxy::_set(const StringName &p_name, const Variant &p_v
 }
 
 bool DragonBonesArmatureProxy::_get(const StringName &p_name, Variant &r_val) const {
-	if (!armature_node || !armature_node->is_initialized()) {
+	if (!armature || !armature->is_valid()) {
 		return false;
 	}
 
 	if (p_name == SNAME("armature_name")) {
-		r_val = to_gd_str(static_cast<DragonBonesArmature *>(armature_node)->getArmature()->getName());
+		r_val = to_gd_str(static_cast<DragonBonesArmature *>(armature)->getArmature()->getName());
 		return true;
 	}
 
 	for (const auto &prop_info : armature_property_list) {
 		if (prop_info.name == p_name) {
-			r_val = armature_node->get(p_name);
+			r_val = armature->get(p_name);
 			return true;
 		}
 	}
@@ -838,15 +839,15 @@ bool DragonBonesArmatureProxy::_get(const StringName &p_name, Variant &r_val) co
 }
 
 void DragonBonesArmatureProxy::_get_property_list(List<PropertyInfo> *p_list) const {
-	if (!armature_node || !armature_node->is_initialized()) {
+	if (!armature || !armature->is_valid()) {
 		return;
 	}
 
 	for (const auto &p : armature_property_list) {
-		if (p.name == SNAME("current_animation") && armature_node->getArmature()) {
+		if (p.name == SNAME("current_animation") && armature->getArmature()) {
 			PropertyInfo info = p;
 			String hint = "[none]";
-			for (const auto &anim : armature_node->getArmature()->getArmatureData()->getAnimationNames()) {
+			for (const auto &anim : armature->getArmature()->getArmatureData()->getAnimationNames()) {
 				hint += ",";
 				hint += to_gd_str(anim);
 			}
@@ -857,7 +858,7 @@ void DragonBonesArmatureProxy::_get_property_list(List<PropertyInfo> *p_list) co
 		}
 	}
 
-	if (armature_node->has_sub_armature()) {
+	if (armature->has_sub_armature()) {
 		p_list->push_back(PropertyInfo(Variant::ARRAY, SNAME("sub_armatures"),
 				PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:%s", Variant::OBJECT, PROPERTY_HINT_RESOURCE_TYPE, DragonBonesArmatureProxy::get_class_static()),
 				PROPERTY_USAGE_EDITOR));

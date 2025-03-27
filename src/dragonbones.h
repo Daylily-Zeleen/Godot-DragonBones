@@ -28,7 +28,8 @@ public:
 	};
 
 private:
-	dragonBones::DragonBones *dsragonbones_instance{ nullptr };
+	dragonBones::DragonBones *dragonbones_instance{ nullptr };
+	friend DragonBonesFactory;
 
 	Ref<DragonBonesFactory> factory;
 	DragonBonesArmature *main_armature{ nullptr };
@@ -100,8 +101,8 @@ public:
 	void set_animation_loop(int p_animation_loop);
 
 	void advance(float p_delta) {
-		if (dsragonbones_instance) {
-			dsragonbones_instance->advanceTime(p_delta);
+		if (dragonbones_instance) {
+			dragonbones_instance->advanceTime(p_delta);
 		}
 	}
 
@@ -130,7 +131,7 @@ public:
 	}
 
 private:
-	bool is_armature_valid() const { return main_armature != nullptr && main_armature->is_initialized(); }
+	bool is_armature_valid() const { return main_armature != nullptr && main_armature->is_valid(); }
 	RID get_draw_mesh(int p_index);
 
 	void cleanup();

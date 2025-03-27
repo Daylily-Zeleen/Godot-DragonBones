@@ -53,7 +53,7 @@ void DragonBones::_on_resource_changed() {
 	set_factory(to_set);
 
 #ifdef TOOLS_ENABLED
-	if (main_armature->is_initialized()) {
+	if (is_armature_valid()) {
 		set_armature_settings(armatures_settings);
 	}
 #endif // TOOLS_ENABLED
@@ -94,8 +94,8 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &p_factory) {
 	}
 
 	// build Armature display
-	main_armature = factory->create_armature(dsragonbones_instance, instantiate_dragon_bones_data_name, instantiate_armature_name, instantiate_skin_name);
-	ERR_FAIL_COND(!main_armature->is_initialized());
+	main_armature = factory->create_armature(this, instantiate_dragon_bones_data_name, instantiate_armature_name, instantiate_skin_name);
+	ERR_FAIL_COND(!is_armature_valid());
 
 	// Update time scale
 	set_time_scale(f_time_scale);
@@ -230,7 +230,7 @@ void DragonBones::set_armature(DragonBonesArmature *) const {
 }
 
 void DragonBones::set_armature_settings(const Dictionary &p_settings) const {
-	if (main_armature->is_initialized()) {
+	if (is_armature_valid()) {
 		main_armature->set_settings(p_settings);
 	} else {
 #ifdef TOOLS_ENABLED
@@ -245,7 +245,7 @@ void DragonBones::set_armature_settings(const Dictionary &p_settings) const {
 }
 
 Dictionary DragonBones::get_armature_settings() const {
-	if (!main_armature->is_initialized()) {
+	if (!is_armature_valid()) {
 		return {};
 	}
 #ifdef TOOLS_ENABLED
@@ -277,12 +277,12 @@ bool DragonBones::_get(const StringName &_str_name, Variant &_r_ret) const {
 #ifdef TOOLS_ENABLED
 	else if (_str_name == SNAME("main_armature")) {
 		// Avoid instantiation when getting default value.
-		if (main_armature && main_armature->is_initialized() && main_armature_ref.is_null()) {
+		if (is_armature_valid() && main_armature_ref.is_null()) {
 			main_armature_ref.instantiate();
 		}
 
 		if (main_armature_ref.is_valid()) {
-			main_armature_ref->armature_node = main_armature;
+			main_armature_ref->armature = main_armature;
 		}
 
 		_r_ret = main_armature_ref;
@@ -596,16 +596,13 @@ void DragonBones::_bind_methods() {
 }
 
 DragonBones::DragonBones() {
-	dsragonbones_instance = memnew(dragonBones::DragonBones(this));
-	// 内部节点
-	main_armature = dragonBones::BaseObject::borrowObject<DragonBonesArmature>();
-	main_armature->dragon_bones = this;
+	dragonbones_instance = memnew(dragonBones::DragonBones(this));
 }
 
 DragonBones::~DragonBones() {
 	cleanup();
-	memdelete(dsragonbones_instance);
-	dsragonbones_instance = nullptr;
+	memdelete(dragonbones_instance);
+	dragonbones_instance = nullptr;
 
 	for (auto mesh : draw_meshes) {
 		RenderingServer::get_singleton()->free_rid(mesh);

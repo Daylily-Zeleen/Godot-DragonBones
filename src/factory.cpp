@@ -14,7 +14,7 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include "armature.h"
-#include "godot_dragonbones.h"
+#include "dragonbones.h"
 #include "mesh_display.h"
 #include "texture_atlas_data.h"
 
@@ -94,10 +94,10 @@ TextureAtlasData *DragonBonesFactory::_buildTextureAtlasData(TextureAtlasData *t
 }
 
 Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPackage) const {
+	ERR_FAIL_NULL_V(_dragonBones, nullptr);
 	const auto armature = BaseObject::borrowObject<Armature>();
-	DragonBonesArmature *armatureDisplay{ nullptr };
-
-	armatureDisplay = BaseObject::borrowObject<DragonBonesArmature>();
+	DragonBonesArmature *armatureDisplay{ BaseObject::borrowObject<DragonBonesArmature>() };
+	armatureDisplay->dragon_bones = static_cast<DragonBones *>(_dragonBones->getEventManager()); // 该插件里 _dragonBones->getEventManager() 就是 DragonBones 节点
 
 	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
 	return armature;
@@ -351,7 +351,7 @@ bool DragonBonesFactory::can_create_dragon_bones_instance() const {
 	return _dragonBonesDataMap.size() > 0 && _textureAtlasDataMap.size() > 0;
 }
 
-DragonBonesArmature *DragonBonesFactory::create_armature(class dragonBones::DragonBones *p_owner, const String &p_dragon_bones_data_name, const String &p_armature_name, const String &p_skin_name) {
+DragonBonesArmature *DragonBonesFactory::create_armature(DragonBones *p_owner, const String &p_dragon_bones_data_name, const String &p_armature_name, const String &p_skin_name) {
 	ERR_FAIL_NULL_V(p_owner, nullptr);
 	const auto &dragon_bones_data_list = getAllDragonBonesData();
 	ERR_FAIL_COND_V(dragon_bones_data_list.size() <= 0, nullptr);
@@ -370,7 +370,7 @@ DragonBonesArmature *DragonBonesFactory::create_armature(class dragonBones::Drag
 		armature_name = dragon_bones_data->getArmatureNames()[0];
 	}
 
-	_dragonBones = p_owner;
+	_dragonBones = p_owner->dragonbones_instance;
 	auto ret = buildArmatureDisplay(armature_name, dragon_bones_data->name, to_std_str(p_skin_name));
 	_dragonBones = nullptr;
 

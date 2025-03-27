@@ -36,15 +36,14 @@ public:
 
 private:
 	class Slot_GD *slot{ nullptr };
-	friend class Slot_GD;
-
 	Ref<Texture2D> texture_override;
 
 	class DragonBones *dragon_bones{ nullptr };
-	friend class DragonBones;
+	friend DragonBonesFactory;
 
 protected:
 	dragonBones::Armature *armature_instance{ nullptr };
+
 	std::map<std::string, Ref<DragonBonesBone>> _bones;
 	std::map<std::string, Ref<DragonBonesSlot>> _slots;
 
@@ -123,7 +122,7 @@ public:
 	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const override;
 
 public:
-	bool is_initialized() const { return armature_instance; }
+	bool is_valid() const { return armature_instance && dragon_bones; }
 
 	/* METHOD BINDINGS */
 	static void _bind_methods();
@@ -234,14 +233,14 @@ protected:
 
 public:
 	DragonBonesArmatureProxy() = default;
-	DragonBonesArmatureProxy(DragonBonesArmature *p_armature_node) :
-			armature_node(p_armature_node) {}
+	DragonBonesArmatureProxy(DragonBonesArmature *p_armature) :
+			armature(p_armature) {}
 
 private:
 	static std::vector<PropertyInfo> armature_property_list;
 	friend class DragonBonesArmature;
 
-	DragonBonesArmature *armature_node{ nullptr };
+	DragonBonesArmature *armature{ nullptr };
 	friend class DragonBones;
 };
 #endif // TOOLS_ENABLED

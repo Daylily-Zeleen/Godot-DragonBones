@@ -59,7 +59,7 @@ public:
 
 	bool can_create_dragon_bones_instance() const;
 
-	DragonBonesArmature *create_armature(class dragonBones::DragonBones *p_owner, const String &p_dragon_bones_data_name = "", const String &p_armature_name = "", const String &p_skin_name = "");
+	DragonBonesArmature *create_armature(class DragonBones *p_owner, const String &p_dragon_bones_data_name = "", const String &p_armature_name = "", const String &p_skin_name = "");
 
 private:
 	//  Binding
