@@ -57,7 +57,7 @@ private:
 
 public:
 	DragonBonesTextureAtlasData() { _onClear(); }
-	virtual ~DragonBonesTextureAtlasData() { _onClear(); }
+	virtual ~DragonBonesTextureAtlasData() override { _onClear(); }
 
 	virtual dragonBones::TextureData *createTexture() const override {
 		return BaseObject::borrowObject<DragonBonesTextureData>();

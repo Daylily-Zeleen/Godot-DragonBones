@@ -79,7 +79,7 @@ void Slot_GD::_disposeDisplay(void *value, bool _isRelease) {
 	*/
 
 	if (auto display = static_cast<Display *>(value)) {
-		display->returnToPool();
+		display->release(); // 已进行内存释放/回收
 	}
 }
 

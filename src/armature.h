@@ -23,7 +23,6 @@ namespace godot {
 
 class DragonBonesArmature : public Object, public Display, public dragonBones::IArmatureProxy {
 	GDCLASS(DragonBonesArmature, Object)
-	BIND_CLASS_TYPE(DragonBonesArmature)
 public:
 	enum AnimFadeOutMode {
 		FADE_OUT_NONE,
@@ -68,8 +67,8 @@ public:
 	void dbClear() override;
 	void dbUpdate() override;
 
-	void dispose(bool disposeProxy) override;
-	virtual void _onClear() override; // Display
+	void dispose(bool disposeProxy) override {} // 未被使用的纯虚函数
+	virtual void release() override; // Display
 
 	virtual dragonBones::Armature *getArmature() const override { return armature_instance; }
 	virtual dragonBones::Animation *getAnimation() const override { return armature_instance->getAnimation(); }

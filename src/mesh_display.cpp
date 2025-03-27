@@ -4,10 +4,11 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include "armature.h"
+#include "godot_cpp/core/memory.hpp"
 
 namespace godot {
 
-void Display::_onClear() {
+void Display::release() {
 	transform = Transform2D();
 	slot = nullptr; // 不只需要置空，需要回池 （销毁操作是由 slot 触发）
 }
@@ -72,12 +73,33 @@ void DragonBonesMeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &
 	});
 }
 
-void DragonBonesMeshDisplay::_onClear() {
-	Display::_onClear();
+void DragonBonesMeshDisplay::release() {
+	Display::release();
 
 	indices.clear();
 	colors.clear();
 	vertices_uv.clear();
 	vertices.clear();
+
+	// 清理完后回池
+	pool.push_back(this);
 }
+
+LocalVector<DragonBonesMeshDisplay *> DragonBonesMeshDisplay::pool{};
+
+DragonBonesMeshDisplay *DragonBonesMeshDisplay::from_pool() {
+	if (pool.is_empty()) {
+		return memnew(DragonBonesMeshDisplay);
+	}
+	auto ret = pool[pool.size() - 1];
+	pool.resize(pool.size() - 1);
+	return ret;
+}
+void DragonBonesMeshDisplay::clear_pool() {
+	for (auto obj : pool) {
+		memdelete(obj);
+	}
+	pool.clear();
+}
+
 } //namespace godot

@@ -11,7 +11,7 @@
 #define DRAGONBONES_NEW(T) memnew(T)
 #define DRAGONBONES_DELETE(ptr) godot::memdelete(ptr)
 
-#define DRAGONBONES_NEW_ARR(T) godot::memnew_arr(T)
+#define DRAGONBONES_NEW_ARR(T, size) godot::memnew_arr(T, size)
 #define DRAGONBONES_DELETE_ARR(ptr) godot::memdelete_arr(ptr)
 
 ///////////////////////////////////////////////////////////////////////////////

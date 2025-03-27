@@ -96,7 +96,7 @@ TextureAtlasData *DragonBonesFactory::_buildTextureAtlasData(TextureAtlasData *t
 Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPackage) const {
 	ERR_FAIL_NULL_V(_dragonBones, nullptr);
 	const auto armature = BaseObject::borrowObject<Armature>();
-	DragonBonesArmature *armatureDisplay{ BaseObject::borrowObject<DragonBonesArmature>() };
+	DragonBonesArmature *armatureDisplay{ memnew(DragonBonesArmature) };
 	armatureDisplay->dragon_bones = static_cast<DragonBones *>(_dragonBones->getEventManager()); // 该插件里 _dragonBones->getEventManager() 就是 DragonBones 节点
 
 	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
@@ -105,7 +105,7 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 
 Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, const SlotData *slotData, Armature *armature) const {
 	auto slot = BaseObject::borrowObject<Slot_GD>();
-	auto mesh_display = BaseObject::borrowObject<DragonBonesMeshDisplay>();
+	auto mesh_display{ DragonBonesMeshDisplay::from_pool() };
 
 	slot->init(slotData, armature, mesh_display, mesh_display);
 	slot->update(0);

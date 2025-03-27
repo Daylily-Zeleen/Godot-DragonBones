@@ -24,7 +24,7 @@ struct DrawData {
 #endif // DEBUG_ENABLED
 };
 
-class Display : public dragonBones::BaseObject {
+class Display {
 protected:
 	class Slot_GD *slot{ nullptr };
 	friend class Slot_GD;
@@ -35,11 +35,10 @@ public:
 	virtual void queue_redraw() const = 0;
 	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const = 0;
 
-	virtual void _onClear() override;
+	virtual void release(); // NOTE: 子类要在此出处理自身的内存管理 （多继承的情况下必须用指在开头的指针才能 memdelete）
 };
 
 class DragonBonesMeshDisplay : public Display {
-	BIND_CLASS_TYPE(DragonBonesMeshDisplay)
 private:
 	DragonBonesMeshDisplay(const DragonBonesMeshDisplay &);
 
@@ -63,7 +62,14 @@ public:
 	virtual void queue_redraw() const override;
 	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const override;
 
-	virtual void _onClear() override;
+	virtual void release() override;
+
+private:
+	static LocalVector<DragonBonesMeshDisplay *> pool;
+
+public:
+	static DragonBonesMeshDisplay *from_pool();
+	static void clear_pool();
 };
 
 } //namespace godot

@@ -14,7 +14,7 @@ using namespace godot;
 /////////////////////////////////////////////////////////////////
 void DragonBones::cleanup() {
 	if (main_armature) {
-		main_armature->returnToPool();
+		main_armature->release(); // 已经处理内存的释放
 		main_armature = nullptr;
 	}
 

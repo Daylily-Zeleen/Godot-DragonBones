@@ -14,7 +14,7 @@
 using namespace godot;
 using namespace dragonBones;
 
-DragonBonesArmature::~DragonBonesArmature() { _onClear(); }
+DragonBonesArmature::~DragonBonesArmature() {} // 不需要额外清理
 
 void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("for_each_armature", "action"), &DragonBonesArmature::for_each_armature_);
@@ -595,33 +595,34 @@ void DragonBonesArmature::dbInit(Armature *_p_armature) {
 
 void DragonBonesArmature::dbClear() {
 	armature_instance = nullptr;
+	// 不能回池重复利用，因为要直接暴露给用户，用户可以直接比较指针导致非预期情形。
+	memdelete(this);
 }
 
 void DragonBonesArmature::dbUpdate() {
 }
 
-void DragonBonesArmature::dispose(bool disposeProxy) {
-	DragonBonesArmature::_onClear();
-}
-
-void DragonBonesArmature::_onClear() {
-	Display::_onClear();
+void DragonBonesArmature::release() {
+	Display::release();
 
 	_bones.clear();
 	_slots.clear();
 
 	if (dragon_bones) {
 		dragon_bones->advance(0.0f);
+		dragon_bones = nullptr;
 	}
+
+	slot = nullptr;
+	texture_override.unref();
 
 	if (armature_instance) {
 		armature_instance->dispose();
 		armature_instance = nullptr;
+		// 通过 dbClear() 回调推迟销毁释放
+	} else {
+		dbClear();
 	}
-
-	slot = nullptr;
-	dragon_bones = nullptr;
-	texture_override.unref();
 }
 
 void DragonBonesArmature::setup_recursively() {

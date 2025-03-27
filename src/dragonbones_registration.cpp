@@ -65,6 +65,7 @@ void uninitialize_gddragonbones_module(godot::ModuleInitializationLevel p_level)
 
 	// 清除对象池
 	dragonBones::BaseObject::clearPool();
+	DragonBonesMeshDisplay::clear_pool();
 
 	ResourceSaver::get_singleton()->remove_resource_format_saver(saver);
 	saver->unreference();
