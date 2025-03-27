@@ -28,9 +28,9 @@ public:
 	};
 
 private:
-	dragonBones::DragonBones *p_instance{ nullptr };
+	dragonBones::DragonBones *dsragonbones_instance{ nullptr };
 
-	Ref<DragonBonesFactory> m_res;
+	Ref<DragonBonesFactory> factory;
 	DragonBonesArmature *main_armature{ nullptr };
 	AnimationCallbackModeProcess callback_mode_process{ ANIMATION_CALLBACK_MODE_PROCESS_IDLE };
 	String instantiate_dragon_bones_data_name{ "" };
@@ -43,14 +43,12 @@ private:
 	bool processing{ false };
 	bool b_playing{ false };
 	bool b_debug{ false };
-	bool b_initialized{ false };
 	bool b_try_playing{ false };
 
 	bool b_flip_x{ false };
 	bool b_flip_y{ false };
 
 	LocalVector<RID> draw_meshes;
-	RID get_draw_mesh(int p_index);
 
 #ifdef DEBUG_ENABLED
 	RID debug_mesh;
@@ -75,11 +73,6 @@ public:
 	~DragonBones();
 
 	virtual void _draw() override;
-
-	void _cleanup(bool p_for_destructor = false);
-
-	// to initial pose current animation
-	void _reset();
 
 	// setters/getters
 	void set_factory(const Ref<DragonBonesFactory> &_p_data);
@@ -107,18 +100,13 @@ public:
 	void set_animation_loop(int p_animation_loop);
 
 	void advance(float p_delta) {
-		if (p_instance) {
-			p_instance->advanceTime(p_delta);
+		if (dsragonbones_instance) {
+			dsragonbones_instance->advanceTime(p_delta);
 		}
 	}
 
 	void set_debug(bool _b_debug);
 	bool is_debug() const;
-
-	/* deprecated */ void set_flip_x(bool _b_flip);
-	/* deprecated */ bool is_flipped_x() const;
-	/* deprecated */ void set_flip_y(bool _b_flip);
-	/* deprecated */ bool is_flipped_y() const;
 
 	DragonBonesArmature *get_armature();
 	void set_armature(DragonBonesArmature *) const; // readonly
@@ -142,6 +130,12 @@ public:
 	}
 
 private:
+	bool is_armature_valid() const { return main_armature != nullptr && main_armature->is_initialized(); }
+	RID get_draw_mesh(int p_index);
+
+	void cleanup();
+	void reset();
+
 	void _set_process(bool p_process, bool p_force = false);
 	void _on_resource_changed();
 

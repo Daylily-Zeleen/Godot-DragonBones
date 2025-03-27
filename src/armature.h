@@ -44,7 +44,7 @@ private:
 	friend class DragonBones;
 
 protected:
-	dragonBones::Armature *p_armature{ nullptr };
+	dragonBones::Armature *armature_instance{ nullptr };
 	std::map<std::string, Ref<DragonBonesBone>> _bones;
 	std::map<std::string, Ref<DragonBonesSlot>> _slots;
 
@@ -72,14 +72,14 @@ public:
 	void dispose(bool disposeProxy) override;
 	virtual void _onClear() override; // Display
 
-	virtual dragonBones::Armature *getArmature() const override { return p_armature; }
-	virtual dragonBones::Animation *getAnimation() const override { return p_armature->getAnimation(); }
+	virtual dragonBones::Armature *getArmature() const override { return armature_instance; }
+	virtual dragonBones::Animation *getAnimation() const override { return armature_instance->getAnimation(); }
 
 	void setup_recursively();
 	void update_childs(bool _b_color, bool _b_blending = false);
 
 	//
-	dragonBones::Slot *getSlot(const String &p_name) const { return p_armature->getSlot(to_std_str(p_name)); }
+	dragonBones::Slot *getSlot(const String &p_name) const { return armature_instance->getSlot(to_std_str(p_name)); }
 
 	template <typename Func, typename std::enable_if<std::is_invocable_v<Func, DragonBonesArmature *>>::type *_dummy = nullptr>
 	void for_each_armature(Func &&p_action) {
@@ -123,7 +123,7 @@ public:
 	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const override;
 
 public:
-	bool is_initialized() const { return p_armature; }
+	bool is_initialized() const { return armature_instance; }
 
 	/* METHOD BINDINGS */
 	static void _bind_methods();

@@ -14,9 +14,9 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include "armature.h"
+#include "godot_dragonbones.h"
 #include "mesh_display.h"
 #include "texture_atlas_data.h"
-#include "godot_dragonbones.h"
 
 using namespace godot;
 using namespace dragonBones;
@@ -97,12 +97,7 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 	const auto armature = BaseObject::borrowObject<Armature>();
 	DragonBonesArmature *armatureDisplay{ nullptr };
 
-	if (building_main_armature && !building_main_armature->is_initialized()) {
-		// 主Armature作为内部节点将被重用
-		armatureDisplay = building_main_armature;
-	} else {
-		armatureDisplay = BaseObject::borrowObject<DragonBonesArmature>();
-	}
+	armatureDisplay = BaseObject::borrowObject<DragonBonesArmature>();
 
 	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
 	return armature;
@@ -356,8 +351,8 @@ bool DragonBonesFactory::can_create_dragon_bones_instance() const {
 	return _dragonBonesDataMap.size() > 0 && _textureAtlasDataMap.size() > 0;
 }
 
-dragonBones::DragonBones *DragonBonesFactory::create_dragon_bones(
-		dragonBones::IEventDispatcher *p_event_manager, DragonBonesArmature *p_main_armature, const String &p_dragon_bones_data_name, const String &p_armature_name, const String &p_skin_name) {
+DragonBonesArmature *DragonBonesFactory::create_armature(class dragonBones::DragonBones *p_owner, const String &p_dragon_bones_data_name, const String &p_armature_name, const String &p_skin_name) {
+	ERR_FAIL_NULL_V(p_owner, nullptr);
 	const auto &dragon_bones_data_list = getAllDragonBonesData();
 	ERR_FAIL_COND_V(dragon_bones_data_list.size() <= 0, nullptr);
 
@@ -369,18 +364,15 @@ dragonBones::DragonBones *DragonBonesFactory::create_dragon_bones(
 	ERR_FAIL_NULL_V(dragon_bones_data, nullptr);
 	ERR_FAIL_COND_V(dragon_bones_data->armatureNames.size() <= 0, nullptr);
 
-	auto *ret{ memnew(dragonBones::DragonBones(p_event_manager)) };
-	set_building_dragon_bones(ret);
-
 	std::string armature_name = to_std_str(p_armature_name);
 	const auto &armature_names = dragon_bones_data->getArmatureNames();
 	if (p_armature_name.is_empty() || std::find(armature_names.begin(), armature_names.end(), armature_name) == armature_names.end()) {
 		armature_name = dragon_bones_data->getArmatureNames()[0];
 	}
 
-	building_main_armature = p_main_armature;
-	p_main_armature = buildArmatureDisplay(armature_name, dragon_bones_data->name, to_std_str(p_skin_name));
-	building_main_armature = nullptr;
+	_dragonBones = p_owner;
+	auto ret = buildArmatureDisplay(armature_name, dragon_bones_data->name, to_std_str(p_skin_name));
+	_dragonBones = nullptr;
 
 	return ret;
 }

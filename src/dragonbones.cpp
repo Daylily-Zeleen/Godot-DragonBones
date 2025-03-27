@@ -12,28 +12,13 @@
 using namespace godot;
 
 /////////////////////////////////////////////////////////////////
-void DragonBones::_cleanup(bool p_for_destructor) {
-	b_initialized = false;
-
-	if (!p_for_destructor) {
-		if (main_armature) {
-			main_armature->dispose(false);
-		} else {
-			ERR_PRINT("Unreachable case.");
-		}
-	} else {
-		if (main_armature) {
-			main_armature->returnToPool();
-			main_armature = nullptr;
-		}
+void DragonBones::cleanup() {
+	if (main_armature) {
+		main_armature->returnToPool();
+		main_armature = nullptr;
 	}
 
-	if (p_instance) {
-		memdelete(p_instance);
-		p_instance = nullptr;
-	}
-
-	m_res.unref();
+	factory.unref();
 }
 
 void DragonBones::dispatchDBEvent(const std::string &p_type, dragonBones::EventObject *p_value) {
@@ -63,7 +48,7 @@ void DragonBones::_on_resource_changed() {
 #endif // TOOLS_ENABLED
 
 	// 重设资源本身
-	auto to_set = m_res;
+	auto to_set = factory;
 	set_factory({});
 	set_factory(to_set);
 
@@ -74,57 +59,48 @@ void DragonBones::_on_resource_changed() {
 #endif // TOOLS_ENABLED
 }
 
-void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
+void DragonBones::set_factory(const Ref<DragonBonesFactory> &p_factory) {
 	using namespace dragonBones;
-	if (m_res == _p_data) {
+	if (factory == p_factory) {
 		return;
-	}
-
-	if (main_armature->is_initialized()) {
-		main_armature->stop_all_animations(false, true);
 	}
 
 	static const StringName sn{ "changed" };
 	auto cb = callable_mp(this, &DragonBones::_on_resource_changed);
-	if (m_res.is_valid() && m_res->is_connected(sn, cb)) {
-		m_res->disconnect(sn, cb);
+	if (factory.is_valid() && factory->is_connected(sn, cb)) {
+		factory->disconnect(sn, cb);
 	}
 
-	_cleanup(false);
-	m_res = _p_data;
+	cleanup();
+	factory = p_factory;
 
-	if (m_res.is_null()) {
+	if (factory.is_null()) {
 		notify_property_list_changed();
 		return;
-	} else if (!m_res->is_connected(sn, cb)) {
-		m_res->connect(sn, cb);
+	} else if (!factory->is_connected(sn, cb)) {
+		factory->connect(sn, cb);
 	}
 
-	if (!m_res->can_create_dragon_bones_instance()) {
+	if (!factory->can_create_dragon_bones_instance()) {
 #ifdef TOOLS_ENABLED
-		if (!m_res->is_imported()) {
+		if (!factory->is_imported()) {
 			// 只对非导入工厂打印错误信息
-			WARN_PRINT(vformat("DragonBonesFactory \"%s\" is invalid, please setup its properties.", m_res));
+			WARN_PRINT(vformat("DragonBonesFactory \"%s\" is invalid, please setup its properties.", factory));
 		}
 #else // !TOOLS_ENABLED
-		WARN_PRINT(vformat("DragonBonesFactory \"%s\" is invalid, please setup its properties.", m_res));
+		WARN_PRINT(vformat("DragonBonesFactory \"%s\" is invalid, please setup its properties.", factory));
 #endif //  TOOLS_ENABLED
 		return;
 	}
 
 	// build Armature display
-	p_instance = m_res->create_dragon_bones(this, main_armature, instantiate_dragon_bones_data_name, instantiate_armature_name, instantiate_skin_name);
+	main_armature = factory->create_armature(dsragonbones_instance, instantiate_dragon_bones_data_name, instantiate_armature_name, instantiate_skin_name);
 	ERR_FAIL_COND(!main_armature->is_initialized());
 
-	// update flip
-	set_flip_x(b_flip_x);
-	set_flip_y(b_flip_y);
 	// Update time scale
 	set_time_scale(f_time_scale);
 
 	main_armature->setup_recursively();
-
-	b_initialized = true;
 
 	// update color and opacity and blending
 	main_armature->update_childs(true, true);
@@ -136,7 +112,7 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &_p_data) {
 }
 
 Ref<DragonBonesFactory> DragonBones::get_factory() const {
-	return m_res;
+	return factory;
 }
 
 void DragonBones::set_active(bool _b_active) {
@@ -233,49 +209,24 @@ int DragonBones::get_animation_loop() const {
 
 void DragonBones::set_animation_loop(int p_animation_loop) {
 	c_loop = p_animation_loop;
-	if (b_initialized && b_playing) {
-		_reset();
+	if (is_armature_valid() && b_playing) {
+		reset();
 		main_armature->play(main_armature->get_current_animation(), c_loop);
 	}
 }
 
-void DragonBones::_reset() {
-	ERR_FAIL_COND(!main_armature->is_initialized());
+void DragonBones::reset() {
+	ERR_FAIL_COND(!is_armature_valid());
 	main_armature->reset(true);
 }
 
 DragonBonesArmature *DragonBones::get_armature() {
-	if (main_armature->is_initialized()) {
-		// Only return armature when it is initialized.
-		return main_armature;
-	}
-	return nullptr;
+	ERR_FAIL_COND_V(!is_armature_valid(), nullptr);
+	return main_armature;
 }
 
 void DragonBones::set_armature(DragonBonesArmature *) const {
 	ERR_FAIL_MSG("DragonBones's property \"armature\" is readonly.");
-}
-
-void DragonBones::set_flip_x(bool _b_flip) {
-	b_flip_x = _b_flip;
-	if (main_armature->is_initialized()) {
-		main_armature->set_flip_x(_b_flip, true);
-	}
-}
-
-bool DragonBones::is_flipped_x() const {
-	return b_flip_x;
-}
-
-void DragonBones::set_flip_y(bool _b_flip) {
-	b_flip_y = _b_flip;
-	if (main_armature->is_initialized()) {
-		main_armature->set_flip_y(_b_flip, true);
-	}
-}
-
-bool DragonBones::is_flipped_y() const {
-	return b_flip_y;
 }
 
 void DragonBones::set_armature_settings(const Dictionary &p_settings) const {
@@ -283,7 +234,7 @@ void DragonBones::set_armature_settings(const Dictionary &p_settings) const {
 		main_armature->set_settings(p_settings);
 	} else {
 #ifdef TOOLS_ENABLED
-		if (!m_res->is_imported()) {
+		if (!factory->is_imported()) {
 			// 只对非导入工厂打印错误信息，导入工厂将在后续重新导入
 			WARN_PRINT_ED("main_armature is invalid, can't set armature settings.");
 		}
@@ -354,13 +305,13 @@ void DragonBones::_get_property_list(List<PropertyInfo> *_p_list) const {
 
 #ifdef TOOLS_ENABLED
 void DragonBones::_validate_property(PropertyInfo &p_property) const {
-	if (!Engine::get_singleton()->is_editor_hint() || m_res.is_null()) {
+	if (!Engine::get_singleton()->is_editor_hint() || factory.is_null()) {
 		return;
 	}
 	if (p_property.name == SNAME("instantiate_dragon_bones_data_name")) {
 		String hint = "[default]";
 
-		for (const auto &name : m_res->get_loaded_dragon_bones_data_name_list()) {
+		for (const auto &name : factory->get_loaded_dragon_bones_data_name_list()) {
 			hint += ",";
 			hint += name;
 		}
@@ -369,7 +320,7 @@ void DragonBones::_validate_property(PropertyInfo &p_property) const {
 	} else if (p_property.name == SNAME("instantiate_armature_name")) {
 		String hint = "[default]";
 
-		for (const auto &name : m_res->get_loaded_dragon_bones_armature_name_list(instantiate_dragon_bones_data_name)) {
+		for (const auto &name : factory->get_loaded_dragon_bones_armature_name_list(instantiate_dragon_bones_data_name)) {
 			hint += ",";
 			hint += name;
 		}
@@ -378,7 +329,7 @@ void DragonBones::_validate_property(PropertyInfo &p_property) const {
 	} else if (p_property.name == SNAME("instantiate_skin_name")) {
 		String hint = "[default]";
 
-		for (const auto &name : m_res->get_loaded_dragon_bones_main_skin_name_list(instantiate_dragon_bones_data_name, instantiate_armature_name)) {
+		for (const auto &name : factory->get_loaded_dragon_bones_main_skin_name_list(instantiate_dragon_bones_data_name, instantiate_armature_name)) {
 			if (name == "default") {
 				continue;
 			}
@@ -426,7 +377,7 @@ static const Ref<CanvasItemMaterial> &get_blend_material(CanvasItemMaterial::Ble
 }
 
 void DragonBones::_draw() {
-	if (!main_armature || !main_armature->is_initialized()) {
+	if (!is_armature_valid()) {
 		return;
 	}
 
@@ -589,11 +540,6 @@ void DragonBones::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_factory", "dbfactory"), &DragonBones::set_factory);
 	ClassDB::bind_method(D_METHOD("get_factory"), &DragonBones::get_factory);
 
-	ClassDB::bind_method(D_METHOD("set_flip_x", "enable_flip"), &DragonBones::set_flip_x);
-	ClassDB::bind_method(D_METHOD("is_flipped_x"), &DragonBones::is_flipped_x);
-	ClassDB::bind_method(D_METHOD("set_flip_y", "enable_flip"), &DragonBones::set_flip_y);
-	ClassDB::bind_method(D_METHOD("is_flipped_y"), &DragonBones::is_flipped_y);
-
 	ClassDB::bind_method(D_METHOD("advance", "delta"), &DragonBones::advance);
 
 	ClassDB::bind_method(D_METHOD("set_animation_loop", "loop_count"), &DragonBones::set_animation_loop);
@@ -631,10 +577,6 @@ void DragonBones::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "active"), "set_active", "is_active");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug"), "set_debug", "is_debug");
 
-	ADD_GROUP("Flip", "flip_");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_x"), "set_flip_x", "is_flipped_x");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_y"), "set_flip_y", "is_flipped_y");
-
 	ADD_GROUP("Animation Settings", "animation_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "animation_loop", PROPERTY_HINT_RANGE, "0,100,1,or_greater"), "set_animation_loop", "get_animation_loop");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "animation_time_scale", PROPERTY_HINT_RANGE, "0,10,0.01"), "set_time_scale", "get_time_scale");
@@ -654,13 +596,16 @@ void DragonBones::_bind_methods() {
 }
 
 DragonBones::DragonBones() {
+	dsragonbones_instance = memnew(dragonBones::DragonBones(this));
 	// 内部节点
 	main_armature = dragonBones::BaseObject::borrowObject<DragonBonesArmature>();
 	main_armature->dragon_bones = this;
 }
 
 DragonBones::~DragonBones() {
-	_cleanup(true);
+	cleanup();
+	memdelete(dsragonbones_instance);
+	dsragonbones_instance = nullptr;
 
 	for (auto mesh : draw_meshes) {
 		RenderingServer::get_singleton()->free_rid(mesh);
