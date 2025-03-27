@@ -364,18 +364,6 @@ void DragonBones::_notification(int p_what) {
 	}
 }
 
-static const Ref<CanvasItemMaterial> &get_blend_material(CanvasItemMaterial::BlendMode p_blend_mode) {
-	static VMap<CanvasItemMaterial::BlendMode, Ref<CanvasItemMaterial>> blend_materials;
-	auto idx = blend_materials.find(p_blend_mode);
-	if (idx < 0) {
-		Ref<CanvasItemMaterial> mat;
-		mat.instantiate();
-		mat->set_blend_mode(p_blend_mode);
-		idx = blend_materials.insert(p_blend_mode, mat);
-	}
-	return blend_materials.getv(idx);
-}
-
 void DragonBones::_draw() {
 	if (!is_armature_valid()) {
 		return;
@@ -458,7 +446,7 @@ void DragonBones::_draw() {
 
 			RS->mesh_add_surface_from_arrays(mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
 			auto mat = get_blend_material(surface_data.blend_mode);
-			RS->mesh_surface_set_material(mesh, surface_idx, mat->get_rid());
+			RS->mesh_surface_set_material(mesh, surface_idx, mat);
 		}
 
 		RS->canvas_item_add_mesh(get_canvas_item(), mesh, get_canvas_transform(), get_modulate(), surfaces[0].texture);
@@ -614,4 +602,20 @@ DragonBones::~DragonBones() {
 		RenderingServer::get_singleton()->free_rid(debug_mesh);
 	}
 #endif // DEBUG_ENABLED
+}
+
+HashMap<CanvasItemMaterial::BlendMode, Ref<CanvasItemMaterial>> DragonBones::blend_materials;
+void DragonBones::clear_static() {
+	blend_materials.clear();
+}
+
+RID DragonBones::get_blend_material(CanvasItemMaterial::BlendMode p_blend_mode) {
+	auto it = blend_materials.find(p_blend_mode);
+	if (it == blend_materials.end()) {
+		Ref<CanvasItemMaterial> mat;
+		mat.instantiate();
+		mat->set_blend_mode(p_blend_mode);
+		return blend_materials.insert(p_blend_mode, mat)->value->get_rid();
+	}
+	return it->value->get_rid();
 }

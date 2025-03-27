@@ -130,6 +130,8 @@ public:
 		main_armature->for_each_armature_recursively(p_action, 1);
 	}
 
+	static void clear_static();
+
 private:
 	bool is_armature_valid() const { return main_armature != nullptr && main_armature->is_valid(); }
 	RID get_draw_mesh(int p_index);
@@ -143,6 +145,8 @@ private:
 	void set_armature_settings(const Dictionary &p_settings) const;
 	Dictionary get_armature_settings() const;
 
+	static HashMap<CanvasItemMaterial::BlendMode, Ref<CanvasItemMaterial>> blend_materials;
+	static RID get_blend_material(CanvasItemMaterial::BlendMode p_blend_mode);
 #ifdef TOOLS_ENABLED
 	mutable Ref<DragonBonesArmatureProxy> main_armature_ref;
 #endif // TOOLS_ENABLED
