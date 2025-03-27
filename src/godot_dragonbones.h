@@ -4,6 +4,9 @@
 #include <string>
 
 ///////////////////////////////////////////////////////////////////////////////
+#ifndef GODOT_DRAGONBONES
+#define GODOT_DRAGONBONES
+
 #define DRAGONBONES_MALLOC(size) memalloc(size)
 #define DRAGONBONES_REALLOC(ptr, new_size) memrealloc(ptr, new_size)
 #define DRAGONBONES_FREE(ptr) memfree(ptr)
@@ -22,6 +25,7 @@
 #define RAPIDJSON_NEW(TypeName) DRAGONBONES_NEW(TypeName())
 #define RAPIDJSON_DELETE(x) DRAGONBONES_DELETE(x)
 
+#endif // GODOT_DRAGONBONES
 ///////////////////////////////////////////////////////////////////////////////
 
 namespace godot {

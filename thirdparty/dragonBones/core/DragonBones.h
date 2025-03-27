@@ -23,6 +23,8 @@
 #ifndef DRAGONBONES_H
 #define DRAGONBONES_H
 
+#include <godot_dragonbones.h>
+
 #include <cmath>
 #include <cstdint>
 #include <string>
