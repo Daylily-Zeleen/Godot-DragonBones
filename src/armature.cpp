@@ -60,8 +60,6 @@ void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("advance", "delta", "recursively"), &DragonBonesArmature::advance, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("get_rect"), &DragonBonesArmature::get_rect);
 
-	ClassDB::bind_method(D_METHOD("set_slots_inherit_material", "slots_inherit_material", "recursively"), &DragonBonesArmature::set_slots_inherit_material, DEFVAL(false));
-
 	// Setter Getter
 	ClassDB::bind_method(D_METHOD("set_current_animation", "current_animation"), &DragonBonesArmature::set_current_animation);
 	ClassDB::bind_method(D_METHOD("get_current_animation"), &DragonBonesArmature::get_current_animation);
@@ -78,12 +76,8 @@ void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_texture_override", "texture_override"), &DragonBonesArmature::set_texture_override);
 	ClassDB::bind_method(D_METHOD("get_texture_override"), &DragonBonesArmature::get_texture_override);
 
-	ClassDB::bind_method(D_METHOD("set_slots_inherit_material_", "slots_inherit_material"), &DragonBonesArmature::set_slots_inherit_material_);
-	ClassDB::bind_method(D_METHOD("is_slots_inherit_material"), &DragonBonesArmature::is_slots_inherit_material);
-
 	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "current_animation", PROPERTY_HINT_ENUM, "", PROPERTY_USAGE_EDITOR), "set_current_animation", "get_current_animation");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "animation_progress", PROPERTY_HINT_RANGE, "0.0,1.0,0.0001", PROPERTY_USAGE_EDITOR), "set_animation_progress", "get_animation_progress");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "slots_inherit_material"), "set_slots_inherit_material_", "is_slots_inherit_material");
 
 	ADD_GROUP("Flip", "flip_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_x"), "set_flip_x_", "is_flipped_x");
@@ -116,57 +110,6 @@ void DragonBonesArmature::_bind_methods() {
 	}
 
 	storage_properties.emplace_back(StoredProperty{ "current_animation", String() });
-
-	// Visibility
-	storage_properties.emplace_back(StoredProperty{ "visible", true });
-	storage_properties.emplace_back(StoredProperty{ "modulate", Color(1.0, 1.0, 1.0, 1.0) });
-	// storage_properties.emplace_back(StoredProperty{ "self_modulate", Color(1.0, 1.0, 1.0, 1.0) }); // Self modulate 不影响子节点
-	storage_properties.emplace_back(StoredProperty{ "show_behind_parent", false });
-	storage_properties.emplace_back(StoredProperty{ "top_level", false });
-	storage_properties.emplace_back(StoredProperty{ "clip_children", false });
-	storage_properties.emplace_back(StoredProperty{ "light_mask", 1 });
-	storage_properties.emplace_back(StoredProperty{ "visibility_layerF", 1 });
-
-	// Ordering
-	storage_properties.emplace_back(StoredProperty{ "z_index", 0 });
-	storage_properties.emplace_back(StoredProperty{ "z_as_relative", true });
-	storage_properties.emplace_back(StoredProperty{ "y_sort_enabled", false });
-
-	// Texture
-	storage_properties.emplace_back(StoredProperty{ "texture_filter", CanvasItem::TEXTURE_FILTER_PARENT_NODE });
-	storage_properties.emplace_back(StoredProperty{ "texture_repeat", CanvasItem::TEXTURE_REPEAT_PARENT_NODE });
-
-	// Material
-	storage_properties.emplace_back(StoredProperty{ "material", Variant() });
-	storage_properties.emplace_back(StoredProperty{ "use_parent_material", false });
-
-	// ====
-	// Visibility
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::NIL, "Visibility", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_GROUP));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "visible"));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::COLOR, "modulate"));
-	// DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::COLOR, "self_modulate"));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "show_behind_parent"));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "top_level"));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "clip_children", PROPERTY_HINT_ENUM, "Disabled,Clip Only,Clip + Draw"));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "light_mask", PROPERTY_HINT_LAYERS_2D_RENDER));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "visibility_layer", PROPERTY_HINT_LAYERS_2D_RENDER));
-
-	// Ordering
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::NIL, "Ordering", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_GROUP));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "z_index", PROPERTY_HINT_RANGE, itos(RenderingServer::CANVAS_ITEM_Z_MIN) + "," + itos(RenderingServer::CANVAS_ITEM_Z_MAX) + ",1"));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "z_as_relative"));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "y_sort_enabled"));
-
-	// Texture
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::NIL, "Texture", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_GROUP));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "texture_filter", PROPERTY_HINT_ENUM, "Inherit,Nearest,Linear,Nearest Mipmap,Linear Mipmap,Nearest Mipmap Anisotropic,Linear Mipmap Anisotropic"));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::INT, "texture_repeat", PROPERTY_HINT_ENUM, "Inherit,Disabled,Enabled,Mirror"));
-
-	// Material
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::NIL, "Material", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_GROUP));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::OBJECT, "material", PROPERTY_HINT_RESOURCE_TYPE, "CanvasItemMaterial,ShaderMaterial"));
-	DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(Variant::BOOL, "use_parent_material"));
 
 	memdelete(tmp_obj);
 #endif // TOOLS_ENABLED
@@ -720,35 +663,6 @@ void DragonBonesArmature::update_childs(bool _b_color, bool _b_blending) {
 		slot->update(0);
 	}
 }
-
-void DragonBonesArmature::set_slots_inherit_material(bool p_slots_inherit_material, bool p_recursively) {
-	if (!p_armature) {
-		return;
-	}
-
-	slots_inherit_material = p_slots_inherit_material;
-
-	for (Slot *slot : p_armature->getSlots()) {
-		if (!slot) {
-			continue;
-		}
-
-		// if (auto display = static_cast<DragonBonesMeshDisplay *>(slot->getRawDisplay())) {
-		// 	display->set_use_parent_material(p_slots_inherit_material);
-		// }
-	}
-
-	if (p_recursively) {
-		for_each_armature([p_slots_inherit_material](auto p_child_armature) {
-			p_child_armature->set_slots_inherit_material(p_slots_inherit_material, true);
-		});
-	}
-}
-
-bool DragonBonesArmature::is_slots_inherit_material() const {
-	return slots_inherit_material;
-}
-
 //
 void DragonBonesArmature::set_animation_progress(float p_progress) {
 	seek_animation(get_current_animation(), p_progress);

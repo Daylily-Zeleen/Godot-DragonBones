@@ -38,12 +38,6 @@ private:
 	class Slot_GD *slot{ nullptr };
 	friend class Slot_GD;
 
-	// bool active{ true };
-	// bool processing{ false };
-	// float time_scale{ 1.0f };
-
-	bool slots_inherit_material{ true };
-
 	Ref<Texture2D> texture_override;
 
 	class DragonBones *dragon_bones{ nullptr };
@@ -200,10 +194,6 @@ public:
 
 	Ref<Texture2D> get_texture_override() const;
 	void set_texture_override(const Ref<Texture2D> &p_texture_override);
-
-	void set_slots_inherit_material_(bool p_slots_inherit_material) { set_slots_inherit_material(p_slots_inherit_material); }
-	void set_slots_inherit_material(bool p_slots_inherit_material, bool p_recursively = false);
-	bool is_slots_inherit_material() const;
 
 public:
 	void set_settings(const Dictionary &p_setting);

@@ -665,6 +665,7 @@ DragonBones::~DragonBones() {
 	for (auto mesh : draw_meshes) {
 		RenderingServer::get_singleton()->free_rid(mesh);
 	}
+	draw_meshes.clear();
 
 #ifdef DEBUG_ENABLED
 	if (debug_mesh.is_valid()) {
