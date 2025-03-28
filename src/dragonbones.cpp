@@ -13,11 +13,6 @@ using namespace godot;
 
 /////////////////////////////////////////////////////////////////
 void DragonBones::cleanup() {
-	if (main_armature) {
-		main_armature->release(); // 已经处理内存的释放
-		main_armature = nullptr;
-	}
-
 	factory.unref();
 }
 
@@ -42,21 +37,22 @@ void DragonBones::_set_process(bool p_process, bool p_force) {
 	processing = p_process;
 }
 
-void DragonBones::_on_resource_changed() {
-#ifdef TOOLS_ENABLED
-	auto armatures_settings = get_armature_settings();
-#endif // TOOLS_ENABLED
-
-	// 重设资源本身
-	auto to_set = factory;
-	set_factory({});
-	set_factory(to_set);
-
-#ifdef TOOLS_ENABLED
-	if (is_armature_valid()) {
-		set_armature_settings(armatures_settings);
+void DragonBones::rebuild_armature() {
+	if (armature) {
+		armature->release(); // 已经处理内存的释放
+		armature = nullptr;
 	}
-#endif // TOOLS_ENABLED
+
+	if (!factory.is_valid()) {
+		armature = factory->create_armature(this, instantiate_dragon_bones_data_name, instantiate_armature_name, instantiate_skin_name);
+		if (is_armature_valid()) {
+			armature->force_update();
+		}
+	}
+
+	if (is_inside_tree()) {
+		queue_redraw();
+	}
 }
 
 void DragonBones::set_factory(const Ref<DragonBonesFactory> &p_factory) {
@@ -65,50 +61,18 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &p_factory) {
 		return;
 	}
 
-	const StringName &sn = SNAME("changed");
-	auto cb = callable_mp(this, &DragonBones::_on_resource_changed);
-	if (factory.is_valid() && factory->is_connected(sn, cb)) {
-		factory->disconnect(sn, cb);
-	}
-
-	cleanup();
 	factory = p_factory;
 
 	if (factory.is_null()) {
 		notify_property_list_changed();
 		return;
-	} else if (!factory->is_connected(sn, cb)) {
-		factory->connect(sn, cb);
-	}
-
-	if (!factory->can_create_dragon_bones_instance()) {
-#ifdef TOOLS_ENABLED
-		if (!factory->is_imported()) {
-			// 只对非导入工厂打印错误信息
-			WARN_PRINT(vformat("DragonBonesFactory \"%s\" is invalid, please setup its properties.", factory));
-		}
-#else // !TOOLS_ENABLED
-		WARN_PRINT(vformat("DragonBonesFactory \"%s\" is invalid, please setup its properties.", factory));
-#endif //  TOOLS_ENABLED
-		return;
 	}
 
 	// build Armature display
-	main_armature = factory->create_armature(this, instantiate_dragon_bones_data_name, instantiate_armature_name, instantiate_skin_name);
+	rebuild_armature();
 	ERR_FAIL_COND(!is_armature_valid());
 
-	// Update time scale
-	set_time_scale(f_time_scale);
-
-	main_armature->setup_recursively();
-
-	// update color and opacity and blending
-	main_armature->update_childs(true, true);
-
-	main_armature->advance(0);
-
 	notify_property_list_changed();
-	queue_redraw();
 }
 
 Ref<DragonBonesFactory> DragonBones::get_factory() const {
@@ -140,11 +104,11 @@ bool DragonBones::is_debug() const {
 }
 
 void DragonBones::set_time_scale(float p_time_scale) {
-	f_time_scale = p_time_scale < 0.0 ? 0.0 : p_time_scale;
+	time_scale = p_time_scale < 0.0 ? 0.0 : p_time_scale;
 }
 
 float DragonBones::get_time_scale() const {
-	return f_time_scale;
+	return time_scale;
 }
 
 void DragonBones::set_instantiate_dragon_bones_data_name(String p_name) {
@@ -156,7 +120,7 @@ void DragonBones::set_instantiate_dragon_bones_data_name(String p_name) {
 	}
 
 	instantiate_dragon_bones_data_name = p_name;
-	_on_resource_changed();
+	rebuild_armature();
 }
 
 String DragonBones::get_instantiate_dragon_bones_data_name() const {
@@ -172,7 +136,7 @@ void DragonBones::set_instantiate_armature_name(String p_name) {
 	}
 
 	instantiate_armature_name = p_name;
-	_on_resource_changed();
+	rebuild_armature();
 }
 
 String DragonBones::get_instantiate_armature_name() const {
@@ -188,7 +152,7 @@ void DragonBones::set_instantiate_skin_name(String p_name) {
 	}
 
 	instantiate_skin_name = p_name;
-	_on_resource_changed();
+	rebuild_armature();
 }
 
 String DragonBones::get_instantiate_skin_name() const {
@@ -211,18 +175,18 @@ void DragonBones::set_animation_loop(int p_animation_loop) {
 	c_loop = p_animation_loop;
 	if (is_armature_valid() && b_playing) {
 		reset();
-		main_armature->play(main_armature->get_current_animation(), c_loop);
+		armature->play(armature->get_current_animation(), c_loop);
 	}
 }
 
 void DragonBones::reset() {
 	ERR_FAIL_COND(!is_armature_valid());
-	main_armature->reset(true);
+	armature->reset(true);
 }
 
 DragonBonesArmature *DragonBones::get_armature() {
 	ERR_FAIL_COND_V(!is_armature_valid(), nullptr);
-	return main_armature;
+	return armature;
 }
 
 void DragonBones::set_armature(DragonBonesArmature *) const {
@@ -231,15 +195,15 @@ void DragonBones::set_armature(DragonBonesArmature *) const {
 
 void DragonBones::set_armature_settings(const Dictionary &p_settings) const {
 	if (is_armature_valid()) {
-		main_armature->set_settings(p_settings);
+		armature->set_settings(p_settings);
 	} else {
 #ifdef TOOLS_ENABLED
 		if (!factory->is_imported()) {
 			// 只对非导入工厂打印错误信息，导入工厂将在后续重新导入
-			WARN_PRINT_ED("main_armature is invalid, can't set armature settings.");
+			WARN_PRINT_ED("armature is invalid, can't set armature settings.");
 		}
 #else // !TOOLS_ENABLED
-		WARN_PRINT_ED("main_armature is invalid, can't set armature settings.");
+		WARN_PRINT_ED("armature is invalid, can't set armature settings.");
 #endif // !TOOLS_ENABLED
 	}
 }
@@ -249,7 +213,7 @@ Dictionary DragonBones::get_armature_settings() const {
 		return {};
 	}
 #ifdef TOOLS_ENABLED
-	return main_armature->get_settings();
+	return armature->get_settings();
 #else //TOOLS_ENABLED
 	ERR_FAIL_V_MSG({}, "DragonBones::get_armature_settings() can be call in editor build only.");
 #endif // TOOLS_ENABLED
@@ -261,7 +225,7 @@ bool DragonBones::_set(const StringName &_str_name, const Variant &_c_r_value) {
 		return true;
 	}
 #ifdef TOOLS_ENABLED
-	else if (_str_name == SNAME("main_armature")) {
+	else if (_str_name == SNAME("armature")) {
 		return true; // 禁止设置
 	}
 #endif //  TOOLS_ENABLED
@@ -275,17 +239,17 @@ bool DragonBones::_get(const StringName &_str_name, Variant &_r_ret) const {
 		return true;
 	}
 #ifdef TOOLS_ENABLED
-	else if (_str_name == SNAME("main_armature")) {
+	else if (_str_name == SNAME("armature")) {
 		// Avoid instantiation when getting default value.
-		if (is_armature_valid() && main_armature_ref.is_null()) {
-			main_armature_ref.instantiate();
+		if (is_armature_valid() && armature_ref.is_null()) {
+			armature_ref.instantiate();
 		}
 
-		if (main_armature_ref.is_valid()) {
-			main_armature_ref->armature = main_armature;
+		if (armature_ref.is_valid()) {
+			armature_ref->armature = armature;
 		}
 
-		_r_ret = main_armature_ref;
+		_r_ret = armature_ref;
 		return true;
 	}
 #endif // TOOLS_ENABLED
@@ -298,7 +262,7 @@ void DragonBones::_get_property_list(List<PropertyInfo> *_p_list) const {
 #ifdef TOOLS_ENABLED
 	if (is_armature_valid() && Engine::get_singleton()->is_editor_hint()) {
 		_p_list->push_back(PropertyInfo(
-				Variant::OBJECT, "main_armature", PROPERTY_HINT_RESOURCE_TYPE, DragonBonesArmatureProxy::get_class_static(), PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT, DragonBonesArmatureProxy::get_class_static()));
+				Variant::OBJECT, "armature", PROPERTY_HINT_RESOURCE_TYPE, DragonBonesArmatureProxy::get_class_static(), PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT, DragonBonesArmatureProxy::get_class_static()));
 	}
 #endif // TOOLS_ENABLED
 }
@@ -353,12 +317,12 @@ void DragonBones::_notification(int p_what) {
 		} break;
 		case NOTIFICATION_INTERNAL_PROCESS: {
 			if (b_active && callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_IDLE) {
-				advance(get_process_delta_time() * f_time_scale);
+				advance(get_process_delta_time() * time_scale);
 			}
 		} break;
 		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS: {
 			if (b_active && callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS) {
-				advance(get_physics_process_delta_time() * f_time_scale);
+				advance(get_physics_process_delta_time() * time_scale);
 			}
 		} break;
 	}
@@ -371,7 +335,7 @@ void DragonBones::_draw() {
 
 	// Collect draw data.
 	VMap<int, LocalVector<DrawData>> draw_data;
-	main_armature->append_draw_data(draw_data);
+	armature->append_draw_data(draw_data);
 
 	if (draw_data.is_empty()) {
 		return;
@@ -517,8 +481,8 @@ RID DragonBones::get_draw_mesh(int p_index) {
 
 void DragonBones::for_each_armature_(const Callable &p_action) {
 	for_each_armature(
-			[&](auto main_armature, auto depth) {
-				return p_action.call(main_armature, depth).booleanize();
+			[&](auto armature, auto depth) {
+				return p_action.call(armature, depth).booleanize();
 			});
 }
 
@@ -588,7 +552,10 @@ DragonBones::DragonBones() {
 }
 
 DragonBones::~DragonBones() {
-	cleanup();
+	if (armature) {
+		armature->release(); // 已经处理内存的释放
+		armature = nullptr;
+	}
 
 	dragonbones_instance->advanceTime(0.0f); // NOTE: 确保 dragonBones::DragonBones 自身缓存的待销毁对象被销毁!
 	memdelete(dragonbones_instance);

@@ -73,8 +73,7 @@ public:
 	virtual dragonBones::Armature *getArmature() const override { return armature_instance; }
 	virtual dragonBones::Animation *getAnimation() const override { return armature_instance->getAnimation(); }
 
-	void setup_recursively();
-	void update_childs(bool _b_color, bool _b_blending = false);
+	void force_update();
 
 	//
 	dragonBones::Slot *getSlot(const String &p_name) const { return armature_instance->getSlot(to_std_str(p_name)); }
@@ -143,7 +142,7 @@ public:
 	void play(const String &_animation_name, int loop = -1);
 
 	void play_from_time(const String &_animation_name, float _f_time, int loop = -1);
-	void play_from_progress(const String &_animation_name, float f_progress, int loop = -1);
+	void play_from_progress(const String &_animation_name, float p_progress, int loop = -1);
 	void stop(const String &_animation_name, bool b_reset = false, bool p_recursively = false);
 	void stop_all_animations(bool b_reset = false, bool p_recursively = false);
 	void fade_in(const String &_animation_name, float _time,

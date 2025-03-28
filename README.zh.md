@@ -76,9 +76,9 @@
     由于龙骨对动画的操作粒度是针对某一个`Armature`，因此不建议直接对`DragonBones`进行动画相关的控制。
 5. `DragonBonesArmature`![image](demo/addons/gddragonbones/icons/DragonBonesBlue.png)节点:
    * **由`DragonBones`根据设定从`DragonBonesFoctory`进行实例化，不应该手动创建**。
-   * 在编辑器中,作为`DragonBones`的"main_armature"属性以`DragonBonesArmatureProxy`类型进行设置,如果有子Armature，则会用有一个"sub_armatures"属性可供编辑（所有一切编辑设置将会保存在场景数据中，实例化时将被正确设置倒相应的`DragonBonesArmature`上）。
+   * 在编辑器中,作为`DragonBones`的"armature"属性以`DragonBonesArmatureProxy`类型进行设置,如果有子Armature，则会用有一个"sub_armatures"属性可供编辑（所有一切编辑设置将会保存在场景数据中，实例化时将被正确设置倒相应的`DragonBonesArmature`上）。
    * **千万不要手动释放！否则将导致崩溃！**
-6. `DragonBonesArmatureProxy`**仅供编辑器使用，不要自行实例化，也不要访问相关对象（如`DragonBones`的"main_armature"与`DragonBonesArmatureProxy`的"sub_armatures"属性。）**
+6. `DragonBonesArmatureProxy`**仅供编辑器使用，不要自行实例化，也不要访问相关对象（如`DragonBones`的"armature"与`DragonBonesArmatureProxy`的"sub_armatures"属性。）**
 7. 可从`DragonBonesArmature`访问其中的`DragonBonesSlot`和`DragonBonesBone`进行一些高级操作（该部分没有测试，个人项目没有需求）。
 8. 没有时间编写更详细的说明，具体请翻看"src/"下的源码。
 

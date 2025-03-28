@@ -74,7 +74,7 @@ This repository is improved from [gddragonbones](https://github.com/sanja-sa/gdd
 5. `DragonBonesArmature` ![image](demo/addons/gddragonbones/icons/DragonBonesBlue.png) node:
    * **Instantiated by `DragonBones` node which accroding to `DragonBonesFoctory`, don't instantiate it by youself.**
    * **Don't free by youself, it will lead to crash!!**
-   * In editor, a proxy property in `DragonBones` node, which it's type is `DragonBonesArmatureProxy`, name is "main_armature", will be indicated as the main `DragonBonesArmature` node. If main armature have child armatures, it will have a "sub_armatures" property in `DragonBonesArmatureProxy`.
+   * In editor, a proxy property in `DragonBones` node, which it's type is `DragonBonesArmatureProxy`, name is "armature", will be indicated as the main `DragonBonesArmature` node. If main armature have child armatures, it will have a "sub_armatures" property in `DragonBonesArmatureProxy`.
 6. `DragonBonesArmatureProxy` **is editor use only!! Don't instantiate by youself, and don't access relevant objects/properties, They are unavaunavailable in release build.**
 7. Can access `DragonBonesSlot` and `DragonBonesBone` to do some advance operations through `DragonBonesArmature` (but this is lack of test.).
 8. I have not time to write a further description, please refer source code in "src/" for more details.

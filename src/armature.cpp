@@ -290,10 +290,10 @@ void DragonBonesArmature::play_from_time(const String &_animation_name, float _f
 	}
 }
 
-void DragonBonesArmature::play_from_progress(const String &_animation_name, float f_progress, int loop) {
+void DragonBonesArmature::play_from_progress(const String &_animation_name, float p_progress, int loop) {
 	if (has_animation(_animation_name)) {
 		play(_animation_name, loop);
-		getAnimation()->gotoAndPlayByProgress(to_std_str(_animation_name), f_progress);
+		getAnimation()->gotoAndPlayByProgress(to_std_str(_animation_name), p_progress);
 	}
 }
 
@@ -624,21 +624,7 @@ void DragonBonesArmature::release() {
 	}
 }
 
-void DragonBonesArmature::setup_recursively() {
-	ERR_FAIL_NULL(armature_instance);
-	for (Slot *slot : armature_instance->getSlots()) {
-		if (!slot) {
-			continue;
-		}
-
-		for_each_armature([this](DragonBonesArmature *p_child_armature) {
-			p_child_armature->dragon_bones = dragon_bones;
-			p_child_armature->setup_recursively();
-		});
-	}
-}
-
-void DragonBonesArmature::update_childs(bool _b_color, bool _b_blending) {
+void DragonBonesArmature::force_update() {
 	if (!armature_instance) {
 		return;
 	}
@@ -648,17 +634,13 @@ void DragonBonesArmature::update_childs(bool _b_color, bool _b_blending) {
 			continue;
 		}
 
-		if (_b_color) {
-			slot->_colorDirty = true;
-		}
-
-		if (_b_blending) {
-			slot->invalidUpdate();
-		}
-
+		slot->invalidUpdate();
 		slot->update(0);
 	}
+
+	advance(0.0);
 }
+
 //
 void DragonBonesArmature::set_animation_progress(float p_progress) {
 	seek_animation(get_current_animation(), p_progress);

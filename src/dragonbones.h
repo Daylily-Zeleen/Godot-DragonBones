@@ -32,13 +32,12 @@ private:
 	friend DragonBonesFactory;
 
 	Ref<DragonBonesFactory> factory;
-	DragonBonesArmature *main_armature{ nullptr };
+	DragonBonesArmature *armature{ nullptr };
 	AnimationCallbackModeProcess callback_mode_process{ ANIMATION_CALLBACK_MODE_PROCESS_IDLE };
 	String instantiate_dragon_bones_data_name{ "" };
 	String instantiate_armature_name{ "" };
 	String instantiate_skin_name{ "" };
-	float f_time_scale{ 1.0f };
-	float f_progress{ 0.0f };
+	float time_scale{ 1.0f };
 	int c_loop{ 0 };
 	bool b_active{ true };
 	bool processing{ false };
@@ -116,31 +115,31 @@ public:
 
 	template <class FUNC, std::enable_if_t<std::is_invocable_v<FUNC, DragonBonesArmature *, int>> *_dummy = nullptr>
 	void for_each_armature(FUNC &&p_action) {
-		if (!main_armature) {
+		if (!armature) {
 			return;
 		}
 
 		if constexpr (std::is_invocable_r_v<bool, FUNC, DragonBonesArmature *, int>) {
-			if (p_action(main_armature, 0)) {
+			if (p_action(armature, 0)) {
 				return;
 			}
 		} else {
-			p_action(main_armature, 0);
+			p_action(armature, 0);
 		}
-		main_armature->for_each_armature_recursively(p_action, 1);
+		armature->for_each_armature_recursively(p_action, 1);
 	}
 
 	static void clear_static();
 
 private:
-	bool is_armature_valid() const { return main_armature != nullptr && main_armature->is_valid(); }
+	bool is_armature_valid() const { return armature != nullptr && armature->is_valid(); }
 	RID get_draw_mesh(int p_index);
 
-	void cleanup();
 	void reset();
+	void rebuild_armature();
 
 	void _set_process(bool p_process, bool p_force = false);
-	void _on_resource_changed();
+	// void _on_resource_changed();
 
 	void set_armature_settings(const Dictionary &p_settings) const;
 	Dictionary get_armature_settings() const;
@@ -148,7 +147,7 @@ private:
 	static HashMap<CanvasItemMaterial::BlendMode, Ref<CanvasItemMaterial>> blend_materials;
 	static RID get_blend_material(CanvasItemMaterial::BlendMode p_blend_mode);
 #ifdef TOOLS_ENABLED
-	mutable Ref<DragonBonesArmatureProxy> main_armature_ref;
+	mutable Ref<DragonBonesArmatureProxy> armature_ref;
 #endif // TOOLS_ENABLED
 };
 
