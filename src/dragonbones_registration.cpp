@@ -14,8 +14,8 @@
 
 using namespace godot;
 
-static ResourceFormatSaverDragonBones *saver;
-static ResourceFormatLoaderDragonBones *loader;
+static Ref<ResourceFormatSaverDragonBones> saver;
+static Ref<ResourceFormatLoaderDragonBones> loader;
 
 void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 #ifdef TOOLS_ENABLED
@@ -44,12 +44,10 @@ void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	GDREGISTER_INTERNAL_CLASS(ResourceFormatSaverDragonBones);
 	GDREGISTER_INTERNAL_CLASS(ResourceFormatLoaderDragonBones);
 
-	saver = memnew(ResourceFormatSaverDragonBones);
-	saver->reference();
+	saver.instantiate();
 	ResourceSaver::get_singleton()->add_resource_format_saver(saver);
 
-	loader = memnew(ResourceFormatLoaderDragonBones);
-	loader->reference();
+	loader.instantiate();
 	ResourceLoader::get_singleton()->add_resource_format_loader(loader);
 }
 
@@ -70,10 +68,8 @@ void uninitialize_gddragonbones_module(godot::ModuleInitializationLevel p_level)
 	DragonBones::clear_static();
 
 	ResourceSaver::get_singleton()->remove_resource_format_saver(saver);
-	saver->unreference();
-	memdelete(saver);
+	saver.unref();
 
 	ResourceLoader::get_singleton()->remove_resource_format_loader(loader);
-	loader->unreference();
-	memdelete(loader);
+	loader.unref();
 }
