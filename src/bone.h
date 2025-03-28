@@ -25,8 +25,6 @@ public:
 	DragonBonesBone(dragonBones::Bone *p_bone_data, DragonBonesArmature *p_armature) :
 			boneData(p_bone_data), armature(p_armature) {}
 
-	~DragonBonesBone() = default;
-
 public:
 	static void _bind_methods();
 	String _to_string() const { return vformat("<%s#%s>", get_class_static(), get_instance_id()); }

@@ -608,11 +608,6 @@ void DragonBonesArmature::release() {
 	_bones.clear();
 	_slots.clear();
 
-	if (dragon_bones) {
-		dragon_bones->advance(0.0f);
-		dragon_bones = nullptr;
-	}
-
 	slot = nullptr;
 	texture_override.unref();
 
@@ -622,6 +617,10 @@ void DragonBonesArmature::release() {
 		// 通过 dbClear() 回调推迟销毁释放
 	} else {
 		dbClear();
+	}
+
+	if (dragon_bones) {
+		dragon_bones = nullptr;
 	}
 }
 

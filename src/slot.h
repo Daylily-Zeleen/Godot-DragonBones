@@ -62,8 +62,6 @@ public:
 	DragonBonesSlot(Slot_GD *p_slot) :
 			slot(p_slot) {}
 
-	virtual ~DragonBonesSlot() = default;
-
 public:
 	/* BIND METHODS */
 	static void _bind_methods();

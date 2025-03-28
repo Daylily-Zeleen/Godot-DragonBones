@@ -22,7 +22,7 @@ protected:
 public:
 	DragonBonesUserData() = default;
 	DragonBonesUserData(dragonBones::UserData *p_user_data) :
-			user_data(p_user_data) {};
+			user_data(p_user_data){};
 
 	bool has_data() const { return user_data; }
 

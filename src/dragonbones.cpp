@@ -296,7 +296,7 @@ void DragonBones::_get_property_list(List<PropertyInfo> *_p_list) const {
 	_p_list->push_back(PropertyInfo(Variant::DICTIONARY, "armature_settings", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_STORAGE));
 
 #ifdef TOOLS_ENABLED
-	if (main_armature && Engine::get_singleton()->is_editor_hint()) {
+	if (is_armature_valid() && Engine::get_singleton()->is_editor_hint()) {
 		_p_list->push_back(PropertyInfo(
 				Variant::OBJECT, "main_armature", PROPERTY_HINT_RESOURCE_TYPE, DragonBonesArmatureProxy::get_class_static(), PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT, DragonBonesArmatureProxy::get_class_static()));
 	}
@@ -589,6 +589,8 @@ DragonBones::DragonBones() {
 
 DragonBones::~DragonBones() {
 	cleanup();
+
+	dragonbones_instance->advanceTime(0.0f); // NOTE: 确保 dragonBones::DragonBones 自身缓存的待销毁对象被销毁!
 	memdelete(dragonbones_instance);
 	dragonbones_instance = nullptr;
 

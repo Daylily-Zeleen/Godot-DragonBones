@@ -86,7 +86,7 @@ private:
 #ifdef TOOLS_ENABLED
 public:
 	DragonBonesFactory();
-	~DragonBonesFactory();
+	virtual ~DragonBonesFactory() override;
 
 	static HashMap<String, DragonBonesFactory *> &get_all_imported_factories() {
 		static HashMap<String, DragonBonesFactory *> ret;
