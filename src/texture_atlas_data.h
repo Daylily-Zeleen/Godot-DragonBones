@@ -12,6 +12,7 @@ class DragonBonesTextureData : public dragonBones::TextureData {
 	BIND_CLASS_TYPE_B(DragonBonesTextureData);
 
 private:
+	// TODO: 考虑移除
 	static bool is_rect_equal(const dragonBones::Rectangle &p_a, const dragonBones::Rectangle &p_b) {
 		return Math::is_equal_approx(p_a.x, p_b.x) &&
 				Math::is_equal_approx(p_a.y, p_b.y) &&
@@ -23,6 +24,7 @@ public:
 	DragonBonesTextureData() { _onClear(); }
 	virtual ~DragonBonesTextureData() override { _onClear(); }
 
+	// TODO: 考虑移除以下成员
 	bool operator!=(const DragonBonesTextureData &p_other) const {
 		return !operator==(p_other);
 	}
@@ -71,6 +73,7 @@ public:
 		display_texture.unref();
 	}
 
+	// TODO: 考虑移除以下成员
 	bool operator!=(const DragonBonesTextureAtlasData &p_other) const { return !operator==(p_other); }
 	bool operator==(const DragonBonesTextureAtlasData &p_other) const {
 		if (autoSearch != p_other.autoSearch ||
