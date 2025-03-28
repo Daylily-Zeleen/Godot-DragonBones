@@ -2,8 +2,6 @@ name: 🛠️ Builds
 on:
     workflow_dispatch:
     push:
-        branches:
-            - master
 jobs:
     build:
         runs-on: ${{ matrix.runner }}

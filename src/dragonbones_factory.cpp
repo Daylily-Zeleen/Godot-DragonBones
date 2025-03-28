@@ -582,6 +582,11 @@ String ResourceFormatLoaderDragonBones::_get_resource_type(const String &path) c
 }
 
 int64_t ResourceFormatLoaderDragonBones::_get_resource_uid(const String &path) const {
+	if (!path.to_lower().ends_with(DragonBonesFactory::SAVED_EXT)) {
+		// 跳过不该识别的文件（这里本在经过 _get_recognized_extensions() 在 godot 那边自动处理）
+		return ResourceUID::INVALID_ID;
+	}
+
 	auto fa = FileAccess::open(path, FileAccess::READ);
 	if (fa.is_null()) {
 		ERR_PRINT(vformat("Cannot open file '%s' for reading uid: %s.", path, UtilityFunctions::error_string(FileAccess::get_open_error())));
