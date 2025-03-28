@@ -75,8 +75,8 @@ Ref<DragonBonesFactory> DragonBones::get_factory() const {
 	return factory;
 }
 
-void DragonBones::set_active(bool _b_active) {
-	active = _b_active;
+void DragonBones::set_active(bool p_active) {
+	active = p_active;
 	_set_process(active, true);
 }
 
@@ -84,8 +84,8 @@ bool DragonBones::is_active() const {
 	return active;
 }
 
-void DragonBones::set_debug(bool _b_debug) {
-	debug = _b_debug;
+void DragonBones::set_debug(bool p_debug) {
+	debug = p_debug;
 
 #ifdef DEBUG_ENABLED
 	if (debug) {
@@ -155,8 +155,8 @@ String DragonBones::get_instantiate_skin_name() const {
 	return instantiate_skin_name;
 }
 
-void DragonBones::set_callback_mode_process(AnimationCallbackModeProcess _mode) {
-	callback_mode_process = _mode;
+void DragonBones::set_callback_mode_process(AnimationCallbackModeProcess p_mode) {
+	callback_mode_process = p_mode;
 }
 
 DragonBones::AnimationCallbackModeProcess DragonBones::get_callback_mode_process() const {
@@ -215,13 +215,13 @@ Dictionary DragonBones::get_armature_settings() const {
 #endif // TOOLS_ENABLED
 }
 
-bool DragonBones::_set(const StringName &_str_name, const Variant &_c_r_value) {
-	if (_str_name == SNAME("armature_settings")) {
-		set_armature_settings(_c_r_value);
+bool DragonBones::_set(const StringName &p_name, const Variant &p_property) {
+	if (p_name == SNAME("armature_settings")) {
+		set_armature_settings(p_property);
 		return true;
 	}
 #ifdef TOOLS_ENABLED
-	else if (_str_name == SNAME("armature")) {
+	else if (p_name == SNAME("armature")) {
 		return true; // 禁止设置
 	}
 #endif //  TOOLS_ENABLED
@@ -229,13 +229,13 @@ bool DragonBones::_set(const StringName &_str_name, const Variant &_c_r_value) {
 	return false;
 }
 
-bool DragonBones::_get(const StringName &_str_name, Variant &_r_ret) const {
-	if (_str_name == SNAME("armature_settings")) {
-		_r_ret = get_armature_settings();
+bool DragonBones::_get(const StringName &p_name, Variant &r_property) const {
+	if (p_name == SNAME("armature_settings")) {
+		r_property = get_armature_settings();
 		return true;
 	}
 #ifdef TOOLS_ENABLED
-	else if (_str_name == SNAME("armature")) {
+	else if (p_name == SNAME("armature")) {
 		// Avoid instantiation when getting default value.
 		if (is_armature_valid() && armature_ref.is_null()) {
 			armature_ref.instantiate();
@@ -245,19 +245,19 @@ bool DragonBones::_get(const StringName &_str_name, Variant &_r_ret) const {
 			armature_ref->armature = armature;
 		}
 
-		_r_ret = armature_ref;
+		r_property = armature_ref;
 		return true;
 	}
 #endif // TOOLS_ENABLED
 	return false;
 }
 
-void DragonBones::_get_property_list(List<PropertyInfo> *_p_list) const {
-	_p_list->push_back(PropertyInfo(Variant::DICTIONARY, "armature_settings", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_STORAGE));
+void DragonBones::_get_property_list(List<PropertyInfo> *p_list) const {
+	p_list->push_back(PropertyInfo(Variant::DICTIONARY, "armature_settings", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_STORAGE));
 
 #ifdef TOOLS_ENABLED
 	if (is_armature_valid() && Engine::get_singleton()->is_editor_hint()) {
-		_p_list->push_back(PropertyInfo(
+		p_list->push_back(PropertyInfo(
 				Variant::OBJECT, "armature", PROPERTY_HINT_RESOURCE_TYPE, DragonBonesArmatureProxy::get_class_static(), PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT, DragonBonesArmatureProxy::get_class_static()));
 	}
 #endif // TOOLS_ENABLED

@@ -15,9 +15,9 @@ class DragonBones : public Node2D, public dragonBones::IEventDispatcher {
 
 public:
 	// sound IEventDispatcher
-	virtual void addDBEventListener(const std::string &type, const std::function<void(dragonBones::EventObject *)> &listener) override {}
-	virtual void removeDBEventListener(const std::string &type, const std::function<void(dragonBones::EventObject *)> &listener) override {}
-	virtual bool hasDBEventListener(const std::string &type) const override { return true; }
+	virtual void addDBEventListener(const std::string &p_type, const std::function<void(dragonBones::EventObject *)> &p_listener) override {}
+	virtual void removeDBEventListener(const std::string &p_type, const std::function<void(dragonBones::EventObject *)> &p_listener) override {}
+	virtual bool hasDBEventListener(const std::string &p_type) const override { return true; }
 
 	virtual void dispatchDBEvent(const std::string &p_type, dragonBones::EventObject *p_value) override;
 
@@ -53,9 +53,9 @@ protected:
 	static void _bind_methods();
 	_DEFINE_TO_STRING()
 
-	bool _set(const StringName &_str_name, const Variant &_c_r_value);
-	bool _get(const StringName &_str_name, Variant &_r_ret) const;
-	void _get_property_list(List<PropertyInfo> *_p_list) const;
+	bool _set(const StringName &p_name, const Variant &p_property);
+	bool _get(const StringName &p_name, Variant &r_property) const;
+	void _get_property_list(List<PropertyInfo> *p_list) const;
 
 #ifdef TOOLS_ENABLED
 	void _validate_property(PropertyInfo &p_property) const;
@@ -70,10 +70,10 @@ public:
 	virtual void _draw() override;
 
 	// setters/getters
-	void set_factory(const Ref<DragonBonesFactory> &_p_data);
+	void set_factory(const Ref<DragonBonesFactory> &p_factory);
 	Ref<DragonBonesFactory> get_factory() const;
 
-	void set_active(bool _b_active);
+	void set_active(bool p_active);
 	bool is_active() const;
 
 	void set_time_scale(float p_time_scale);
@@ -88,7 +88,7 @@ public:
 	void set_instantiate_skin_name(String p_name);
 	String get_instantiate_skin_name() const;
 
-	void set_callback_mode_process(AnimationCallbackModeProcess _mode);
+	void set_callback_mode_process(AnimationCallbackModeProcess p_mode);
 	AnimationCallbackModeProcess get_callback_mode_process() const;
 
 	int get_animation_loop_count() const;
@@ -100,7 +100,7 @@ public:
 		}
 	}
 
-	void set_debug(bool _b_debug);
+	void set_debug(bool p_debug);
 	bool is_debug() const;
 
 	DragonBonesArmature *get_armature();
