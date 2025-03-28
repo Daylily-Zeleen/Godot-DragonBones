@@ -30,9 +30,9 @@ public:
 	}
 
 protected:
-	dragonBones::DragonBonesData *loadDragonBonesData(const char *_p_data_loaded, const std::string &name = "");
-	dragonBones::TextureAtlasData *loadTextureAtlasData(const char *_p_data_loaded, String *p_atlas_data_file_path, const std::string &name = "", float scale = 1.0f);
-	class DragonBonesArmature *buildArmatureDisplay(const std::string &armatureName, const std::string &dragonBonesName, const std::string &skinName = "", const std::string &textureAtlasName = "") const;
+	dragonBones::DragonBonesData *loadDragonBonesData(const char *p_data_loaded, const std::string &p_name = "");
+	dragonBones::TextureAtlasData *loadTextureAtlasData(const char *p_data_loaded, String *p_atlas_data_file_path, const std::string &p_name = "", float p_scale = 1.0f);
+	class DragonBonesArmature *buildArmatureDisplay(const std::string &p_armature_name, const std::string &p_dragonbones_name, const std::string &p_skinName = "", const std::string &p_texture_atlas_name = "") const;
 
 	virtual dragonBones::TextureAtlasData *_buildTextureAtlasData(dragonBones::TextureAtlasData *textureAtlasData, void *textureAtlas) const override;
 	virtual dragonBones::Armature *_buildArmature(const dragonBones::BuildArmaturePackage &dataPackage) const override;

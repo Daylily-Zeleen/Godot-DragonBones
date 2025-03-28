@@ -35,25 +35,25 @@ public:
 
 	// Local
 	Vector2 get_position() const;
-	void set_position(Vector2 new_pos);
+	void set_position(Vector2 p_new_pos);
 
 	float get_rotation() const;
-	void set_rotation(float rotation);
+	void set_rotation(float p_rotation);
 
 	Vector2 get_scale() const;
-	void set_scale(Vector2 scale);
+	void set_scale(Vector2 p_scale);
 
 	Transform2D get_transform() const;
 	void set_transform(const Transform2D &p_transform);
 
 	// Global
-	void set_global_position(Vector2 new_pos);
+	void set_global_position(Vector2 p_new_pos);
 	Vector2 get_global_position() const;
 
-	void set_global_rotation(float rotation);
+	void set_global_rotation(float p_rotation);
 	float get_global_rotation() const;
 
-	void set_global_scale(Vector2 scale);
+	void set_global_scale(Vector2 p_scale);
 	Vector2 get_global_scale() const;
 
 	Transform2D get_global_transform() const;

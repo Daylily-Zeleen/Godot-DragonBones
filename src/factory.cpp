@@ -56,23 +56,23 @@ PackedByteArray DragonBonesFactory::get_file_data(const String &p_file) const {
 }
 
 ///  工厂实现  ///////////////////////////////////////////////////////////////
-DragonBonesData *DragonBonesFactory::loadDragonBonesData(const char *_p_data_loaded, const std::string &name) {
-	if (!name.empty()) {
-		const auto existedData = getDragonBonesData(name);
+DragonBonesData *DragonBonesFactory::loadDragonBonesData(const char *p_data_loaded, const std::string &p_name) {
+	if (!p_name.empty()) {
+		const auto existedData = getDragonBonesData(p_name);
 
 		if (existedData) {
 			return existedData;
 		}
 	}
-	return parseDragonBonesData(_p_data_loaded, name, 1.0f);
+	return parseDragonBonesData(p_data_loaded, p_name, 1.0f);
 }
 
-TextureAtlasData *DragonBonesFactory::loadTextureAtlasData(const char *_p_data_loaded, String *p_atlas_data_file_path, const std::string &name, float scale) {
-	return BaseFactory::parseTextureAtlasData(_p_data_loaded, p_atlas_data_file_path, name, scale);
+TextureAtlasData *DragonBonesFactory::loadTextureAtlasData(const char *p_data_loaded, String *p_atlas_data_file_path, const std::string &p_name, float p_scale) {
+	return BaseFactory::parseTextureAtlasData(p_data_loaded, p_atlas_data_file_path, p_name, p_scale);
 }
 
-DragonBonesArmature *DragonBonesFactory::buildArmatureDisplay(const std::string &armatureName, const std::string &dragonBonesName, const std::string &skinName, const std::string &textureAtlasName) const {
-	const auto armature = buildArmature(armatureName, dragonBonesName, skinName, textureAtlasName);
+DragonBonesArmature *DragonBonesFactory::buildArmatureDisplay(const std::string &p_armature_name, const std::string &p_dragonbones_name, const std::string &p_skin_name, const std::string &p_texture_atlas_name) const {
+	const auto armature = buildArmature(p_armature_name, p_dragonbones_name, p_skin_name, p_texture_atlas_name);
 	if (armature != nullptr) {
 		_dragonBones->getClock()->add(armature);
 		return static_cast<DragonBonesArmature *>(armature->getDisplay());

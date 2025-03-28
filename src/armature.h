@@ -38,32 +38,28 @@ private:
 	Ref<Texture2D> texture_override;
 
 	class DragonBones *dragon_bones{ nullptr };
-	friend DragonBonesFactory;
+	friend class DragonBonesFactory;
 
 protected:
 	dragonBones::Armature *armature_instance{ nullptr };
 
-	std::map<std::string, Ref<DragonBonesBone>> _bones;
-	std::map<std::string, Ref<DragonBonesSlot>> _slots;
+	std::map<std::string, Ref<DragonBonesBone>> bones;
+	std::map<std::string, Ref<DragonBonesSlot>> slots;
 
 public:
 	DragonBonesArmature() = default;
 	virtual ~DragonBonesArmature() override;
 
-	dragonBones::Slot *getSlot(const std::string &name) const;
+	void add_bone(std::string p_name, const Ref<DragonBonesBone> &p_new_bone);
+	void add_slot(std::string p_name, const Ref<DragonBonesSlot> &p_new_slot);
 
-	void add_bone(std::string name, const Ref<DragonBonesBone> &new_bone);
-	void add_slot(std::string name, const Ref<DragonBonesSlot> &new_slot);
-	void addEvent(const std::string &_type, const std::function<void(dragonBones::EventObject *)> &_callback);
-	void removeEvent(const std::string &_type);
+	virtual bool hasDBEventListener(const std::string &p_type) const override { return true; }
+	virtual void addDBEventListener(const std::string &p_type, const std::function<void(dragonBones::EventObject *)> &p_listener) override {}
+	virtual void removeDBEventListener(const std::string &p_type, const std::function<void(dragonBones::EventObject *)> &p_listener) override {}
 
-	virtual bool hasDBEventListener(const std::string &_type) const override { return true; }
-	virtual void addDBEventListener(const std::string &_type, const std::function<void(dragonBones::EventObject *)> &_listener) override {}
-	virtual void removeDBEventListener(const std::string &_type, const std::function<void(dragonBones::EventObject *)> &_listener) override {}
+	virtual void dispatchDBEvent(const std::string &p_type, dragonBones::EventObject *p_value) override;
 
-	virtual void dispatchDBEvent(const std::string &_type, dragonBones::EventObject *_value) override;
-
-	void dbInit(dragonBones::Armature *_p_armature) override;
+	void dbInit(dragonBones::Armature *p_armature) override;
 	void dbClear() override;
 	void dbUpdate() override;
 
@@ -129,47 +125,48 @@ public:
 	void for_each_armature_(const Callable &p_action);
 	void for_each_armature_recursively_(const Callable &p_action, int p_current_depth = 0);
 
-	bool has_animation(const String &_animation_name) const;
+	bool has_animation(const String &p_animation_name) const;
 	PackedStringArray get_animations();
 
-	String get_current_animation_on_layer(int _layer) const;
-	String get_current_animation_in_group(const String &_group_name) const;
+	String get_current_animation_on_layer(int p_layer) const;
+	String get_current_animation_in_group(const String &p_group_name) const;
 
-	float tell_animation(const String &_animation_name) const;
-	void seek_animation(const String &_animation_name, float progress);
+	float tell_animation(const String &p_animation_name) const;
+	void seek_animation(const String &p_animation_name, float p_progress);
 
 	bool is_playing() const;
-	void play(const String &_animation_name, int loop = -1);
+	void play(const String &p_animation_name, int p_loop_count = -1);
 
-	void play_from_time(const String &_animation_name, float _f_time, int loop = -1);
-	void play_from_progress(const String &_animation_name, float p_progress, int loop = -1);
-	void stop(const String &_animation_name, bool b_reset = false, bool p_recursively = false);
+	void play_from_time(const String &p_animation_name, float p_time, int p_loop_count = -1);
+	void play_from_progress(const String &p_animation_name, float p_progress, int p_loop_count = -1);
+	void stop(const String &p_animation_name, bool b_reset = false, bool p_recursively = false);
 	void stop_all_animations(bool b_reset = false, bool p_recursively = false);
-	void fade_in(const String &_animation_name, float _time,
-			int _loop, int _layer, const String &_group, AnimFadeOutMode _fade_out_mode);
+	void fade_in(const String &p_animation_name, float p_time,
+			int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode);
 
 	void reset(bool p_recursively = false);
 
-	bool has_slot(const String &_slot_name) const;
-	Ref<DragonBonesSlot> get_slot(const String &_slot_name);
+	bool has_slot(const String &p_slot_name) const;
+	Ref<DragonBonesSlot> get_slot(const String &p_slot_name);
 	SlotsDictionary get_slots();
 
-	void set_slot_display_index(const String &_slot_name, int _index);
-	void set_slot_by_item_name(const String &_slot_name, const String &_item_name);
-	void set_all_slots_by_item_name(const String &_item_name);
-	int get_slot_display_index(const String &_slot_name);
-	int get_total_items_in_slot(const String &_slot_name);
-	void cycle_next_item_in_slot(const String &_slot_name);
-	void cycle_previous_item_in_slot(const String &_slot_name);
-	Color get_slot_display_color_multiplier(const String &_slot_name);
-	void set_slot_display_color_multiplier(const String &_slot_name, const Color &_color);
+	// TODO: 考虑移除，直接由 DragonBonesSlot 负责
+	void set_slot_display_index(const String &p_slot_name, int p_index);
+	void set_slot_display_by_item_name(const String &p_slot_name, const String &p_item_name);
+	void set_all_slots_by_item_name(const String &p_item_name);
+	int get_slot_display_index(const String &p_slot_name);
+	int get_total_items_in_slot(const String &p_slot_name);
+	void cycle_next_item_in_slot(const String &p_slot_name);
+	void cycle_previous_item_in_slot(const String &p_slot_name);
+	Color get_slot_display_color_multiplier(const String &p_slot_name);
+	void set_slot_display_color_multiplier(const String &p_slot_name, const Color &p_color);
 
 	Dictionary get_ik_constraints();
-	void set_ik_constraint(const String &name, Vector2 position);
-	void set_ik_constraint_bend_positive(const String &name, bool bend_positive);
+	void set_ik_constraint(const String &p_name, Vector2 p_position);
+	void set_ik_constraint_bend_positive(const String &p_name, bool p_bend_positive);
 
 	BonesDictionary get_bones();
-	Ref<DragonBonesBone> get_bone(const String &name);
+	Ref<DragonBonesBone> get_bone(const String &p_name);
 
 	Rect2 get_rect() const;
 	void advance(float p_delta, bool p_recursively = false);

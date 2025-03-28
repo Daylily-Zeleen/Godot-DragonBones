@@ -370,13 +370,13 @@ Color DragonBonesSlot::get_display_color_multiplier() {
 	return return_color;
 }
 
-void DragonBonesSlot::set_display_color_multiplier(const Color &_color) {
+void DragonBonesSlot::set_display_color_multiplier(const Color &p_color) {
 	ERR_FAIL_NULL(slot);
 	ColorTransform _new_color;
-	_new_color.redMultiplier = _color.r;
-	_new_color.greenMultiplier = _color.g;
-	_new_color.blueMultiplier = _color.b;
-	_new_color.alphaMultiplier = _color.a;
+	_new_color.redMultiplier = p_color.r;
+	_new_color.greenMultiplier = p_color.g;
+	_new_color.blueMultiplier = p_color.b;
+	_new_color.alphaMultiplier = p_color.a;
 
 	slot->_setColor(_new_color);
 }

@@ -1,7 +1,6 @@
 #include <armature.h>
 #include <bone.h>
 
-
 using namespace godot;
 
 _FORCE_INLINE_ Transform2D to_gd_transform(const dragonBones::Transform &p_t) {
@@ -95,9 +94,9 @@ Vector2 DragonBonesBone::get_position() const {
 	return get_transform().get_origin();
 }
 
-void DragonBonesBone::set_position(Vector2 new_pos) {
+void DragonBonesBone::set_position(Vector2 p_new_pos) {
 	auto transform = get_transform();
-	transform.set_origin(new_pos);
+	transform.set_origin(p_new_pos);
 	set_transform(transform);
 }
 
@@ -105,9 +104,9 @@ float DragonBonesBone::get_rotation() const {
 	return get_transform().get_rotation();
 }
 
-void DragonBonesBone::set_rotation(float rotation) {
+void DragonBonesBone::set_rotation(float p_rotation) {
 	auto transform = get_transform();
-	transform.set_rotation(rotation);
+	transform.set_rotation(p_rotation);
 	set_transform(transform);
 }
 
@@ -115,9 +114,9 @@ Vector2 DragonBonesBone::get_scale() const {
 	return get_transform().get_scale();
 }
 
-void DragonBonesBone::set_scale(Vector2 scale) {
+void DragonBonesBone::set_scale(Vector2 p_scale) {
 	auto transform = get_transform();
-	transform.set_scale(scale);
+	transform.set_scale(p_scale);
 	set_transform(transform);
 }
 
@@ -158,9 +157,9 @@ Vector2 DragonBonesBone::get_global_position() const {
 	return get_global_transform().get_origin();
 }
 
-void DragonBonesBone::set_global_position(Vector2 new_pos) {
+void DragonBonesBone::set_global_position(Vector2 p_new_pos) {
 	auto gt = get_global_transform();
-	gt.set_origin(new_pos);
+	gt.set_origin(p_new_pos);
 	set_global_transform(gt);
 }
 
@@ -168,9 +167,9 @@ float DragonBonesBone::get_global_rotation() const {
 	return get_global_transform().get_rotation();
 }
 
-void DragonBonesBone::set_global_rotation(float rotation) {
+void DragonBonesBone::set_global_rotation(float p_rotation) {
 	auto gt = get_global_transform();
-	gt.set_rotation(rotation);
+	gt.set_rotation(p_rotation);
 	set_global_transform(gt);
 }
 
@@ -178,9 +177,9 @@ Vector2 DragonBonesBone::get_global_scale() const {
 	return get_global_transform().get_scale();
 }
 
-void DragonBonesBone::set_global_scale(Vector2 scale) {
+void DragonBonesBone::set_global_scale(Vector2 p_scale) {
 	auto gt = get_global_transform();
-	gt.set_scale(scale);
+	gt.set_scale(p_scale);
 	set_global_transform(gt);
 }
 

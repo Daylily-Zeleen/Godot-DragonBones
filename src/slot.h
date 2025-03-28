@@ -68,7 +68,7 @@ public:
 	_DEFINE_TO_STRING()
 
 	Color get_display_color_multiplier();
-	void set_display_color_multiplier(const Color &_color);
+	void set_display_color_multiplier(const Color &p_color);
 	void set_display_index(int index = 0);
 	void set_display_by_name(const String &_name);
 	int get_display_index();
