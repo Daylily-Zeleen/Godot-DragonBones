@@ -12,10 +12,6 @@
 using namespace godot;
 
 /////////////////////////////////////////////////////////////////
-void DragonBones::cleanup() {
-	factory.unref();
-}
-
 void DragonBones::dispatchDBEvent(const std::string &p_type, dragonBones::EventObject *p_value) {
 	using namespace dragonBones;
 	if (Engine::get_singleton()->is_editor_hint()) {
@@ -31,8 +27,8 @@ void DragonBones::_set_process(bool p_process, bool p_force) {
 		return;
 	}
 
-	set_physics_process_internal(callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS && p_process && b_active);
-	set_process_internal(callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_IDLE && p_process && b_active);
+	set_physics_process_internal(callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS && p_process && active);
+	set_process_internal(callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_IDLE && p_process && active);
 
 	processing = p_process;
 }
@@ -80,19 +76,19 @@ Ref<DragonBonesFactory> DragonBones::get_factory() const {
 }
 
 void DragonBones::set_active(bool _b_active) {
-	b_active = _b_active;
-	_set_process(b_active, true);
+	active = _b_active;
+	_set_process(active, true);
 }
 
 bool DragonBones::is_active() const {
-	return b_active;
+	return active;
 }
 
 void DragonBones::set_debug(bool _b_debug) {
-	b_debug = _b_debug;
+	debug = _b_debug;
 
 #ifdef DEBUG_ENABLED
-	if (b_debug) {
+	if (debug) {
 		debug_mesh = RenderingServer::get_singleton()->mesh_create();
 	}
 	queue_redraw();
@@ -100,7 +96,7 @@ void DragonBones::set_debug(bool _b_debug) {
 }
 
 bool DragonBones::is_debug() const {
-	return b_debug;
+	return debug;
 }
 
 void DragonBones::set_time_scale(float p_time_scale) {
@@ -167,15 +163,15 @@ DragonBones::AnimationCallbackModeProcess DragonBones::get_callback_mode_process
 	return callback_mode_process;
 }
 
-int DragonBones::get_animation_loop() const {
-	return c_loop;
+int DragonBones::get_animation_loop_count() const {
+	return animation_loop_count;
 }
 
-void DragonBones::set_animation_loop(int p_animation_loop) {
-	c_loop = p_animation_loop;
-	if (is_armature_valid() && b_playing) {
+void DragonBones::set_animation_loop_count(int p_animation_loop) {
+	animation_loop_count = p_animation_loop;
+	if (is_armature_valid()) {
 		reset();
-		armature->play(armature->get_current_animation(), c_loop);
+		armature->play(armature->get_current_animation(), animation_loop_count);
 	}
 }
 
@@ -309,19 +305,19 @@ void DragonBones::_validate_property(PropertyInfo &p_property) const {
 void DragonBones::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE: {
-			_set_process(b_active);
+			_set_process(active);
 			if (!processing) {
 				set_physics_process_internal(false);
 				set_process_internal(false);
 			}
 		} break;
 		case NOTIFICATION_INTERNAL_PROCESS: {
-			if (b_active && callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_IDLE) {
+			if (active && callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_IDLE) {
 				advance(get_process_delta_time() * time_scale);
 			}
 		} break;
 		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS: {
-			if (b_active && callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS) {
+			if (active && callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS) {
 				advance(get_physics_process_delta_time() * time_scale);
 			}
 		} break;
@@ -417,7 +413,7 @@ void DragonBones::_draw() {
 	}
 
 #ifdef DEBUG_ENABLED
-	if (b_debug) {
+	if (debug) {
 		// Prepare debug mesh data.
 		PackedInt32Array debug_mesh_indices;
 		PackedVector2Array debug_vertices;
@@ -494,8 +490,8 @@ void DragonBones::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("advance", "delta"), &DragonBones::advance);
 
-	ClassDB::bind_method(D_METHOD("set_animation_loop", "loop_count"), &DragonBones::set_animation_loop);
-	ClassDB::bind_method(D_METHOD("get_animation_loop"), &DragonBones::get_animation_loop);
+	ClassDB::bind_method(D_METHOD("set_animation_loop_count", "loop_count"), &DragonBones::set_animation_loop_count);
+	ClassDB::bind_method(D_METHOD("get_animation_loop_count"), &DragonBones::get_animation_loop_count);
 
 	ClassDB::bind_method(D_METHOD("set_time_scale", "speed_scale"), &DragonBones::set_time_scale);
 	ClassDB::bind_method(D_METHOD("get_time_scale"), &DragonBones::get_time_scale);
@@ -530,7 +526,7 @@ void DragonBones::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug"), "set_debug", "is_debug");
 
 	ADD_GROUP("Animation Settings", "animation_");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "animation_loop", PROPERTY_HINT_RANGE, "0,100,1,or_greater"), "set_animation_loop", "get_animation_loop");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "animation_loop_count", PROPERTY_HINT_RANGE, "0,100,1,or_greater"), "set_animation_loop_count", "get_animation_loop_count");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "animation_time_scale", PROPERTY_HINT_RANGE, "0,10,0.01"), "set_time_scale", "get_time_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "animation_callback_mode_process", PROPERTY_HINT_ENUM, "Physics,Idle,Manual"), "set_callback_mode_process", "get_callback_mode_process");
 

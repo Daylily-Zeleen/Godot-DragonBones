@@ -38,15 +38,10 @@ private:
 	String instantiate_armature_name{ "" };
 	String instantiate_skin_name{ "" };
 	float time_scale{ 1.0f };
-	int c_loop{ 0 };
-	bool b_active{ true };
+	int animation_loop_count{ 0 };
+	bool active{ true };
 	bool processing{ false };
-	bool b_playing{ false };
-	bool b_debug{ false };
-	bool b_try_playing{ false };
-
-	bool b_flip_x{ false };
-	bool b_flip_y{ false };
+	bool debug{ false };
 
 	LocalVector<RID> draw_meshes;
 
@@ -96,8 +91,8 @@ public:
 	void set_callback_mode_process(AnimationCallbackModeProcess _mode);
 	AnimationCallbackModeProcess get_callback_mode_process() const;
 
-	int get_animation_loop() const;
-	void set_animation_loop(int p_animation_loop);
+	int get_animation_loop_count() const;
+	void set_animation_loop_count(int p_animation_loop_count);
 
 	void advance(float p_delta) {
 		if (dragonbones_instance) {

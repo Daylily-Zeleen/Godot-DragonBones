@@ -205,9 +205,9 @@ void DragonBonesArmature::set_current_animation(const String &p_animation) {
 	if (p_animation == "[none]" || p_animation.is_empty()) {
 		stop(get_current_animation());
 	} else if (!is_playing()) {
-		play(p_animation, dragon_bones->get_animation_loop());
+		play(p_animation, dragon_bones->get_animation_loop_count());
 	} else if (get_current_animation() != p_animation) {
-		play(p_animation, dragon_bones->get_animation_loop());
+		play(p_animation, dragon_bones->get_animation_loop_count());
 	} else {
 		// 相同动画，无需响应
 	}
