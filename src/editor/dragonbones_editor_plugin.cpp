@@ -7,6 +7,7 @@
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/file_system_dock.hpp>
+#include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/resource_saver.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
@@ -109,40 +110,6 @@ bool DragonBonesImportPlugin::_get_option_visibility(const String &path, const S
 	return true;
 }
 
-static Error set_import_config_to_json_type(const String &p_src_file, const String &p_save_path) {
-	ERR_FAIL_COND_V(p_src_file.get_extension().to_lower() != "json", ERR_FILE_UNRECOGNIZED);
-
-	Ref<ConfigFile> cfg;
-	cfg.instantiate();
-
-	auto cfg_file = p_src_file + String(".import");
-
-	cfg->set_value("remap", "importer", "keep");
-
-	Error err = cfg->save(cfg_file);
-	if (err != OK) {
-		return err;
-	}
-
-	//
-	const auto save_res_file = p_save_path + String(".") + DragonBonesFactory::SAVED_EXT;
-
-	if (FileAccess::file_exists(save_res_file)) {
-		err = DirAccess::remove_absolute(save_res_file);
-	}
-
-	if (err != OK) {
-		return err;
-	}
-
-	const auto md5_file = p_save_path + String(".md5");
-	if (FileAccess::file_exists(md5_file)) {
-		return DirAccess::remove_absolute(md5_file);
-	}
-
-	return OK;
-}
-
 Error DragonBonesImportPlugin::_import(const String &p_source_file, const String &p_save_path, const Dictionary &p_options,
 		const TypedArray<String> &r_platform_variants, const TypedArray<String> &r_gen_files) const {
 	auto factory = try_import(p_source_file);
@@ -191,6 +158,7 @@ Ref<DragonBonesFactory> DragonBonesImportPlugin::try_import(const String &p_ske_
 }
 
 ///////////////////////////////
+const auto SETTING_AUTO_GENERATE_DBFACTORY = "Godot_DragonBones/auto_generate_dbfactory";
 
 void DragonBonesEditorPlugin::_reimport_dbfactory_recursively(EditorFileSystemDirectory *p_dir, HashMap<String, Ref<DragonBonesFactory>> &r_factories) const {
 	if (!p_dir) {
@@ -230,19 +198,22 @@ void DragonBonesEditorPlugin::_on_filesystem_changed() {
 	}
 	DragonBonesFactory::editor_reimporting = true;
 
-	HashMap<String, Ref<DragonBonesFactory>> factories;
-	_reimport_dbfactory_recursively(EditorInterface::get_singleton()->get_resource_filesystem()->get_filesystem(), factories);
+	if (ProjectSettings::get_singleton()->get_setting(SETTING_AUTO_GENERATE_DBFACTORY, false)) {
+		// 默认不进行导入。需要手动创建工厂资源。
+		HashMap<String, Ref<DragonBonesFactory>> factories;
+		_reimport_dbfactory_recursively(EditorInterface::get_singleton()->get_resource_filesystem()->get_filesystem(), factories);
 
-	if (!factories.is_empty()) {
-		// 保存龙骨工厂
-		for (auto &kv : factories) {
-			const String path = kv.key;
-			const Ref<DragonBonesFactory> factory = kv.value;
+		if (!factories.is_empty()) {
+			// 保存龙骨工厂
+			for (auto &kv : factories) {
+				const String path = kv.key;
+				const Ref<DragonBonesFactory> factory = kv.value;
 
-			Error err = ResourceSaver::get_singleton()->save(factory, path, ResourceSaver::FLAG_REPLACE_SUBRESOURCE_PATHS | ResourceSaver::FLAG_CHANGE_PATH);
+				Error err = ResourceSaver::get_singleton()->save(factory, path, ResourceSaver::FLAG_REPLACE_SUBRESOURCE_PATHS | ResourceSaver::FLAG_CHANGE_PATH);
 
-			if (err != OK) {
-				ERR_PRINT(vformat("Save DragonBones factory failed: %s", UtilityFunctions::error_string(err)));
+				if (err != OK) {
+					ERR_PRINT(vformat("Save DragonBones factory failed: %s", UtilityFunctions::error_string(err)));
+				}
 			}
 		}
 	}
@@ -311,6 +282,12 @@ void DragonBonesEditorPlugin::_enter_tree() {
 
 	EditorInterface::get_singleton()->get_resource_filesystem()->connect("filesystem_changed", callable_mp(this, &DragonBonesEditorPlugin::_on_filesystem_changed));
 	EditorInterface::get_singleton()->get_file_system_dock()->connect("files_moved", callable_mp(this, &DragonBonesEditorPlugin::_on_file_system_dock_files_moved));
+
+	if (!ProjectSettings::get_singleton()->has_setting(SETTING_AUTO_GENERATE_DBFACTORY)) {
+		ProjectSettings::get_singleton()->set_setting(SETTING_AUTO_GENERATE_DBFACTORY, false);
+		ProjectSettings::get_singleton()->set_initial_value(SETTING_AUTO_GENERATE_DBFACTORY, false);
+		ProjectSettings::get_singleton()->set_as_basic(SETTING_AUTO_GENERATE_DBFACTORY, true);
+	}
 }
 
 void DragonBonesEditorPlugin::_exit_tree() {

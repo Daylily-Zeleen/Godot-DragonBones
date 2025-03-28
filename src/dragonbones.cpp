@@ -65,7 +65,7 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &p_factory) {
 		return;
 	}
 
-	static const StringName sn{ "changed" };
+	const StringName &sn = SNAME("changed");
 	auto cb = callable_mp(this, &DragonBones::_on_resource_changed);
 	if (factory.is_valid() && factory->is_connected(sn, cb)) {
 		factory->disconnect(sn, cb);
