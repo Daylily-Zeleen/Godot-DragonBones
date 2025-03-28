@@ -12,8 +12,8 @@
 
 #if GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
 #include "godot_cpp/variant/typed_dictionary.hpp"
-using SlotsDictionary = godot::TypedDictionary<godot::String, godot::Ref<godot::DragonBonesSlot>>;
-using BonesDictionary = godot::TypedDictionary<godot::String, godot::Ref<godot::DragonBonesBone>>;
+using SlotsDictionary = godot::TypedDictionary<godot::String, godot::DragonBonesSlot>;
+using BonesDictionary = godot::TypedDictionary<godot::String, godot::DragonBonesBone>;
 #else // GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
 using SlotsDictionary = godot::Dictionary;
 using BonesDictionary = godot::Dictionary;
