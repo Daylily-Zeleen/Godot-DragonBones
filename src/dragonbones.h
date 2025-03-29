@@ -4,6 +4,7 @@
 
 #include <dragonBones/core/DragonBones.h>
 #include <godot_cpp/classes/node2d.hpp>
+#include <godot_cpp/templates/hash_map.hpp>
 
 #include "armature.h"
 #include "factory.h"
