@@ -483,6 +483,61 @@ void DragonBonesArmatureDisplay::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_instantiate_skin_name", "instantiate_skin_name"), &DragonBonesArmatureDisplay::set_instantiate_skin_name);
 	ClassDB::bind_method(D_METHOD("get_instantiate_skin_name"), &DragonBonesArmatureDisplay::get_instantiate_skin_name);
 
+	// 包装 ===========
+	ClassDB::bind_method(D_METHOD("has_animation", "animation_name"), &DragonBonesArmatureDisplay::has_animation);
+	ClassDB::bind_method(D_METHOD("get_animations"), &DragonBonesArmatureDisplay::get_animations);
+	ClassDB::bind_method(D_METHOD("is_playing"), &DragonBonesArmatureDisplay::is_playing);
+
+	ClassDB::bind_method(D_METHOD("tell_animation", "animation_name"), &DragonBonesArmatureDisplay::tell_animation);
+	ClassDB::bind_method(D_METHOD("seek_animation", "animation_name", "progress"), &DragonBonesArmatureDisplay::seek_animation);
+
+	ClassDB::bind_method(D_METHOD("play", "animation_name", "loop_count"), &DragonBonesArmatureDisplay::play, DEFVAL(-1));
+	ClassDB::bind_method(D_METHOD("play_from_time", "animation_name", "time", "loop_count"), &DragonBonesArmatureDisplay::play_from_time, DEFVAL(-1));
+	ClassDB::bind_method(D_METHOD("play_from_progress", "animation_name", "progress", "loop_count"), &DragonBonesArmatureDisplay::play_from_progress, DEFVAL(-1));
+	ClassDB::bind_method(D_METHOD("stop", "animation_name", "reset", "recursively"), &DragonBonesArmatureDisplay::stop, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("stop_all_animations", "reset", "recursively"), &DragonBonesArmatureDisplay::stop_all_animations, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("fade_in", "animation_name", "time", "loop", "layer", "group", "fade_out_mode"), &DragonBonesArmatureDisplay::fade_in);
+
+	ClassDB::bind_method(D_METHOD("has_slot", "slot_name"), &DragonBonesArmatureDisplay::has_slot);
+	ClassDB::bind_method(D_METHOD("get_slot", "slot_name"), &DragonBonesArmatureDisplay::get_slot);
+	ClassDB::bind_method(D_METHOD("get_slots"), &DragonBonesArmatureDisplay::get_slots);
+
+	ClassDB::bind_method(D_METHOD("get_ik_constraints"), &DragonBonesArmatureDisplay::get_ik_constraints);
+	ClassDB::bind_method(D_METHOD("set_ik_constraint", "constraint_name", "new_position"), &DragonBonesArmatureDisplay::set_ik_constraint);
+	ClassDB::bind_method(D_METHOD("set_ik_constraint_bend_positive", "constraint_name", "bend_positive"), &DragonBonesArmatureDisplay::set_ik_constraint_bend_positive);
+
+	ClassDB::bind_method(D_METHOD("get_bones"), &DragonBonesArmatureDisplay::get_bones);
+	ClassDB::bind_method(D_METHOD("get_bone", "bone_name"), &DragonBonesArmatureDisplay::get_bone);
+
+	ClassDB::bind_method(D_METHOD("advance", "delta", "recursively"), &DragonBonesArmatureDisplay::advance, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("get_rect"), &DragonBonesArmatureDisplay::get_rect);
+
+	// Setter Getter
+	ClassDB::bind_method(D_METHOD("set_current_animation", "current_animation"), &DragonBonesArmatureDisplay::set_current_animation);
+	ClassDB::bind_method(D_METHOD("get_current_animation"), &DragonBonesArmatureDisplay::get_current_animation);
+
+	ClassDB::bind_method(D_METHOD("set_animation_progress", "progress"), &DragonBonesArmatureDisplay::set_animation_progress);
+	ClassDB::bind_method(D_METHOD("get_animation_progress"), &DragonBonesArmatureDisplay::get_animation_progress);
+
+	ClassDB::bind_method(D_METHOD("set_flip_x_", "flip_x"), &DragonBonesArmatureDisplay::set_flip_x_);
+	ClassDB::bind_method(D_METHOD("is_flipped_x"), &DragonBonesArmatureDisplay::is_flipped_x);
+
+	ClassDB::bind_method(D_METHOD("set_flip_y_", "flip_y"), &DragonBonesArmatureDisplay::set_flip_y_);
+	ClassDB::bind_method(D_METHOD("is_flipped_y"), &DragonBonesArmatureDisplay::is_flipped_y);
+
+	ClassDB::bind_method(D_METHOD("set_texture_override", "texture_override"), &DragonBonesArmatureDisplay::set_texture_override);
+	ClassDB::bind_method(D_METHOD("get_texture_override"), &DragonBonesArmatureDisplay::get_texture_override);
+
+	ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "current_animation", PROPERTY_HINT_ENUM, "", PROPERTY_USAGE_NONE), "set_current_animation", "get_current_animation");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "animation_progress", PROPERTY_HINT_RANGE, "0.0,1.0,0.0001", PROPERTY_USAGE_NONE), "set_animation_progress", "get_animation_progress");
+
+	ADD_GROUP("Flip", "flip_");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_x", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_flip_x_", "is_flipped_x");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "flip_y", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_flip_y_", "is_flipped_y");
+
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "texture_override", PROPERTY_HINT_RESOURCE_TYPE, Texture2D::get_class_static(), PROPERTY_USAGE_NONE), "set_texture_override", "get_texture_override");
+	// ================================
+
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "factory", PROPERTY_HINT_RESOURCE_TYPE, DragonBonesFactory::get_class_static()), "set_factory", "get_factory");
 
 	// This is how we set top level properties
