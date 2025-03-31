@@ -97,7 +97,7 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 	ERR_FAIL_NULL_V(_dragonBones, nullptr);
 	const auto armature = BaseObject::borrowObject<Armature>();
 	DragonBonesArmature *armatureDisplay{ memnew(DragonBonesArmature) };
-	armatureDisplay->dragon_bones = static_cast<DragonBones *>(_dragonBones->getEventManager()); // 该插件里 _dragonBones->getEventManager() 就是 DragonBones 节点
+	armatureDisplay->armature = building_armature; // 该插件里 _dragonBones->getEventManager() 就是 DragonBones 节点
 
 	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
 	return armature;
@@ -333,13 +333,13 @@ PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_main_skin_name_lis
 	}
 	ERR_FAIL_NULL_V(dbdata, ret);
 
-	ArmatureData *armature_data = dbdata->getArmature(to_std_str(p_armature_name));
-	if (armature_data == nullptr && dbdata->armatureNames.size() > 0) {
-		armature_data = dbdata->getArmature(dbdata->armatureNames[0]);
+	ArmatureData *armature = dbdata->getArmature(to_std_str(p_armature_name));
+	if (armature == nullptr && dbdata->armatureNames.size() > 0) {
+		armature = dbdata->getArmature(dbdata->armatureNames[0]);
 	}
-	ERR_FAIL_NULL_V(armature_data, ret);
+	ERR_FAIL_NULL_V(armature, ret);
 
-	for (const auto &kv : armature_data->skins) {
+	for (const auto &kv : armature->skins) {
 		if (kv.second) {
 			ret.push_back(to_gd_str(kv.second->name));
 		}
@@ -351,8 +351,10 @@ bool DragonBonesFactory::can_create_dragon_bones_instance() const {
 	return _dragonBonesDataMap.size() > 0 && _textureAtlasDataMap.size() > 0;
 }
 
-DragonBonesArmature *DragonBonesFactory::create_armature(DragonBones *p_owner, const String &p_dragon_bones_data_name, const String &p_armature_name, const String &p_skin_name) {
+DragonBonesArmature *DragonBonesFactory::create_armature(DragonBonesArmatureDisplay *p_owner, const String &p_dragon_bones_data_name, const String &p_armature_name, const String &p_skin_name) {
 	ERR_FAIL_NULL_V(p_owner, nullptr);
+	auto dragonbones = DragonBones::get_singleton();
+	ERR_FAIL_NULL_V(dragonbones, nullptr);
 	const auto &dragon_bones_data_list = getAllDragonBonesData();
 	ERR_FAIL_COND_V(dragon_bones_data_list.size() <= 0, nullptr);
 
@@ -370,8 +372,10 @@ DragonBonesArmature *DragonBonesFactory::create_armature(DragonBones *p_owner, c
 		armature_name = dragon_bones_data->getArmatureNames()[0];
 	}
 
-	_dragonBones = p_owner->dragonbones_instance;
+	_dragonBones = dragonbones->get_dragon_bones_instance();
+	building_armature = p_owner;
 	auto ret = buildArmatureDisplay(armature_name, dragon_bones_data->name, to_std_str(p_skin_name));
+	building_armature = nullptr;
 	_dragonBones = nullptr;
 
 	return ret;

@@ -14,6 +14,7 @@
 
 using namespace godot;
 
+static DragonBones *dragon_bones{ nullptr };
 static Ref<ResourceFormatSaverDragonBones> saver;
 static Ref<ResourceFormatLoaderDragonBones> loader;
 
@@ -33,7 +34,7 @@ void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	}
 
 	GDREGISTER_CLASS(DragonBonesFactory);
-	GDREGISTER_CLASS(DragonBones);
+	GDREGISTER_CLASS(DragonBonesArmatureDisplay);
 
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesBone);
 	GDREGISTER_ABSTRACT_CLASS(DragonBonesSlot);
@@ -43,6 +44,8 @@ void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 
 	GDREGISTER_INTERNAL_CLASS(ResourceFormatSaverDragonBones);
 	GDREGISTER_INTERNAL_CLASS(ResourceFormatLoaderDragonBones);
+
+	dragon_bones = memnew(DragonBones);
 
 	saver.instantiate();
 	ResourceSaver::get_singleton()->add_resource_format_saver(saver);
@@ -65,11 +68,14 @@ void uninitialize_gddragonbones_module(godot::ModuleInitializationLevel p_level)
 	dragonBones::BaseObject::clearPool();
 	DragonBonesMeshDisplay::clear_pool();
 
-	DragonBones::clear_static();
+	DragonBonesArmatureDisplay::clear_static();
 
 	ResourceSaver::get_singleton()->remove_resource_format_saver(saver);
 	saver.unref();
 
 	ResourceLoader::get_singleton()->remove_resource_format_loader(loader);
 	loader.unref();
+
+	dragon_bones->flush();
+	memdelete(dragon_bones);
 }

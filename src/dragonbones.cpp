@@ -1,6 +1,7 @@
 #include "dragonbones.h"
 
 #include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/main_loop.hpp>
 #include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/templates/vmap.hpp>
@@ -8,32 +9,23 @@
 
 #include "armature.h"
 #include "event_object.h"
+#include "godot_cpp/core/error_macros.hpp"
 
 using namespace godot;
 
+DragonBones *DragonBones::singleton = nullptr;
+
+DragonBones::DragonBones() {
+	singleton = this;
+}
+
+DragonBones::~DragonBones() {
+	flush();
+	memdelete(instance);
+}
+
 /////////////////////////////////////////////////////////////////
-void DragonBones::dispatchDBEvent(const std::string &p_type, dragonBones::EventObject *p_value) {
-	using namespace dragonBones;
-	if (Engine::get_singleton()->is_editor_hint()) {
-		return;
-	}
-
-	ERR_FAIL_NULL(p_value);
-	emit_signal(SNAME("event_dispatched"), Ref<DragonBonesEventObject>(memnew(DragonBonesEventObject(p_value))));
-}
-
-void DragonBones::_set_process(bool p_process, bool p_force) {
-	if (processing == p_process && !p_force) {
-		return;
-	}
-
-	set_physics_process_internal(callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS && p_process && active);
-	set_process_internal(callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_IDLE && p_process && active);
-
-	processing = p_process;
-}
-
-void DragonBones::rebuild_armature() {
+void DragonBonesArmatureDisplay::rebuild_armature() {
 	if (armature) {
 		armature->release(); // 已经处理内存的释放
 		armature = nullptr;
@@ -51,7 +43,7 @@ void DragonBones::rebuild_armature() {
 	}
 }
 
-void DragonBones::set_factory(const Ref<DragonBonesFactory> &p_factory) {
+void DragonBonesArmatureDisplay::set_factory(const Ref<DragonBonesFactory> &p_factory) {
 	using namespace dragonBones;
 	if (factory == p_factory) {
 		return;
@@ -71,20 +63,21 @@ void DragonBones::set_factory(const Ref<DragonBonesFactory> &p_factory) {
 	notify_property_list_changed();
 }
 
-Ref<DragonBonesFactory> DragonBones::get_factory() const {
+Ref<DragonBonesFactory> DragonBonesArmatureDisplay::get_factory() const {
 	return factory;
 }
 
-void DragonBones::set_active(bool p_active) {
+void DragonBonesArmatureDisplay::set_active(bool p_active) {
 	active = p_active;
-	_set_process(active, true);
+	set_physics_process_internal(callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS && active);
+	set_process_internal(callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_IDLE && active);
 }
 
-bool DragonBones::is_active() const {
+bool DragonBonesArmatureDisplay::is_active() const {
 	return active;
 }
 
-void DragonBones::set_debug(bool p_debug) {
+void DragonBonesArmatureDisplay::set_debug(bool p_debug) {
 	debug = p_debug;
 
 #ifdef DEBUG_ENABLED
@@ -95,19 +88,19 @@ void DragonBones::set_debug(bool p_debug) {
 #endif // DEBUG_ENABLED
 }
 
-bool DragonBones::is_debug() const {
+bool DragonBonesArmatureDisplay::is_debug() const {
 	return debug;
 }
 
-void DragonBones::set_time_scale(float p_time_scale) {
+void DragonBonesArmatureDisplay::set_time_scale(float p_time_scale) {
 	time_scale = p_time_scale < 0.0 ? 0.0 : p_time_scale;
 }
 
-float DragonBones::get_time_scale() const {
+float DragonBonesArmatureDisplay::get_time_scale() const {
 	return time_scale;
 }
 
-void DragonBones::set_instantiate_dragon_bones_data_name(String p_name) {
+void DragonBonesArmatureDisplay::set_instantiate_dragon_bones_data_name(String p_name) {
 	if (p_name == "") {
 		p_name = "";
 	}
@@ -119,11 +112,11 @@ void DragonBones::set_instantiate_dragon_bones_data_name(String p_name) {
 	rebuild_armature();
 }
 
-String DragonBones::get_instantiate_dragon_bones_data_name() const {
+String DragonBonesArmatureDisplay::get_instantiate_dragon_bones_data_name() const {
 	return instantiate_dragon_bones_data_name;
 }
 
-void DragonBones::set_instantiate_armature_name(String p_name) {
+void DragonBonesArmatureDisplay::set_instantiate_armature_name(String p_name) {
 	if (p_name == "") {
 		p_name = "";
 	}
@@ -135,11 +128,11 @@ void DragonBones::set_instantiate_armature_name(String p_name) {
 	rebuild_armature();
 }
 
-String DragonBones::get_instantiate_armature_name() const {
+String DragonBonesArmatureDisplay::get_instantiate_armature_name() const {
 	return instantiate_armature_name;
 }
 
-void DragonBones::set_instantiate_skin_name(String p_name) {
+void DragonBonesArmatureDisplay::set_instantiate_skin_name(String p_name) {
 	if (p_name == "") {
 		p_name = "";
 	}
@@ -151,23 +144,23 @@ void DragonBones::set_instantiate_skin_name(String p_name) {
 	rebuild_armature();
 }
 
-String DragonBones::get_instantiate_skin_name() const {
+String DragonBonesArmatureDisplay::get_instantiate_skin_name() const {
 	return instantiate_skin_name;
 }
 
-void DragonBones::set_callback_mode_process(AnimationCallbackModeProcess p_mode) {
+void DragonBonesArmatureDisplay::set_callback_mode_process(AnimationCallbackModeProcess p_mode) {
 	callback_mode_process = p_mode;
 }
 
-DragonBones::AnimationCallbackModeProcess DragonBones::get_callback_mode_process() const {
+DragonBonesArmatureDisplay::AnimationCallbackModeProcess DragonBonesArmatureDisplay::get_callback_mode_process() const {
 	return callback_mode_process;
 }
 
-int DragonBones::get_animation_loop_count() const {
+int DragonBonesArmatureDisplay::get_animation_loop_count() const {
 	return animation_loop_count;
 }
 
-void DragonBones::set_animation_loop_count(int p_animation_loop) {
+void DragonBonesArmatureDisplay::set_animation_loop_count(int p_animation_loop) {
 	animation_loop_count = p_animation_loop;
 	if (is_armature_valid()) {
 		reset();
@@ -175,21 +168,17 @@ void DragonBones::set_animation_loop_count(int p_animation_loop) {
 	}
 }
 
-void DragonBones::reset() {
+void DragonBonesArmatureDisplay::reset() {
 	ERR_FAIL_COND(!is_armature_valid());
 	armature->reset(true);
 }
 
-DragonBonesArmature *DragonBones::get_armature() {
+DragonBonesArmature *DragonBonesArmatureDisplay::get_armature_display() {
 	ERR_FAIL_COND_V(!is_armature_valid(), nullptr);
 	return armature;
 }
 
-void DragonBones::set_armature(DragonBonesArmature *) const {
-	ERR_FAIL_MSG("DragonBones's property \"armature\" is readonly.");
-}
-
-void DragonBones::set_armature_settings(const Dictionary &p_settings) const {
+void DragonBonesArmatureDisplay::set_armature_settings(const Dictionary &p_settings) const {
 	if (is_armature_valid()) {
 		armature->set_settings(p_settings);
 	} else {
@@ -204,18 +193,18 @@ void DragonBones::set_armature_settings(const Dictionary &p_settings) const {
 	}
 }
 
-Dictionary DragonBones::get_armature_settings() const {
+Dictionary DragonBonesArmatureDisplay::get_armature_settings() const {
 	if (!is_armature_valid()) {
 		return {};
 	}
 #ifdef TOOLS_ENABLED
 	return armature->get_settings();
 #else //TOOLS_ENABLED
-	ERR_FAIL_V_MSG({}, "DragonBones::get_armature_settings() can be call in editor build only.");
+	ERR_FAIL_V_MSG({}, "DragonBonesArmatureDisplay::get_armature_settings() can be call in editor build only.");
 #endif // TOOLS_ENABLED
 }
 
-bool DragonBones::_set(const StringName &p_name, const Variant &p_property) {
+bool DragonBonesArmatureDisplay::_set(const StringName &p_name, const Variant &p_property) {
 	if (p_name == SNAME("armature_settings")) {
 		set_armature_settings(p_property);
 		return true;
@@ -229,7 +218,7 @@ bool DragonBones::_set(const StringName &p_name, const Variant &p_property) {
 	return false;
 }
 
-bool DragonBones::_get(const StringName &p_name, Variant &r_property) const {
+bool DragonBonesArmatureDisplay::_get(const StringName &p_name, Variant &r_property) const {
 	if (p_name == SNAME("armature_settings")) {
 		r_property = get_armature_settings();
 		return true;
@@ -252,7 +241,7 @@ bool DragonBones::_get(const StringName &p_name, Variant &r_property) const {
 	return false;
 }
 
-void DragonBones::_get_property_list(List<PropertyInfo> *p_list) const {
+void DragonBonesArmatureDisplay::_get_property_list(List<PropertyInfo> *p_list) const {
 	p_list->push_back(PropertyInfo(Variant::DICTIONARY, "armature_settings", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_STORAGE));
 
 #ifdef TOOLS_ENABLED
@@ -264,7 +253,7 @@ void DragonBones::_get_property_list(List<PropertyInfo> *p_list) const {
 }
 
 #ifdef TOOLS_ENABLED
-void DragonBones::_validate_property(PropertyInfo &p_property) const {
+void DragonBonesArmatureDisplay::_validate_property(PropertyInfo &p_property) const {
 	if (!Engine::get_singleton()->is_editor_hint() || factory.is_null()) {
 		return;
 	}
@@ -285,14 +274,10 @@ void DragonBones::_validate_property(PropertyInfo &p_property) const {
 }
 #endif // TOOLS_ENABLED
 
-void DragonBones::_notification(int p_what) {
+void DragonBonesArmatureDisplay::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE: {
-			_set_process(active);
-			if (!processing) {
-				set_physics_process_internal(false);
-				set_process_internal(false);
-			}
+			set_active(active);
 		} break;
 		case NOTIFICATION_INTERNAL_PROCESS: {
 			if (active && callback_mode_process == ANIMATION_CALLBACK_MODE_PROCESS_IDLE) {
@@ -307,7 +292,7 @@ void DragonBones::_notification(int p_what) {
 	}
 }
 
-void DragonBones::_draw() {
+void DragonBonesArmatureDisplay::_draw() {
 	if (!is_armature_valid()) {
 		return;
 	}
@@ -449,7 +434,15 @@ void DragonBones::_draw() {
 #endif // DEBUG_ENABLED
 }
 
-RID DragonBones::get_draw_mesh(int p_index) {
+void DragonBonesArmatureDisplay::dispatch_event(const Ref<DragonBonesEventObject> &p_event_object) {
+	if (Engine::get_singleton()->is_editor_hint()) {
+		return;
+	}
+
+	emit_signal(SNAME("event_dispatched"), p_event_object);
+}
+
+RID DragonBonesArmatureDisplay::get_draw_mesh(int p_index) {
 	if (p_index < draw_meshes.size()) {
 		return draw_meshes[p_index];
 	} else {
@@ -458,49 +451,37 @@ RID DragonBones::get_draw_mesh(int p_index) {
 	}
 }
 
-void DragonBones::for_each_armature_(const Callable &p_action) {
-	for_each_armature(
-			[&](auto armature, auto depth) {
-				return p_action.call(armature, depth).booleanize();
-			});
-}
+void DragonBonesArmatureDisplay::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("set_factory", "dbfactory"), &DragonBonesArmatureDisplay::set_factory);
+	ClassDB::bind_method(D_METHOD("get_factory"), &DragonBonesArmatureDisplay::get_factory);
 
-void DragonBones::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("for_each_armature", "action"), &DragonBones::for_each_armature_);
+	ClassDB::bind_method(D_METHOD("advance", "delta"), &DragonBonesArmatureDisplay::advance);
 
-	ClassDB::bind_method(D_METHOD("set_factory", "dbfactory"), &DragonBones::set_factory);
-	ClassDB::bind_method(D_METHOD("get_factory"), &DragonBones::get_factory);
+	ClassDB::bind_method(D_METHOD("set_animation_loop_count", "loop_count"), &DragonBonesArmatureDisplay::set_animation_loop_count);
+	ClassDB::bind_method(D_METHOD("get_animation_loop_count"), &DragonBonesArmatureDisplay::get_animation_loop_count);
 
-	ClassDB::bind_method(D_METHOD("advance", "delta"), &DragonBones::advance);
+	ClassDB::bind_method(D_METHOD("set_time_scale", "speed_scale"), &DragonBonesArmatureDisplay::set_time_scale);
+	ClassDB::bind_method(D_METHOD("get_time_scale"), &DragonBonesArmatureDisplay::get_time_scale);
 
-	ClassDB::bind_method(D_METHOD("set_animation_loop_count", "loop_count"), &DragonBones::set_animation_loop_count);
-	ClassDB::bind_method(D_METHOD("get_animation_loop_count"), &DragonBones::get_animation_loop_count);
+	ClassDB::bind_method(D_METHOD("get_armature_display"), &DragonBonesArmatureDisplay::get_armature_display);
 
-	ClassDB::bind_method(D_METHOD("set_time_scale", "speed_scale"), &DragonBones::set_time_scale);
-	ClassDB::bind_method(D_METHOD("get_time_scale"), &DragonBones::get_time_scale);
+	ClassDB::bind_method(D_METHOD("set_active", "active"), &DragonBonesArmatureDisplay::set_active);
+	ClassDB::bind_method(D_METHOD("is_active"), &DragonBonesArmatureDisplay::is_active);
 
-	ClassDB::bind_method(D_METHOD("get_armature"), &DragonBones::get_armature);
-	ClassDB::bind_method(D_METHOD("set_armature_readonly"), &DragonBones::set_armature);
+	ClassDB::bind_method(D_METHOD("set_debug", "debug"), &DragonBonesArmatureDisplay::set_debug);
+	ClassDB::bind_method(D_METHOD("is_debug"), &DragonBonesArmatureDisplay::is_debug);
 
-	ClassDB::bind_method(D_METHOD("set_active", "active"), &DragonBones::set_active);
-	ClassDB::bind_method(D_METHOD("is_active"), &DragonBones::is_active);
+	ClassDB::bind_method(D_METHOD("set_callback_mode_process", "mode"), &DragonBonesArmatureDisplay::set_callback_mode_process);
+	ClassDB::bind_method(D_METHOD("get_callback_mode_process"), &DragonBonesArmatureDisplay::get_callback_mode_process);
 
-	ClassDB::bind_method(D_METHOD("set_debug", "debug"), &DragonBones::set_debug);
-	ClassDB::bind_method(D_METHOD("is_debug"), &DragonBones::is_debug);
+	ClassDB::bind_method(D_METHOD("set_instantiate_dragon_bones_data_name", "instantiate_dragon_bones_data_name"), &DragonBonesArmatureDisplay::set_instantiate_dragon_bones_data_name);
+	ClassDB::bind_method(D_METHOD("get_instantiate_dragon_bones_data_name"), &DragonBonesArmatureDisplay::get_instantiate_dragon_bones_data_name);
 
-	ClassDB::bind_method(D_METHOD("set_callback_mode_process", "mode"), &DragonBones::set_callback_mode_process);
-	ClassDB::bind_method(D_METHOD("get_callback_mode_process"), &DragonBones::get_callback_mode_process);
+	ClassDB::bind_method(D_METHOD("set_instantiate_armature_name", "instantiate_armature_name"), &DragonBonesArmatureDisplay::set_instantiate_armature_name);
+	ClassDB::bind_method(D_METHOD("get_instantiate_armature_name"), &DragonBonesArmatureDisplay::get_instantiate_armature_name);
 
-	ClassDB::bind_method(D_METHOD("set_instantiate_dragon_bones_data_name", "instantiate_dragon_bones_data_name"), &DragonBones::set_instantiate_dragon_bones_data_name);
-	ClassDB::bind_method(D_METHOD("get_instantiate_dragon_bones_data_name"), &DragonBones::get_instantiate_dragon_bones_data_name);
-
-	ClassDB::bind_method(D_METHOD("set_instantiate_armature_name", "instantiate_armature_name"), &DragonBones::set_instantiate_armature_name);
-	ClassDB::bind_method(D_METHOD("get_instantiate_armature_name"), &DragonBones::get_instantiate_armature_name);
-
-	ClassDB::bind_method(D_METHOD("set_instantiate_skin_name", "instantiate_skin_name"), &DragonBones::set_instantiate_skin_name);
-	ClassDB::bind_method(D_METHOD("get_instantiate_skin_name"), &DragonBones::get_instantiate_skin_name);
-
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "armature", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE, DragonBonesArmature::get_class_static()), "set_armature_readonly", "get_armature");
+	ClassDB::bind_method(D_METHOD("set_instantiate_skin_name", "instantiate_skin_name"), &DragonBonesArmatureDisplay::set_instantiate_skin_name);
+	ClassDB::bind_method(D_METHOD("get_instantiate_skin_name"), &DragonBonesArmatureDisplay::get_instantiate_skin_name);
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "factory", PROPERTY_HINT_RESOURCE_TYPE, DragonBonesFactory::get_class_static()), "set_factory", "get_factory");
 
@@ -520,25 +501,31 @@ void DragonBones::_bind_methods() {
 
 	// 信号
 	ADD_SIGNAL(MethodInfo("event_dispatched", PropertyInfo(Variant::OBJECT, "event_object", PROPERTY_HINT_NONE, "", PROPERTY_HINT_NONE, DragonBonesEventObject::get_class_static())));
+
 	// 枚举
 	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS);
 	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_IDLE);
 	BIND_ENUM_CONSTANT(ANIMATION_CALLBACK_MODE_PROCESS_MANUAL);
+
+	// Enum
+	BIND_ENUM_CONSTANT(AnimFadeOutMode::FADE_OUT_NONE);
+	BIND_ENUM_CONSTANT(AnimFadeOutMode::FADE_OUT_SAME_LAYER);
+	BIND_ENUM_CONSTANT(AnimFadeOutMode::FADE_OUT_SAME_GROUP);
+	BIND_ENUM_CONSTANT(AnimFadeOutMode::FADE_OUT_SAME_LAYER_AND_GROUP);
+	BIND_ENUM_CONSTANT(AnimFadeOutMode::FADE_OUT_ALL);
+	BIND_ENUM_CONSTANT(AnimFadeOutMode::FADE_OUT_SINGLE);
 }
 
-DragonBones::DragonBones() {
-	dragonbones_instance = memnew(dragonBones::DragonBones(this));
+DragonBonesArmatureDisplay::DragonBonesArmatureDisplay() {
 }
 
-DragonBones::~DragonBones() {
+DragonBonesArmatureDisplay::~DragonBonesArmatureDisplay() {
 	if (armature) {
 		armature->release(); // 已经处理内存的释放
 		armature = nullptr;
 	}
 
-	dragonbones_instance->advanceTime(0.0f); // NOTE: 确保 dragonBones::DragonBones 自身缓存的待销毁对象被销毁!
-	memdelete(dragonbones_instance);
-	dragonbones_instance = nullptr;
+	DragonBones::get_singleton()->flush();
 
 	for (auto mesh : draw_meshes) {
 		RenderingServer::get_singleton()->free_rid(mesh);
@@ -552,12 +539,12 @@ DragonBones::~DragonBones() {
 #endif // DEBUG_ENABLED
 }
 
-HashMap<CanvasItemMaterial::BlendMode, Ref<CanvasItemMaterial>> DragonBones::blend_materials;
-void DragonBones::clear_static() {
+HashMap<CanvasItemMaterial::BlendMode, Ref<CanvasItemMaterial>> DragonBonesArmatureDisplay::blend_materials;
+void DragonBonesArmatureDisplay::clear_static() {
 	blend_materials.clear();
 }
 
-RID DragonBones::get_blend_material(CanvasItemMaterial::BlendMode p_blend_mode) {
+RID DragonBonesArmatureDisplay::get_blend_material(CanvasItemMaterial::BlendMode p_blend_mode) {
 	auto it = blend_materials.find(p_blend_mode);
 	if (it == blend_materials.end()) {
 		Ref<CanvasItemMaterial> mat;
@@ -566,4 +553,147 @@ RID DragonBones::get_blend_material(CanvasItemMaterial::BlendMode p_blend_mode) 
 		return blend_materials.insert(p_blend_mode, mat)->value->get_rid();
 	}
 	return it->value->get_rid();
+}
+
+// ---------
+
+bool DragonBonesArmatureDisplay::has_animation(const String &p_animation_name) const {
+	ERR_FAIL_NULL_V(armature, false);
+	return armature->has_animation(p_animation_name);
+}
+PackedStringArray DragonBonesArmatureDisplay::get_animations() {
+	ERR_FAIL_NULL_V(armature, PackedStringArray());
+	return armature->get_animations();
+}
+String DragonBonesArmatureDisplay::get_current_animation_on_layer(int p_layer) const {
+	ERR_FAIL_NULL_V(armature, String());
+	return armature->get_current_animation_on_layer(p_layer);
+}
+String DragonBonesArmatureDisplay::get_current_animation_in_group(const String &p_group_name) const {
+	ERR_FAIL_NULL_V(armature, String());
+	return armature->get_current_animation_in_group(p_group_name);
+}
+float DragonBonesArmatureDisplay::tell_animation(const String &p_animation_name) const {
+	ERR_FAIL_NULL_V(armature, 0.0f);
+	return armature->tell_animation(p_animation_name);
+}
+void DragonBonesArmatureDisplay::seek_animation(const String &p_animation_name, float p_progress) {
+	ERR_FAIL_NULL(armature);
+	armature->seek_animation(p_animation_name, p_progress);
+}
+bool DragonBonesArmatureDisplay::is_playing() const {
+	ERR_FAIL_NULL_V(armature, false);
+	return armature->is_playing();
+}
+void DragonBonesArmatureDisplay::play(const String &p_animation_name, int p_loop_count) {
+	ERR_FAIL_NULL(armature);
+	armature->play(p_animation_name, p_loop_count);
+}
+void DragonBonesArmatureDisplay::play_from_time(const String &p_animation_name, float p_time, int p_loop_count) {
+	ERR_FAIL_NULL(armature);
+	armature->play_from_time(p_animation_name, p_time, p_loop_count);
+}
+void DragonBonesArmatureDisplay::play_from_progress(const String &p_animation_name, float p_progress, int p_loop_count) {
+	ERR_FAIL_NULL(armature);
+	armature->play_from_progress(p_animation_name, p_progress, p_loop_count);
+}
+void DragonBonesArmatureDisplay::stop(const String &p_animation_name, bool b_reset, bool p_recursively) {
+	ERR_FAIL_NULL(armature);
+	armature->stop(p_animation_name, b_reset, p_recursively);
+}
+void DragonBonesArmatureDisplay::stop_all_animations(bool b_reset, bool p_recursively) {
+	ERR_FAIL_NULL(armature);
+	armature->stop_all_animations(b_reset, p_recursively);
+}
+void DragonBonesArmatureDisplay::fade_in(const String &p_animation_name, float p_time,
+		int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode) {
+	ERR_FAIL_NULL(armature);
+	armature->fade_in(p_animation_name, p_time, p_loop_count, p_layer, p_group, p_fade_out_mode);
+}
+
+bool DragonBonesArmatureDisplay::has_slot(const String &p_slot_name) const {
+	ERR_FAIL_NULL_V(armature, false);
+	return armature->has_slot(p_slot_name);
+}
+Ref<DragonBonesSlot> DragonBonesArmatureDisplay::get_slot(const String &p_slot_name) {
+	ERR_FAIL_NULL_V(armature, {});
+	return armature->get_slot(p_slot_name);
+}
+SlotsDictionary DragonBonesArmatureDisplay::get_slots() {
+	ERR_FAIL_NULL_V(armature, {});
+	return armature->get_slots();
+}
+
+ConstraintsDictionary DragonBonesArmatureDisplay::get_ik_constraints() {
+	ERR_FAIL_NULL_V(armature, ConstraintsDictionary());
+	return armature->get_ik_constraints();
+}
+void DragonBonesArmatureDisplay::set_ik_constraint(const String &p_name, Vector2 p_position) {
+	ERR_FAIL_NULL(armature);
+	armature->set_ik_constraint(p_name, p_position);
+}
+void DragonBonesArmatureDisplay::set_ik_constraint_bend_positive(const String &p_name, bool p_bend_positive) {
+	ERR_FAIL_NULL(armature);
+	armature->set_ik_constraint_bend_positive(p_name, p_bend_positive);
+}
+
+BonesDictionary DragonBonesArmatureDisplay::get_bones() {
+	ERR_FAIL_NULL_V(armature, {});
+	return armature->get_bones();
+}
+Ref<DragonBonesBone> DragonBonesArmatureDisplay::get_bone(const String &p_name) {
+	ERR_FAIL_NULL_V(armature, {});
+	return armature->get_bone(p_name);
+}
+
+Rect2 DragonBonesArmatureDisplay::get_rect() const {
+	ERR_FAIL_NULL_V(armature, {});
+	Rect2 rect = armature->get_rect();
+	return get_transform().inverse().xform(rect);
+}
+
+// setget
+void DragonBonesArmatureDisplay::set_current_animation(const String &p_animation) {
+	ERR_FAIL_NULL(armature);
+	armature->set_current_animation(p_animation);
+}
+String DragonBonesArmatureDisplay::get_current_animation() const {
+	ERR_FAIL_NULL_V(armature, "");
+	return armature->get_current_animation();
+}
+
+void DragonBonesArmatureDisplay::set_animation_progress(float p_progress) {
+	ERR_FAIL_NULL(armature);
+	armature->set_animation_progress(p_progress);
+}
+float DragonBonesArmatureDisplay::get_animation_progress() const {
+	ERR_FAIL_NULL_V(armature, 0.0f);
+	return armature->get_animation_progress();
+}
+
+void DragonBonesArmatureDisplay::set_flip_x(bool p_flip_x, bool p_recursively) {
+	ERR_FAIL_NULL(armature);
+	armature->set_flip_x(p_flip_x, p_recursively);
+}
+bool DragonBonesArmatureDisplay::is_flipped_x() const {
+	ERR_FAIL_NULL_V(armature, false);
+	return armature->is_flipped_x();
+}
+
+void DragonBonesArmatureDisplay::set_flip_y(bool p_flip_y, bool p_recursively) {
+	ERR_FAIL_NULL(armature);
+	armature->set_flip_y(p_flip_y, p_recursively);
+}
+bool DragonBonesArmatureDisplay::is_flipped_y() const {
+	ERR_FAIL_NULL_V(armature, false);
+	return armature->is_flipped_y();
+}
+
+Ref<Texture2D> DragonBonesArmatureDisplay::get_texture_override() const {
+	ERR_FAIL_NULL_V(armature, Ref<Texture2D>());
+	return armature->get_texture_override();
+}
+void DragonBonesArmatureDisplay::set_texture_override(const Ref<Texture2D> &p_texture_override) {
+	ERR_FAIL_NULL(armature);
+	armature->set_texture_override(p_texture_override);
 }

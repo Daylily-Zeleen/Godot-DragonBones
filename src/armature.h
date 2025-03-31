@@ -14,15 +14,33 @@
 #include "godot_cpp/variant/typed_dictionary.hpp"
 using SlotsDictionary = godot::TypedDictionary<godot::String, godot::DragonBonesSlot>;
 using BonesDictionary = godot::TypedDictionary<godot::String, godot::DragonBonesBone>;
+using ConstraintsDictionary = godot::TypedDictionary<godot::String, godot::Vector2>;
 #else // GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
 using SlotsDictionary = godot::Dictionary;
 using BonesDictionary = godot::Dictionary;
+using ConstraintsDictionary = godot::Dictionary;
 #endif // GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
 
 namespace godot {
 
+class DragonBonesArmatureDisplay;
+
 class DragonBonesArmature : public Object, public Display, public dragonBones::IArmatureProxy {
 	GDCLASS(DragonBonesArmature, Object)
+
+private:
+	class Slot_GD *slot{ nullptr };
+	Ref<Texture2D> texture_override;
+
+	class DragonBonesArmatureDisplay *armature{ nullptr };
+	friend class DragonBonesFactory;
+
+protected:
+	dragonBones::Armature *armature_instance{ nullptr };
+
+	std::map<std::string, Ref<DragonBonesBone>> bones;
+	std::map<std::string, Ref<DragonBonesSlot>> slots;
+
 public:
 	enum AnimFadeOutMode {
 		FADE_OUT_NONE,
@@ -33,20 +51,6 @@ public:
 		FADE_OUT_SINGLE,
 	};
 
-private:
-	class Slot_GD *slot{ nullptr };
-	Ref<Texture2D> texture_override;
-
-	class DragonBones *dragon_bones{ nullptr };
-	friend class DragonBonesFactory;
-
-protected:
-	dragonBones::Armature *armature_instance{ nullptr };
-
-	std::map<std::string, Ref<DragonBonesBone>> bones;
-	std::map<std::string, Ref<DragonBonesSlot>> slots;
-
-public:
 	DragonBonesArmature() = default;
 	virtual ~DragonBonesArmature() override;
 
@@ -116,7 +120,7 @@ public:
 	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const override;
 
 public:
-	bool is_valid() const { return armature_instance && dragon_bones; }
+	bool is_valid() const { return armature_instance && armature; }
 
 	/* METHOD BINDINGS */
 	static void _bind_methods();
@@ -150,18 +154,7 @@ public:
 	Ref<DragonBonesSlot> get_slot(const String &p_slot_name);
 	SlotsDictionary get_slots();
 
-	// TODO: 考虑移除，直接由 DragonBonesSlot 负责
-	void set_slot_display_index(const String &p_slot_name, int p_index);
-	void set_slot_display_by_item_name(const String &p_slot_name, const String &p_item_name);
-	void set_all_slots_by_item_name(const String &p_item_name);
-	int get_slot_display_index(const String &p_slot_name);
-	int get_total_items_in_slot(const String &p_slot_name);
-	void cycle_next_item_in_slot(const String &p_slot_name);
-	void cycle_previous_item_in_slot(const String &p_slot_name);
-	Color get_slot_display_color_multiplier(const String &p_slot_name);
-	void set_slot_display_color_multiplier(const String &p_slot_name, const Color &p_color);
-
-	Dictionary get_ik_constraints();
+	ConstraintsDictionary get_ik_constraints();
 	void set_ik_constraint(const String &p_name, Vector2 p_position);
 	void set_ik_constraint_bend_positive(const String &p_name, bool p_bend_positive);
 
@@ -191,9 +184,9 @@ public:
 
 public:
 	void set_settings(const Dictionary &p_setting);
+
 #ifdef TOOLS_ENABLED
 	Dictionary get_settings() const;
-
 #endif // TOOLS_ENABLED
 
 protected:
@@ -236,10 +229,8 @@ private:
 	friend class DragonBonesArmature;
 
 	DragonBonesArmature *armature{ nullptr };
-	friend class DragonBones;
+	friend class DragonBonesArmatureDisplay;
 };
 #endif // TOOLS_ENABLED
 
 } //namespace godot
-
-VARIANT_ENUM_CAST(godot::DragonBonesArmature::AnimFadeOutMode);

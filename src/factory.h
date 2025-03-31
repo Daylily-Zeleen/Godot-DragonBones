@@ -22,6 +22,7 @@ class DragonBonesFactory : public Resource, private dragonBones::BaseFactory {
 
 	PackedByteArray get_file_data(const String &p_file) const;
 
+	class DragonBonesArmatureDisplay* building_armature{ nullptr };
 public:
 	static String get_imported_file_name(const String &p_path) { return p_path.md5_text() + ".dbimport"; }
 	static String convert_to_imported_path(const String &p_path) {
@@ -59,7 +60,7 @@ public:
 
 	bool can_create_dragon_bones_instance() const;
 
-	DragonBonesArmature *create_armature(class DragonBones *p_owner, const String &p_dragon_bones_data_name = "", const String &p_armature_name = "", const String &p_skin_name = "");
+	DragonBonesArmature *create_armature(DragonBonesArmatureDisplay* p_owner, const String &p_dragon_bones_data_name = "", const String &p_armature_name = "", const String &p_skin_name = "");
 
 private:
 	//  Binding
