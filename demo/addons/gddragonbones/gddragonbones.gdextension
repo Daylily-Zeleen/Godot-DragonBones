@@ -10,12 +10,14 @@ others = "诚接Godot游戏开发，欢迎邮件联系。/ Receive game developm
 
 [icons]
 
-DragonBones = "icons/DragonBonesBlue.png"
-DragonBonesFactory = "icons/DragonBonesWhite.png"
+DragonBonesArmatureDisplay = "icons/DragonBonesBlue.png"
+DragonBonesFactory = "icons/DragonBonesFactory.svg"
 
-DragonBonesArmature = "icons/DragonBonesBlue.png"
-DragonBonesBone = "icons/DragonBonesWhite.png"
-DragonBonesSlot = "icons/DragonBonesWhite.png"
+DragonBonesArmatureProxy = "icons/DragonBonesArmature.png"
+DragonBonesArmature = "icons/DragonBonesArmature.png"
+DragonBonesBone = "icons/DragonBonesBone.png"
+DragonBonesSlot = "icons/DragonBonesSlot.png"
+DragonBonesEventObject = "icons/DragonBonesWhite.png"
 DragonBonesUserData = "icons/DragonBonesWhite.png"
 
 [configuration]
