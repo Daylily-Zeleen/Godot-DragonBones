@@ -1,8 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://8apibgrqeqe7"]
+[gd_scene load_steps=5 format=3 uid="uid://8apibgrqeqe7"]
 
-[ext_resource type="DragonBonesFactory" uid="uid://d2cnmy2kw8t8h" path="res://dragonbones_demo/assets/Dragon_ske.dbfactory" id="1_1fh62"]
 [ext_resource type="Script" path="res://dragonbones_demo/demo.gd" id="1_23ee0"]
-[ext_resource type="Texture2D" uid="uid://cxys0t3k5e5rf" path="res://dragonbones_demo/assets/Dragon_tex.png" id="3_elhtc"]
+[ext_resource type="DragonBonesFactory" uid="uid://cswy4t3ejn2lu" path="res://dragonbones_demo/assets/Dragon_ske.dbfactory" id="2_rkqf0"]
 
 [sub_resource type="SystemFont" id="SystemFont_t0rb7"]
 
@@ -124,13 +123,12 @@ layout_mode = 2
 text = "Advance"
 
 [node name="DragonBonesArmatureDisplay" type="DragonBonesArmatureDisplay" parent="."]
-factory = ExtResource("1_1fh62")
+factory = ExtResource("2_rkqf0")
 instantiate_dragon_bones_data_name = "Dragon"
 instantiate_armature_name = "Dragon"
 armature_settings = {
 "current_animation": "walk",
-"sub_armatures": {},
-"texture_override": ExtResource("3_elhtc")
+"sub_armatures": {}
 }
 position = Vector2(737, 364)
 scale = Vector2(0.7, 0.7)
