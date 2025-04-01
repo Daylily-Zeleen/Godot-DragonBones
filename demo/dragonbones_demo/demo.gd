@@ -62,10 +62,7 @@ func _on_animation_option_btn_item_selected(index: int) -> void:
 	if anim == armature.current_animation:
 		return
 
-	armature.stop(armature.current_animation, true)
-	if not anim.is_empty():
-		armature.play(anim, -1)
-		#dragonbones.play()
+	armature.current_animation = anim
 
 
 func _on_advance_btn_pressed() -> void:
