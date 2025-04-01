@@ -14,7 +14,10 @@ class Slot_GD : public dragonBones::Slot {
 	BIND_CLASS_TYPE_A(Slot_GD);
 
 private:
+	Ref<class DragonBonesSlot> wrapper;
 	float _textureScale;
+
+	friend class DragonBonesFactory;
 
 public:
 	CanvasItemMaterial::BlendMode blend_mode{ CanvasItemMaterial::BLEND_MODE_MIX };
@@ -54,6 +57,7 @@ class DragonBonesSlot : public RefCounted {
 private:
 	Slot_GD *slot{ nullptr }; // 生命周期由 dragonBones::Armature 管理
 
+	friend class Slot_GD;
 	friend class DragonBonesFactory;
 	friend class DragonBonesArmature;
 

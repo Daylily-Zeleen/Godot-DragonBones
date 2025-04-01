@@ -97,7 +97,7 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 	ERR_FAIL_NULL_V(_dragonBones, nullptr);
 	const auto armature = BaseObject::borrowObject<Armature>();
 	DragonBonesArmature *armatureDisplay{ memnew(DragonBonesArmature) };
-	armatureDisplay->armature = building_armature; // 该插件里 _dragonBones->getEventManager() 就是 DragonBones 节点
+	armatureDisplay->armature_display = building_armature; // 该插件里 _dragonBones->getEventManager() 就是 DragonBones 节点
 
 	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
 	return armature;
@@ -107,12 +107,10 @@ Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, co
 	auto slot = BaseObject::borrowObject<Slot_GD>();
 	auto mesh_display{ DragonBonesMeshDisplay::from_pool() };
 
+	Ref<DragonBonesSlot> tree_slot{ memnew(DragonBonesSlot(slot)) };
+	slot->wrapper = tree_slot;
 	slot->init(slotData, armature, mesh_display, mesh_display);
 	slot->update(0);
-
-	// slot->update_display_texture();
-
-	Ref<DragonBonesSlot> tree_slot{ memnew(DragonBonesSlot(slot)) };
 
 	const auto proxy = static_cast<DragonBonesArmature *>(slot->getArmature()->getDisplay());
 	proxy->add_slot(slot->getName(), tree_slot);
