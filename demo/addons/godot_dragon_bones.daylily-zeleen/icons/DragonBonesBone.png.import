@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://x0ax23oewfk3"
-path="res://.godot/imported/DragonBonesWhite.png-91c9d02454e29d6049be03aef1585ca1.ctex"
+uid="uid://d1qe1bkg0qe5e"
+path="res://.godot/imported/DragonBonesBone.png-df63fd1cdaab229619da62d6ef1c9e0a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/gddragonbones/icons/DragonBonesWhite.png"
-dest_files=["res://.godot/imported/DragonBonesWhite.png-91c9d02454e29d6049be03aef1585ca1.ctex"]
+source_file="res://addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesBone.png"
+dest_files=["res://.godot/imported/DragonBonesBone.png-df63fd1cdaab229619da62d6ef1c9e0a.ctex"]
 
 [params]
 

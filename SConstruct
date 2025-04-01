@@ -25,10 +25,10 @@ sources = Glob("src/*.cpp") + Glob("register_types.cpp")
 
 
 output_bin_folder = "./bin"
-plugin_folder = "./demo/addons/gddragonbones"
+plugin_folder = "./demo/addons/godot_dragon_bones.daylily-zeleen"
 plugin_bin_folder = f"{plugin_folder}/bin"
 
-extension_file = "demo/addons/gddragonbones/gddragonbones.gdextension"
+extension_file = "demo/addons/godot_dragon_bones.daylily-zeleen/godot_dragon_bones.gdextension"
 
 
 def add_sources_recursively(dir: str, glob_sources, exclude_folder: list = []):
@@ -129,8 +129,8 @@ def on_complete(target, source, env):
         f.close()
 
         for i in range(len(lines)):
-            if lines[i].count("(demo/addons/gddragonbones/") > 0:
-                lines[i] = lines[i].replace("(demo/addons/gddragonbones/", "(")
+            if lines[i].count("(demo/addons/godot_dragon_bones.daylily-zeleen/") > 0:
+                lines[i] = lines[i].replace("(demo/addons/godot_dragon_bones.daylily-zeleen/", "(")
 
         f = open(fp, "w", encoding="utf8")
         f.writelines(lines)

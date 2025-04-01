@@ -1,12 +1,12 @@
 # Godot-DragonBones Plugin
 
-![image](demo/addons/gddragonbones/doc/doc_icon.png)
+![image](demo/addons/godot_dragon_bones.daylily-zeleen/doc/doc_icon.png)
 
 [点击查看中文说明](README.zh.md)。
 
 A GDExtension plugin to add DragonBones for Godot.
 
-![image](demo/addons/gddragonbones/doc/1.PNG)
+![image](demo/addons/godot_dragon_bones.daylily-zeleen/doc/1.PNG)
 
 ## Links
 
@@ -44,7 +44,7 @@ A GDExtension plugin to add DragonBones for Godot.
 
    Please refer the build system system of [godot-cpp](https://github.com/godotengine/godot-cpp.git) for more compile options.
 
-4. If compileing is successully, you can get the compiled plugin in `demo/addons/gddragonbones`.
+4. If compileing is successully, you can get the compiled plugin in `demo/addons/godot_dragon_bones.daylily-zeleen`.
 
 ## Run "demo" project
 
@@ -65,13 +65,13 @@ This repository is improved from [gddragonbones](https://github.com/sanja-sa/gdd
 
 1. Change to GDExtension for Godot 4.x.
 2. Implement a import plugin to import DragonBones files automatically.
-3. Imported Resource is `DragonBonesFoctory`![image](demo/addons/gddragonbones/icons/DragonBonesWhite.png):
+3. Imported Resource is `DragonBonesFoctory`![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesWhite.png):
    1. One factory can contain multi DragonBones data and Atlas data files.
    2. Can select DragonBones data and skin which are in factory to instantiate in `DragonBones` node.
    3. If detect DragonBones assets (for example, xxx_ske.json/dbbin and xxx_tex.json) in editor, it will generate a factory resource(xxx_ske.dbfactory) at the same folder.
-4. `DragonBones` ![image](demo/addons/gddragonbones/icons/DragonBonesBlue.png) node:
+4. `DragonBones` ![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesBlue.png) node:
    1. Remove mostly methods, all operations are work with `DragonBonesArmature`.
-5. `DragonBonesArmature` ![image](demo/addons/gddragonbones/icons/DragonBonesBlue.png) node:
+5. `DragonBonesArmature` ![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesBlue.png) node:
    * **Instantiated by `DragonBones` node which accroding to `DragonBonesFoctory`, don't instantiate it by youself.**
    * **Don't free by youself, it will lead to crash!!**
    * In editor, a proxy property in `DragonBones` node, which it's type is `DragonBonesArmatureProxy`, name is "armature", will be indicated as the main `DragonBonesArmature` node. If main armature have child armatures, it will have a "sub_armatures" property in `DragonBonesArmatureProxy`.
