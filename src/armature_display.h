@@ -135,6 +135,7 @@ public:
 	Ref<DragonBonesBone> get_bone(const String &p_name);
 
 	Rect2 get_rect() const;
+	Rect2 get_global_rect() const;
 
 	// setget
 	void set_current_animation(const String &p_animation);

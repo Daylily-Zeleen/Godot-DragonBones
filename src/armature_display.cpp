@@ -499,6 +499,7 @@ void DragonBonesArmatureDisplay::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("advance", "delta", "recursively"), &DragonBonesArmatureDisplay::advance, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("get_rect"), &DragonBonesArmatureDisplay::get_rect);
+	ClassDB::bind_method(D_METHOD("get_global_rect"), &DragonBonesArmatureDisplay::get_global_rect);
 
 	// Setter Getter
 	ClassDB::bind_method(D_METHOD("set_current_animation", "current_animation"), &DragonBonesArmatureDisplay::set_current_animation);
@@ -693,6 +694,12 @@ Rect2 DragonBonesArmatureDisplay::get_rect() const {
 	ERR_FAIL_NULL_V(armature, {});
 	Rect2 rect = armature->get_rect();
 	return get_transform().inverse().xform(rect);
+}
+
+Rect2 DragonBonesArmatureDisplay::get_global_rect() const {
+	ERR_FAIL_NULL_V(armature, {});
+	Rect2 rect = armature->get_rect();
+	return get_global_transform().inverse().xform(rect);
 }
 
 // setget
