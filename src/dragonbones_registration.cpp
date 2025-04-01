@@ -10,6 +10,8 @@
 #include <godot_cpp/classes/resource_saver.hpp>
 
 #include "dragonbones.h"
+
+#include "armature_display.h"
 #include "event_object.h"
 
 using namespace godot;
