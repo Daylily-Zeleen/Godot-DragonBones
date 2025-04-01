@@ -1,15 +1,15 @@
-#include "dragonbones_registration.h"
+#include "dragon_bones_registration.h"
 
 #include <godot_cpp/classes/editor_plugin_registration.hpp>
 
 #ifdef TOOLS_ENABLED
-#include <editor/dragonbones_editor_plugin.h>
+#include <editor/dragon_bones_editor_plugin.h>
 #endif //TOOLS_ENABLED
 
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/resource_saver.hpp>
 
-#include "dragonbones.h"
+#include "dragon_bones.h"
 
 #include "armature_display.h"
 #include "event_object.h"
@@ -20,7 +20,7 @@ static DragonBones *dragon_bones{ nullptr };
 static Ref<ResourceFormatSaverDragonBones> saver;
 static Ref<ResourceFormatLoaderDragonBones> loader;
 
-void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
+void initialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_level) {
 #ifdef TOOLS_ENABLED
 	if (p_level == MODULE_INITIALIZATION_LEVEL_EDITOR) {
 		GDREGISTER_INTERNAL_CLASS(DragonBonesExportPlugin);
@@ -56,7 +56,7 @@ void initialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
 	ResourceLoader::get_singleton()->add_resource_format_loader(loader);
 }
 
-void uninitialize_gddragonbones_module(godot::ModuleInitializationLevel p_level) {
+void uninitialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_level) {
 #ifdef TOOLS_ENABLED
 	if (p_level == MODULE_INITIALIZATION_LEVEL_EDITOR) {
 		EditorPlugins::remove_by_type<DragonBonesEditorPlugin>();

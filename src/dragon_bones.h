@@ -1,6 +1,6 @@
 #pragma once
 
-#include <godot_dragonbones.h>
+#include <godot_dragon_bones.h>
 
 #include <dragonBones/core/DragonBones.h>
 #include <dragonBones/event/IEventDispatcher.h>

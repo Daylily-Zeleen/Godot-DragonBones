@@ -14,7 +14,7 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include "armature.h"
-#include "dragonbones.h"
+#include "dragon_bones.h"
 #include "godot_cpp/classes/config_file.hpp"
 #include "mesh_display.h"
 #include "texture_atlas_data.h"
@@ -352,8 +352,8 @@ bool DragonBonesFactory::can_create_dragon_bones_instance() const {
 
 DragonBonesArmature *DragonBonesFactory::create_armature(DragonBonesArmatureDisplay *p_owner, const String &p_dragon_bones_data_name, const String &p_armature_name, const String &p_skin_name) {
 	ERR_FAIL_NULL_V(p_owner, nullptr);
-	auto dragonbones = DragonBones::get_singleton();
-	ERR_FAIL_NULL_V(dragonbones, nullptr);
+	auto dragon_bones = DragonBones::get_singleton();
+	ERR_FAIL_NULL_V(dragon_bones, nullptr);
 	const auto &dragon_bones_data_list = getAllDragonBonesData();
 	ERR_FAIL_COND_V(dragon_bones_data_list.size() <= 0, nullptr);
 
@@ -371,7 +371,7 @@ DragonBonesArmature *DragonBonesFactory::create_armature(DragonBonesArmatureDisp
 		armature_name = dragon_bones_data->getArmatureNames()[0];
 	}
 
-	_dragonBones = dragonbones->get_dragon_bones_instance();
+	_dragonBones = dragon_bones->get_dragon_bones_instance();
 	building_armature = p_owner;
 	auto ret = buildArmatureDisplay(armature_name, dragon_bones_data->name, to_std_str(p_skin_name));
 	building_armature = nullptr;

@@ -1,6 +1,6 @@
 [infomation]
 name = "Godot-DragonBones"
-version = "v0.0.0"
+version = "v2.0.0-dev"
 decription = "A DragonBones plugin for Godot."
 author = "忘忧の (Daylily Zeleen)"
 email = "daylily-zeleen@foxmail.com"
@@ -22,7 +22,7 @@ DragonBonesUserData = "icons/DragonBonesWhite.png"
 
 [configuration]
 
-entry_symbol = "gddragonbones_library_init"
+entry_symbol = "godot_dragon_bones_library_init"
 compatibility_minimum = 4.2
 
 [libraries]

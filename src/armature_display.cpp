@@ -8,7 +8,7 @@
 #include <godot_cpp/variant/array.hpp>
 
 #include "armature.h"
-#include "dragonbones.h"
+#include "dragon_bones.h"
 #include "event_object.h"
 
 using namespace godot;
@@ -239,8 +239,8 @@ void DragonBonesArmatureDisplay::_validate_property(PropertyInfo &p_property) co
 		return;
 	}
 	if (p_property.name == SNAME("instantiate_dragon_bones_data_name")) {
-		auto dragonbones_data = factory->get_loaded_dragon_bones_data_name_list();
-		p_property.hint_string = String(",").join(dragonbones_data);
+		auto dragon_bones_data = factory->get_loaded_dragon_bones_data_name_list();
+		p_property.hint_string = String(",").join(dragon_bones_data);
 	} else if (p_property.name == SNAME("instantiate_armature_name")) {
 		auto armatures = factory->get_loaded_dragon_bones_armature_name_list(instantiate_dragon_bones_data_name);
 		p_property.hint_string = String(",").join(armatures);
@@ -433,7 +433,7 @@ RID DragonBonesArmatureDisplay::get_draw_mesh(int p_index) {
 }
 
 void DragonBonesArmatureDisplay::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("set_factory", "dbfactory"), &DragonBonesArmatureDisplay::set_factory);
+	ClassDB::bind_method(D_METHOD("set_factory", "factory"), &DragonBonesArmatureDisplay::set_factory);
 	ClassDB::bind_method(D_METHOD("get_factory"), &DragonBonesArmatureDisplay::get_factory);
 
 	ClassDB::bind_method(D_METHOD("advance", "delta"), &DragonBonesArmatureDisplay::advance);

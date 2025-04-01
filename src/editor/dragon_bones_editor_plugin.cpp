@@ -1,4 +1,4 @@
-#include "dragonbones_editor_plugin.h"
+#include "dragon_bones_editor_plugin.h"
 
 #include <godot_cpp/classes/config_file.hpp>
 #include <godot_cpp/classes/dir_access.hpp>

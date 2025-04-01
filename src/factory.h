@@ -1,6 +1,6 @@
 #pragma once
 
-#include <godot_dragonbones.h>
+#include <godot_dragon_bones.h>
 
 #include <dragonBones/factory/BaseFactory.h>
 

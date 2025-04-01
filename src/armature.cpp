@@ -7,7 +7,7 @@
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/variant/transform2d.hpp>
 
-#include "dragonbones.h"
+#include "dragon_bones.h"
 #include "event_object.h"
 #include "mesh_display.h"
 
