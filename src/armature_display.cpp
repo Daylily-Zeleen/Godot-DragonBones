@@ -39,10 +39,7 @@ void DragonBonesArmatureDisplay::set_factory(const Ref<DragonBonesFactory> &p_fa
 
 	factory = p_factory;
 
-	if (factory.is_valid()) {
-		rebuild_armature();
-	}
-
+	rebuild_armature();
 	notify_property_list_changed();
 }
 
