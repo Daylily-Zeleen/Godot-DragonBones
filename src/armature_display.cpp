@@ -130,6 +130,7 @@ String DragonBonesArmatureDisplay::get_instantiate_skin_name() const {
 
 void DragonBonesArmatureDisplay::set_callback_mode_process(AnimationCallbackModeProcess p_mode) {
 	callback_mode_process = p_mode;
+	set_active(active);
 }
 
 DragonBonesArmatureDisplay::AnimationCallbackModeProcess DragonBonesArmatureDisplay::get_callback_mode_process() const {
