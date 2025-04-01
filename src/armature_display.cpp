@@ -19,7 +19,7 @@ void DragonBonesArmatureDisplay::rebuild_armature() {
 		armature = nullptr;
 	}
 
-	if (!factory.is_valid()) {
+	if (factory.is_valid()) {
 		armature = factory->create_armature(this, instantiate_dragon_bones_data_name, instantiate_armature_name, instantiate_skin_name);
 		if (is_armature_valid()) {
 			armature->force_update();
@@ -39,14 +39,9 @@ void DragonBonesArmatureDisplay::set_factory(const Ref<DragonBonesFactory> &p_fa
 
 	factory = p_factory;
 
-	if (factory.is_null()) {
-		notify_property_list_changed();
-		return;
+	if (factory.is_valid()) {
+		rebuild_armature();
 	}
-
-	// build Armature display
-	rebuild_armature();
-	ERR_FAIL_COND(!is_armature_valid());
 
 	notify_property_list_changed();
 }
@@ -497,7 +492,6 @@ void DragonBonesArmatureDisplay::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_bones"), &DragonBonesArmatureDisplay::get_bones);
 	ClassDB::bind_method(D_METHOD("get_bone", "bone_name"), &DragonBonesArmatureDisplay::get_bone);
 
-	ClassDB::bind_method(D_METHOD("advance", "delta", "recursively"), &DragonBonesArmatureDisplay::advance, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("get_rect"), &DragonBonesArmatureDisplay::get_rect);
 	ClassDB::bind_method(D_METHOD("get_global_rect"), &DragonBonesArmatureDisplay::get_global_rect);
 
