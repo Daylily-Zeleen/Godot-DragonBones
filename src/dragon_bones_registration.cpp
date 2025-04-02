@@ -11,7 +11,7 @@
 
 #include "dragon_bones.h"
 
-#include "armature_display.h"
+#include "armature_view.h"
 #include "event_object.h"
 
 using namespace godot;
@@ -34,7 +34,7 @@ void initialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_lev
 
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
 		GDREGISTER_CLASS(DragonBonesFactory);
-		GDREGISTER_CLASS(DragonBonesArmatureDisplay);
+		GDREGISTER_CLASS(DragonBonesArmatureView);
 
 		GDREGISTER_ABSTRACT_CLASS(DragonBonesBone);
 		GDREGISTER_ABSTRACT_CLASS(DragonBonesSlot);
@@ -66,7 +66,7 @@ void uninitialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_l
 		dragonBones::BaseObject::clearPool();
 		DragonBonesMeshDisplay::clear_pool();
 
-		DragonBonesArmatureDisplay::clear_static();
+		DragonBonesArmatureView::clear_static();
 
 		ResourceSaver::get_singleton()->remove_resource_format_saver(saver);
 		saver.unref();

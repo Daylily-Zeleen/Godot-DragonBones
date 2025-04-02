@@ -10,8 +10,8 @@
 #include "factory.h"
 
 namespace godot {
-class DragonBonesArmatureDisplay : public Node2D {
-	GDCLASS(DragonBonesArmatureDisplay, Node2D)
+class DragonBonesArmatureView : public Node2D {
+	GDCLASS(DragonBonesArmatureView, Node2D)
 
 public:
 	enum AnimationCallbackModeProcess {
@@ -57,8 +57,8 @@ protected:
 	void _notification(int p_what);
 
 public:
-	DragonBonesArmatureDisplay();
-	~DragonBonesArmatureDisplay();
+	DragonBonesArmatureView();
+	~DragonBonesArmatureView();
 
 	virtual void _draw() override;
 
@@ -175,5 +175,5 @@ private:
 
 } //namespace godot
 
-VARIANT_ENUM_CAST(godot::DragonBonesArmatureDisplay::AnimationCallbackModeProcess);
-VARIANT_ENUM_CAST(godot::DragonBonesArmatureDisplay::AnimFadeOutMode);
+VARIANT_ENUM_CAST(godot::DragonBonesArmatureView::AnimationCallbackModeProcess);
+VARIANT_ENUM_CAST(godot::DragonBonesArmatureView::AnimFadeOutMode);

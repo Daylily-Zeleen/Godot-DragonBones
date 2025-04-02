@@ -1,7 +1,7 @@
 extends Node
 
 
-@onready var armature :DragonBonesArmatureDisplay = $DragonBonesArmatureDisplay
+@onready var armature :DragonBonesArmatureView = $DragonBonesArmatureView
 @onready var animation_process_mode_option_btn :OptionButton = %AnimationProcessModeOptionBtn
 @onready var animation_option_btn :OptionButton = %AniamtionOptionBtn
 
@@ -9,13 +9,13 @@ extends Node
 # Setup UI to control DragonBonesArmature's properties.
 func _ready() -> void:
 	# AnimationCallbackModeProcess
-	for e: String in ClassDB.class_get_enum_constants(&"DragonBonesArmatureDisplay", &"AnimationCallbackModeProcess"):
+	for e: String in ClassDB.class_get_enum_constants(&"DragonBonesArmatureView", &"AnimationCallbackModeProcess"):
 		animation_process_mode_option_btn.add_item(e.rsplit("_", false, 1)[1])
-		animation_process_mode_option_btn.set_item_metadata(animation_process_mode_option_btn.item_count - 1, DragonBonesArmatureDisplay[e])
+		animation_process_mode_option_btn.set_item_metadata(animation_process_mode_option_btn.item_count - 1, DragonBonesArmatureView[e])
 
 	animation_process_mode_option_btn.item_selected.connect(_on_process_mode_option_btn_item_selected)
 	for idx in range(animation_process_mode_option_btn.item_count):
-		if animation_process_mode_option_btn.get_item_metadata(idx) == DragonBonesArmatureDisplay.ANIMATION_CALLBACK_MODE_PROCESS_IDLE:
+		if animation_process_mode_option_btn.get_item_metadata(idx) == DragonBonesArmatureView.ANIMATION_CALLBACK_MODE_PROCESS_IDLE:
 			animation_process_mode_option_btn.select(idx)
 			_on_process_mode_option_btn_item_selected(idx)
 			break
@@ -54,7 +54,7 @@ func _ready() -> void:
 
 func _on_process_mode_option_btn_item_selected(index: int) -> void:
 	armature.animation_callback_mode_process = animation_process_mode_option_btn.get_item_metadata(index)
-	%AdvanceUI.visible = armature.animation_callback_mode_process == DragonBonesArmatureDisplay.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	%AdvanceUI.visible = armature.animation_callback_mode_process == DragonBonesArmatureView.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 
 
 func _on_animation_option_btn_item_selected(index: int) -> void:
@@ -66,7 +66,7 @@ func _on_animation_option_btn_item_selected(index: int) -> void:
 
 
 func _on_advance_btn_pressed() -> void:
-	assert(armature.animation_callback_mode_process == DragonBonesArmatureDisplay.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL)
+	assert(armature.animation_callback_mode_process == DragonBonesArmatureView.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL)
 	var delta :float = %AdvanceTime.value
 	armature.advance(delta)
 	

@@ -1,4 +1,4 @@
-#include "armature_display.h"
+#include "armature.h"
 
 #include <dragonBones/event/EventObject.h>
 #include <godot_cpp/classes/engine.hpp>
@@ -7,6 +7,7 @@
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/variant/transform2d.hpp>
 
+#include "armature_view.h"
 #include "dragon_bones.h"
 #include "event_object.h"
 #include "mesh_display.h"
@@ -115,8 +116,8 @@ void DragonBonesArmature::dispatchDBEvent(const std::string &p_type, dragonBones
 	Ref<DragonBonesEventObject> event_object{ memnew(DragonBonesEventObject(p_value)) };
 	emit_signal(SNAME("event_dispatched"), event_object);
 
-	if (armature_display) {
-		armature_display->dispatch_event(event_object);
+	if (armature_view) {
+		armature_view->dispatch_event(event_object);
 	}
 }
 
@@ -127,8 +128,8 @@ void DragonBonesArmature::for_each_armature_(const Callable &p_action) {
 }
 
 void DragonBonesArmature::queue_redraw() const {
-	if (armature_display) {
-		armature_display->queue_redraw();
+	if (armature_view) {
+		armature_view->queue_redraw();
 	}
 }
 
@@ -201,9 +202,9 @@ void DragonBonesArmature::set_current_animation(const String &p_animation) {
 	if (p_animation == "[none]" || p_animation.is_empty()) {
 		stop(get_current_animation());
 	} else if (!is_playing()) {
-		play(p_animation, armature_display->get_animation_loop_count());
+		play(p_animation, armature_view->get_animation_loop_count());
 	} else if (get_current_animation() != p_animation) {
-		play(p_animation, armature_display->get_animation_loop_count());
+		play(p_animation, armature_view->get_animation_loop_count());
 	} else {
 		// 相同动画，无需响应
 	}
@@ -493,8 +494,8 @@ void DragonBonesArmature::release() {
 		dbClear();
 	}
 
-	if (armature_display) {
-		armature_display = nullptr;
+	if (armature_view) {
+		armature_view = nullptr;
 	}
 }
 

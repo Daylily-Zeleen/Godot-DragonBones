@@ -122,7 +122,7 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Advance"
 
-[node name="DragonBonesArmatureDisplay" type="DragonBonesArmatureDisplay" parent="."]
+[node name="DragonBonesArmatureView" type="DragonBonesArmatureView" parent="."]
 factory = ExtResource("2_rkqf0")
 instantiate_dragon_bones_data_name = "Dragon"
 instantiate_armature_name = "Dragon"

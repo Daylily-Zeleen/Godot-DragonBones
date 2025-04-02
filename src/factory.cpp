@@ -98,7 +98,7 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 	ERR_FAIL_NULL_V(_dragonBones, nullptr);
 	const auto armature = BaseObject::borrowObject<Armature>();
 	DragonBonesArmature *armatureDisplay{ memnew(DragonBonesArmature) };
-	armatureDisplay->armature_display = building_armature; // 该插件里 _dragonBones->getEventManager() 就是 DragonBones 节点
+	armatureDisplay->armature_view = building_armature; // 该插件里 _dragonBones->getEventManager() 就是 DragonBones 节点
 
 	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
 	return armature;
@@ -350,7 +350,7 @@ bool DragonBonesFactory::can_create_dragon_bones_instance() const {
 	return _dragonBonesDataMap.size() > 0 && _textureAtlasDataMap.size() > 0;
 }
 
-DragonBonesArmature *DragonBonesFactory::create_armature(DragonBonesArmatureDisplay *p_owner, const String &p_dragon_bones_data_name, const String &p_armature_name, const String &p_skin_name) {
+DragonBonesArmature *DragonBonesFactory::create_armature(DragonBonesArmatureView *p_owner, const String &p_dragon_bones_data_name, const String &p_armature_name, const String &p_skin_name) {
 	ERR_FAIL_NULL_V(p_owner, nullptr);
 	auto dragon_bones = DragonBones::get_singleton();
 	ERR_FAIL_NULL_V(dragon_bones, nullptr);

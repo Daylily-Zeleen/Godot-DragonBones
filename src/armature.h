@@ -23,7 +23,7 @@ using ConstraintsDictionary = godot::Dictionary;
 
 namespace godot {
 
-class DragonBonesArmatureDisplay;
+class DragonBonesArmatureView;
 
 class DragonBonesArmature : public Object, public Display, public dragonBones::IArmatureProxy {
 	GDCLASS(DragonBonesArmature, Object)
@@ -32,7 +32,7 @@ private:
 	class Slot_GD *slot{ nullptr };
 	Ref<Texture2D> texture_override;
 
-	class DragonBonesArmatureDisplay *armature_display{ nullptr };
+	class DragonBonesArmatureView *armature_view{ nullptr };
 	friend class DragonBonesFactory;
 
 protected:
@@ -89,8 +89,8 @@ public:
 			}
 			auto display = slot->getDisplayList()[slot->getDisplayIndex()];
 			if (display.second == dragonBones::DisplayType::Armature) {
-				dragonBones::Armature *armature_display = static_cast<dragonBones::Armature *>(display.first);
-				DragonBonesArmature *convertedDisplay = static_cast<DragonBonesArmature *>(armature_display->getDisplay());
+				dragonBones::Armature *armature_view = static_cast<dragonBones::Armature *>(display.first);
+				DragonBonesArmature *convertedDisplay = static_cast<DragonBonesArmature *>(armature_view->getDisplay());
 				if constexpr (std::is_invocable_r_v<bool, Func, DragonBonesArmature *>) {
 					if (p_action(convertedDisplay)) {
 						break;
@@ -120,7 +120,7 @@ public:
 	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const override;
 
 public:
-	bool is_valid() const { return armature_instance && armature_display; }
+	bool is_valid() const { return armature_instance && armature_view; }
 
 	/* METHOD BINDINGS */
 	static void _bind_methods();
@@ -229,7 +229,7 @@ private:
 	friend class DragonBonesArmature;
 
 	DragonBonesArmature *armature{ nullptr };
-	friend class DragonBonesArmatureDisplay;
+	friend class DragonBonesArmatureView;
 };
 #endif // TOOLS_ENABLED
 } //namespace godot
