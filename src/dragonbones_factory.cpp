@@ -482,16 +482,7 @@ Error save_dbfactory_file(const String &p_path, int64_t p_uid, const PackedStrin
 	Ref<FileAccess> file = FileAccess::open(p_path, FileAccess::WRITE);
 	ERR_FAIL_NULL_V_MSG(file, FileAccess::get_open_error(), vformat("Cannot save DragonBonesFactory '%s': %s.", p_path, UtilityFunctions::error_string(FileAccess::get_open_error())));
 
-	int64_t uid = ResourceLoader::get_singleton()->get_resource_uid(p_path);
-
-	if (uid == ResourceUID::INVALID_ID) {
-		uid = ResourceUID::get_singleton()->create_id();
-		if (uid != ResourceUID::INVALID_ID) {
-			ResourceUID::get_singleton()->set_id(uid, p_path);
-		}
-	}
-
-	file->store_var(uid);
+	file->store_var(p_uid);
 	file->store_var(p_ske_files);
 	file->store_var(p_atlas_files);
 	file->store_var(p_imported);
@@ -620,7 +611,9 @@ Variant ResourceFormatLoaderDragonBones::_load(const String &path, const String 
 			if (FileAccess::file_exists(path)) {
 				uid = ResourceUID::get_singleton()->create_id();
 				Error err = save_dbfactory_file(path, uid, ske_files, atlas_files, imported);
-				if (err != OK) {
+				if (err == OK) {
+					ResourceUID::get_singleton()->set_id(uid, path);
+				} else {
 					ResourceUID::get_singleton()->remove_id(uid);
 				}
 			}
