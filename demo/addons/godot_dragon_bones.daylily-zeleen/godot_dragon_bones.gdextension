@@ -1,6 +1,6 @@
 [infomation]
 name = "Godot-DragonBones"
-version = "v2.0.0-dev"
+version = "v0.0.0"
 decription = "A DragonBones plugin for Godot."
 author = "忘忧の (Daylily Zeleen)"
 email = "daylily-zeleen@foxmail.com"

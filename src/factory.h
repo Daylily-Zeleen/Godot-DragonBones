@@ -69,6 +69,7 @@ private:
 	PackedStringArray texture_atlas_json_file_list;
 
 public:
+	// Binding
 	PackedStringArray get_dragon_bones_ske_file_list() const { return dragon_bones_ske_file_list; }
 	void set_dragon_bones_ske_file_list(PackedStringArray p_files);
 
@@ -77,7 +78,10 @@ public:
 
 	PackedStringArray get_loaded_dragon_bones_data_name_list() const;
 	PackedStringArray get_loaded_dragon_bones_armature_name_list(const String &p_dragon_bones_data_name) const;
-	PackedStringArray get_loaded_dragon_bones_main_skin_name_list(const String &p_dragon_bones_data_name, const String &p_armature_name) const;
+	PackedStringArray get_loaded_dragon_bones_skin_name_list(const String &p_dragon_bones_data_name, const String &p_armature_name) const;
+
+public:
+	bool is_imported() const { return imported; }
 
 private:
 	bool imported{ false };
@@ -93,8 +97,6 @@ public:
 		static HashMap<String, DragonBonesFactory *> ret;
 		return ret;
 	}
-
-	bool is_imported() const { return imported; }
 
 private:
 	static bool editor_reimporting;

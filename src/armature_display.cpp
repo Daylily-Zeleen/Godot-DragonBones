@@ -239,17 +239,13 @@ void DragonBonesArmatureDisplay::_validate_property(PropertyInfo &p_property) co
 		return;
 	}
 	if (p_property.name == SNAME("instantiate_dragon_bones_data_name")) {
-		auto dragon_bones_data = factory->get_loaded_dragon_bones_data_name_list();
-		p_property.hint_string = String(",").join(dragon_bones_data);
+		auto dragon_bones_data_list = factory->get_loaded_dragon_bones_data_name_list();
+		p_property.hint_string = String(",").join(dragon_bones_data_list);
 	} else if (p_property.name == SNAME("instantiate_armature_name")) {
 		auto armatures = factory->get_loaded_dragon_bones_armature_name_list(instantiate_dragon_bones_data_name);
 		p_property.hint_string = String(",").join(armatures);
 	} else if (p_property.name == SNAME("instantiate_skin_name")) {
-		auto skins = factory->get_loaded_dragon_bones_main_skin_name_list(instantiate_dragon_bones_data_name, instantiate_armature_name);
-		auto default_idx = 0;
-		if (default_idx >= 0) {
-			skins.remove_at(default_idx);
-		}
+		auto skins = factory->get_loaded_dragon_bones_skin_name_list(instantiate_dragon_bones_data_name, instantiate_armature_name);
 		p_property.hint_string = String(",").join(skins);
 	}
 }

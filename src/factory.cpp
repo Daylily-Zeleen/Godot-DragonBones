@@ -321,7 +321,7 @@ PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_armature_name_list
 	return ret;
 }
 
-PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_main_skin_name_list(const String &p_dragon_bones_data_name, const String &p_armature_name) const {
+PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_skin_name_list(const String &p_dragon_bones_data_name, const String &p_armature_name) const {
 	PackedStringArray ret;
 
 	DragonBonesData *dbdata = getDragonBonesData(to_std_str(p_dragon_bones_data_name));
@@ -381,7 +381,7 @@ DragonBonesArmature *DragonBonesFactory::create_armature(DragonBonesArmatureDisp
 }
 
 void DragonBonesFactory::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("get_loaded_dragon_bones_main_skin_name_list", "dragon_bones_data_name"), &DragonBonesFactory::get_loaded_dragon_bones_main_skin_name_list);
+	ClassDB::bind_method(D_METHOD("get_loaded_dragon_bones_skin_name_list", "dragon_bones_data_name"), &DragonBonesFactory::get_loaded_dragon_bones_skin_name_list);
 	ClassDB::bind_method(D_METHOD("get_loaded_dragon_bones_data_name_list"), &DragonBonesFactory::get_loaded_dragon_bones_data_name_list);
 
 	ClassDB::bind_method(D_METHOD("set_dragon_bones_ske_file_list", "dragon_bones_ske_file_list"), &DragonBonesFactory::set_dragon_bones_ske_file_list);
