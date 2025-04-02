@@ -154,7 +154,7 @@ void DragonBonesArmatureView::reset() {
 	armature->reset(true);
 }
 
-DragonBonesArmature *DragonBonesArmatureView::get_armature_display() {
+DragonBonesArmature *DragonBonesArmatureView::get_armature() {
 	ERR_FAIL_COND_V(!is_armature_valid(), nullptr);
 	return armature;
 }
@@ -440,7 +440,7 @@ void DragonBonesArmatureView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_time_scale", "speed_scale"), &DragonBonesArmatureView::set_time_scale);
 	ClassDB::bind_method(D_METHOD("get_time_scale"), &DragonBonesArmatureView::get_time_scale);
 
-	ClassDB::bind_method(D_METHOD("get_armature_display"), &DragonBonesArmatureView::get_armature_display);
+	ClassDB::bind_method(D_METHOD("get_armature"), &DragonBonesArmatureView::get_armature);
 
 	ClassDB::bind_method(D_METHOD("set_active", "active"), &DragonBonesArmatureView::set_active);
 	ClassDB::bind_method(D_METHOD("is_active"), &DragonBonesArmatureView::is_active);

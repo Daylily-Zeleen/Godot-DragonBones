@@ -96,7 +96,7 @@ public:
 	void set_debug(bool p_debug);
 	bool is_debug() const;
 
-	DragonBonesArmature *get_armature_display();
+	DragonBonesArmature *get_armature();
 
 	static void clear_static();
 
