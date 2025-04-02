@@ -26,34 +26,33 @@ void initialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_lev
 		GDREGISTER_INTERNAL_CLASS(DragonBonesExportPlugin);
 		GDREGISTER_INTERNAL_CLASS(DragonBonesImportPlugin);
 		GDREGISTER_INTERNAL_CLASS(DragonBonesEditorPlugin);
-		EditorPlugins::add_by_type<DragonBonesEditorPlugin>();
 		GDREGISTER_INTERNAL_CLASS(DragonBonesArmatureProxy);
+
+		EditorPlugins::add_by_type<DragonBonesEditorPlugin>();
 	}
 #endif // TOOLS_ENABLED
 
-	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-		return;
+	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
+		GDREGISTER_CLASS(DragonBonesFactory);
+		GDREGISTER_CLASS(DragonBonesArmatureDisplay);
+
+		GDREGISTER_ABSTRACT_CLASS(DragonBonesBone);
+		GDREGISTER_ABSTRACT_CLASS(DragonBonesSlot);
+		GDREGISTER_ABSTRACT_CLASS(DragonBonesArmature);
+		GDREGISTER_ABSTRACT_CLASS(DragonBonesUserData);
+		GDREGISTER_ABSTRACT_CLASS(DragonBonesEventObject);
+
+		GDREGISTER_INTERNAL_CLASS(ResourceFormatSaverDragonBones);
+		GDREGISTER_INTERNAL_CLASS(ResourceFormatLoaderDragonBones);
+
+		dragon_bones = memnew(DragonBones);
+
+		saver.instantiate();
+		ResourceSaver::get_singleton()->add_resource_format_saver(saver);
+
+		loader.instantiate();
+		ResourceLoader::get_singleton()->add_resource_format_loader(loader);
 	}
-
-	GDREGISTER_CLASS(DragonBonesFactory);
-	GDREGISTER_CLASS(DragonBonesArmatureDisplay);
-
-	GDREGISTER_ABSTRACT_CLASS(DragonBonesBone);
-	GDREGISTER_ABSTRACT_CLASS(DragonBonesSlot);
-	GDREGISTER_ABSTRACT_CLASS(DragonBonesArmature);
-	GDREGISTER_ABSTRACT_CLASS(DragonBonesUserData);
-	GDREGISTER_ABSTRACT_CLASS(DragonBonesEventObject);
-
-	GDREGISTER_INTERNAL_CLASS(ResourceFormatSaverDragonBones);
-	GDREGISTER_INTERNAL_CLASS(ResourceFormatLoaderDragonBones);
-
-	dragon_bones = memnew(DragonBones);
-
-	saver.instantiate();
-	ResourceSaver::get_singleton()->add_resource_format_saver(saver);
-
-	loader.instantiate();
-	ResourceLoader::get_singleton()->add_resource_format_loader(loader);
 }
 
 void uninitialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_level) {
@@ -62,22 +61,20 @@ void uninitialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_l
 		EditorPlugins::remove_by_type<DragonBonesEditorPlugin>();
 	}
 #endif // TOOLS_ENABLED
-	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
-		return;
+	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
+		// 清空对象池
+		dragonBones::BaseObject::clearPool();
+		DragonBonesMeshDisplay::clear_pool();
+
+		DragonBonesArmatureDisplay::clear_static();
+
+		ResourceSaver::get_singleton()->remove_resource_format_saver(saver);
+		saver.unref();
+
+		ResourceLoader::get_singleton()->remove_resource_format_loader(loader);
+		loader.unref();
+
+		dragon_bones->flush();
+		memdelete(dragon_bones);
 	}
-
-	// 清空对象池
-	dragonBones::BaseObject::clearPool();
-	DragonBonesMeshDisplay::clear_pool();
-
-	DragonBonesArmatureDisplay::clear_static();
-
-	ResourceSaver::get_singleton()->remove_resource_format_saver(saver);
-	saver.unref();
-
-	ResourceLoader::get_singleton()->remove_resource_format_loader(loader);
-	loader.unref();
-
-	dragon_bones->flush();
-	memdelete(dragon_bones);
 }
