@@ -1,6 +1,6 @@
 #pragma once
 
-#include <godot_dragonbones.h>
+#include <godot_dragon_bones.h>
 
 #include <dragonBones/core/DragonBones.h>
 #include <godot_cpp/classes/node2d.hpp>
@@ -10,38 +10,30 @@
 #include "factory.h"
 
 namespace godot {
-/// TODO: 修改dragonBones库的new delete,供给Godot追踪内存
-class DragonBones : public Node2D, public dragonBones::IEventDispatcher {
-	GDCLASS(DragonBones, Node2D)
+class DragonBonesArmatureView : public Node2D {
+	GDCLASS(DragonBonesArmatureView, Node2D)
 
 public:
-	// sound IEventDispatcher
-	virtual void addDBEventListener(const std::string &p_type, const std::function<void(dragonBones::EventObject *)> &p_listener) override {}
-	virtual void removeDBEventListener(const std::string &p_type, const std::function<void(dragonBones::EventObject *)> &p_listener) override {}
-	virtual bool hasDBEventListener(const std::string &p_type) const override { return true; }
-
-	virtual void dispatchDBEvent(const std::string &p_type, dragonBones::EventObject *p_value) override;
-
 	enum AnimationCallbackModeProcess {
 		ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS = 0,
 		ANIMATION_CALLBACK_MODE_PROCESS_IDLE = 1,
 		ANIMATION_CALLBACK_MODE_PROCESS_MANUAL = 2,
 	};
 
-private:
-	dragonBones::DragonBones *dragonbones_instance{ nullptr };
-	friend DragonBonesFactory;
+	using AnimFadeOutMode = DragonBonesArmature::AnimFadeOutMode;
 
+private:
 	Ref<DragonBonesFactory> factory;
 	DragonBonesArmature *armature{ nullptr };
 	AnimationCallbackModeProcess callback_mode_process{ ANIMATION_CALLBACK_MODE_PROCESS_IDLE };
+
 	String instantiate_dragon_bones_data_name{ "" };
 	String instantiate_armature_name{ "" };
 	String instantiate_skin_name{ "" };
+
 	float time_scale{ 1.0f };
 	int animation_loop_count{ 0 };
 	bool active{ true };
-	bool processing{ false };
 	bool debug{ false };
 
 	LocalVector<RID> draw_meshes;
@@ -65,8 +57,8 @@ protected:
 	void _notification(int p_what);
 
 public:
-	DragonBones();
-	~DragonBones();
+	DragonBonesArmatureView();
+	~DragonBonesArmatureView();
 
 	virtual void _draw() override;
 
@@ -96,8 +88,8 @@ public:
 	void set_animation_loop_count(int p_animation_loop_count);
 
 	void advance(float p_delta) {
-		if (dragonbones_instance) {
-			dragonbones_instance->advanceTime(p_delta);
+		if (armature) {
+			armature->advance(p_delta, true);
 		}
 	}
 
@@ -105,27 +97,63 @@ public:
 	bool is_debug() const;
 
 	DragonBonesArmature *get_armature();
-	void set_armature(DragonBonesArmature *) const; // readonly
-
-	void for_each_armature_(const Callable &p_action);
-
-	template <class FUNC, std::enable_if_t<std::is_invocable_v<FUNC, DragonBonesArmature *, int>> *_dummy = nullptr>
-	void for_each_armature(FUNC &&p_action) {
-		if (!armature) {
-			return;
-		}
-
-		if constexpr (std::is_invocable_r_v<bool, FUNC, DragonBonesArmature *, int>) {
-			if (p_action(armature, 0)) {
-				return;
-			}
-		} else {
-			p_action(armature, 0);
-		}
-		armature->for_each_armature_recursively(p_action, 1);
-	}
 
 	static void clear_static();
+
+public:
+	// 包装
+	void dispatch_event(const Ref<class DragonBonesEventObject> &p_event_object);
+
+	bool has_animation(const String &p_animation_name) const;
+	PackedStringArray get_animations();
+
+	String get_current_animation_on_layer(int p_layer) const;
+	String get_current_animation_in_group(const String &p_group_name) const;
+
+	float tell_animation(const String &p_animation_name) const;
+	void seek_animation(const String &p_animation_name, float p_progress);
+
+	bool is_playing() const;
+	void play(const String &p_animation_name, int p_loop_count = -1);
+
+	void play_from_time(const String &p_animation_name, float p_time, int p_loop_count = -1);
+	void play_from_progress(const String &p_animation_name, float p_progress, int p_loop_count = -1);
+	void stop(const String &p_animation_name, bool b_reset = false, bool p_recursively = false);
+	void stop_all_animations(bool b_reset = false, bool p_recursively = false);
+	void fade_in(const String &p_animation_name, float p_time,
+			int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode);
+
+	bool has_slot(const String &p_slot_name) const;
+	Ref<DragonBonesSlot> get_slot(const String &p_slot_name);
+	SlotsDictionary get_slots();
+
+	ConstraintsDictionary get_ik_constraints();
+	void set_ik_constraint(const String &p_name, Vector2 p_position);
+	void set_ik_constraint_bend_positive(const String &p_name, bool p_bend_positive);
+
+	BonesDictionary get_bones();
+	Ref<DragonBonesBone> get_bone(const String &p_name);
+
+	Rect2 get_rect() const;
+	Rect2 get_global_rect() const;
+
+	// setget
+	void set_current_animation(const String &p_animation);
+	String get_current_animation() const;
+
+	void set_animation_progress(float p_progress);
+	float get_animation_progress() const;
+
+	void set_flip_x_(bool p_flip_x) { set_flip_x(p_flip_x); }
+	void set_flip_x(bool p_flip_x, bool p_recursively = false);
+	bool is_flipped_x() const;
+
+	void set_flip_y_(bool p_flip_y) { set_flip_y(p_flip_y); }
+	void set_flip_y(bool p_flip_y, bool p_recursively = false);
+	bool is_flipped_y() const;
+
+	Ref<Texture2D> get_texture_override() const;
+	void set_texture_override(const Ref<Texture2D> &p_texture_override);
 
 private:
 	bool is_armature_valid() const { return armature != nullptr && armature->is_valid(); }
@@ -134,14 +162,12 @@ private:
 	void reset();
 	void rebuild_armature();
 
-	void _set_process(bool p_process, bool p_force = false);
-	// void _on_resource_changed();
-
 	void set_armature_settings(const Dictionary &p_settings) const;
 	Dictionary get_armature_settings() const;
 
 	static HashMap<CanvasItemMaterial::BlendMode, Ref<CanvasItemMaterial>> blend_materials;
 	static RID get_blend_material(CanvasItemMaterial::BlendMode p_blend_mode);
+
 #ifdef TOOLS_ENABLED
 	mutable Ref<DragonBonesArmatureProxy> armature_ref;
 #endif // TOOLS_ENABLED
@@ -149,4 +175,5 @@ private:
 
 } //namespace godot
 
-VARIANT_ENUM_CAST(godot::DragonBones::AnimationCallbackModeProcess);
+VARIANT_ENUM_CAST(godot::DragonBonesArmatureView::AnimationCallbackModeProcess);
+VARIANT_ENUM_CAST(godot::DragonBonesArmatureView::AnimFadeOutMode);

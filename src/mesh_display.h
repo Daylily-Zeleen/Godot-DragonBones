@@ -1,6 +1,6 @@
 #pragma once
 
-#include <godot_dragonbones.h>
+#include <godot_dragon_bones.h>
 
 #include <dragonBones/core/BaseObject.h>
 #include <godot_cpp/classes/canvas_item_material.hpp>

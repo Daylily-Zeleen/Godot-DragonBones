@@ -8,11 +8,15 @@
 
 config_version=5
 
+[Godot_DragonBones]
+
+auto_generate_dbfactory=true
+
 [application]
 
 config/name="Demo"
 run/main_scene="res://dragonbones_demo/demo.tscn"
-config/features=PackedStringArray("4.2", "GL Compatibility")
+config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [editor_plugins]
 

@@ -1,12 +1,12 @@
 # Godot-DragonBones Plugin
 
-![image](demo/addons/gddragonbones/doc/doc_icon.png)
+![image](demo/addons/godot_dragon_bones.daylily-zeleen/doc/doc_icon.png)
 
 [Click here to refer English readme](README.md).
 
 一个为 Godot 添加 DragonBones 功能的 GDExtension 插件。
 
-![image](demo/addons/gddragonbones/doc/1.PNG)
+![image](demo/addons/godot_dragon_bones.daylily-zeleen/doc/1.PNG)
 
 ## 相关连接
 
@@ -43,13 +43,14 @@
 
    更多编译选项请参考[godot-cpp](https://github.com/godotengine/godot-cpp.git)的编译系统。
 
-4. 如果编译成功的话，你将可以在`demo/addons/gddragonbones`获取到编译好的插件。
+4. 如果编译成功的话，你将可以在`demo/addons/godot_dragon_bones.daylily-zeleen`获取到编译好的插件。
 
 ## 运行示例项目
 
 **"master"分支不包含编译好的库，直接克隆或作为zip档下载是无法直接运行”demo“中的示例！**
 
 为了正常运行自带的示例，有以下3种方式：
+
 1. 根据上一Part"[如何编译](#如何编译)"进行编译。
 2. 从[发布页面](https://github.com/Daylily-Zeleen/Godot-DragonBones/releases)下载合适的发布版本，并安装到"demo"项目中。
 3. 打开"demo"文件夹中的工程，忽略错误与警告，到 Asset Library 中使用 "Godot-DragonBones" 作为关键词搜索该插件并安装，再重启编辑器即可。
@@ -66,19 +67,18 @@
 
 1. 改为4.x用的GDExtension。
 2. 实现编辑器导入插件以供自动导入龙骨相关文件。
-3. 导入资源为`DragonBonesFoctory`![image](demo/addons/gddragonbones/icons/DragonBonesWhite.png):
+3. 导入资源为`DragonBonesFactory`![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesFactory.png):
    * 单个工厂资源可以指定多个龙骨数据和图集描述数据文件
-   * 可在`DragonBones`节点中指定要从`DragonBonesFoctory`实例化的龙骨数据名称和相应的皮肤名称
-   * 如果识别到合适的龙骨资源(xxx_ske.json/dbbin 与 xxx_tex.json)时将在同目录下生成对应的工厂资源文件(xxx_ske.dbfactory)
-4. `DragonBones`![image](demo/addons/gddragonbones/icons/DragonBonesBlue.png)节点:
-   * 播放动画相关的方法只对主`DragonBonesArmature`进行操作，停止播放则递归对所有`DragonBonesArmature`操作
-   * 其他属性则对所有的`DragonBonesArmature`操作
-    由于龙骨对动画的操作粒度是针对某一个`Armature`，因此不建议直接对`DragonBones`进行动画相关的控制。
-5. `DragonBonesArmature`![image](demo/addons/gddragonbones/icons/DragonBonesBlue.png)节点:
-   * **由`DragonBones`根据设定从`DragonBonesFoctory`进行实例化，不应该手动创建**。
-   * 在编辑器中,作为`DragonBones`的"armature"属性以`DragonBonesArmatureProxy`类型进行设置,如果有子Armature，则会用有一个"sub_armatures"属性可供编辑（所有一切编辑设置将会保存在场景数据中，实例化时将被正确设置倒相应的`DragonBonesArmature`上）。
+   * 可在`DragonBonesArmatureView`节点中指定要从`DragonBonesFoctory`实例化的龙骨数据名称和相应的皮肤名称
+   * 如果识别到合适的龙骨资源(xxx_ske.json/dbbin 与 xxx_tex.json)时将在同目录下生成对应的工厂资源文件(xxx_ske.dbfactory)(默认关闭，可在项目设置中使用`Godot Dragon Bones/auto_generate_dbfactory`进行开启)
+4. `DragonBonesArmatureView`![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesBlue.png)节点:
+   * 龙骨 Armature 的显示节点。
+   * 可通过`get_armature()`获取`DragonBonesArmature`实例。
+5. `DragonBonesArmature`![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesArmature.png):
+   * **由`DragonBonesArmatureView`根据设定从`DragonBonesFoctory`进行实例化，不应该手动创建**。
+   * 在编辑器中,作为`DragonBonesArmatureView`的"armature"属性以`DragonBonesArmatureProxy`类型进行设置,如果有子Armature，则会用有一个"sub_armatures"属性可供编辑（所有一切编辑设置将会保存在场景数据中，实例化时将被正确设置倒相应的`DragonBonesArmature`上）。
    * **千万不要手动释放！否则将导致崩溃！**
-6. `DragonBonesArmatureProxy`**仅供编辑器使用，不要自行实例化，也不要访问相关对象（如`DragonBones`的"armature"与`DragonBonesArmatureProxy`的"sub_armatures"属性。）**
+6. `DragonBonesArmatureProxy`**仅供编辑器使用，不要自行实例化，也不要访问相关对象（如`DragonBonesArmatureView`的"armature"与`DragonBonesArmatureProxy`的"sub_armatures"属性。）**
 7. 可从`DragonBonesArmature`访问其中的`DragonBonesSlot`和`DragonBonesBone`进行一些高级操作（该部分没有测试，个人项目没有需求）。
 8. 没有时间编写更详细的说明，具体请翻看"src/"下的源码。
 

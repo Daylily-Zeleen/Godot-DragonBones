@@ -341,6 +341,11 @@ void Slot_GD::_onClear() {
 	Slot::_onClear();
 
 	_textureScale = 1.0f;
+	if (wrapper.is_valid()) {
+		// 清除包装对象对自身引用
+		wrapper->slot = nullptr;
+		wrapper.unref();
+	}
 }
 
 /* GODOT CLASS WRAPPER FOR GIVING SCRIPT ACCESS */

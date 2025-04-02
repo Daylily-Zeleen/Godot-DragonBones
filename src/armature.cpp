@@ -7,7 +7,8 @@
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/variant/transform2d.hpp>
 
-#include "dragonbones.h"
+#include "armature_view.h"
+#include "dragon_bones.h"
 #include "event_object.h"
 #include "mesh_display.h"
 
@@ -39,16 +40,6 @@ void DragonBonesArmature::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("has_slot", "slot_name"), &DragonBonesArmature::has_slot);
 	ClassDB::bind_method(D_METHOD("get_slot", "slot_name"), &DragonBonesArmature::get_slot);
 	ClassDB::bind_method(D_METHOD("get_slots"), &DragonBonesArmature::get_slots);
-
-	ClassDB::bind_method(D_METHOD("set_slot_display_index", "slot_name", "index"), &DragonBonesArmature::set_slot_display_index);
-	ClassDB::bind_method(D_METHOD("set_slot_display_by_item_name", "slot_name", "item_name"), &DragonBonesArmature::set_slot_display_by_item_name);
-	ClassDB::bind_method(D_METHOD("set_all_slots_by_item_name", "item_name"), &DragonBonesArmature::set_all_slots_by_item_name);
-	ClassDB::bind_method(D_METHOD("get_slot_display_index", "slot_name"), &DragonBonesArmature::get_slot_display_index);
-	ClassDB::bind_method(D_METHOD("get_total_items_in_slot", "slot_name"), &DragonBonesArmature::get_total_items_in_slot);
-	ClassDB::bind_method(D_METHOD("cycle_next_item_in_slot", "slot_name"), &DragonBonesArmature::cycle_next_item_in_slot);
-	ClassDB::bind_method(D_METHOD("cycle_previous_item_in_slot", "slot_name"), &DragonBonesArmature::cycle_previous_item_in_slot);
-	ClassDB::bind_method(D_METHOD("get_slot_display_color_multiplier", "slot_name"), &DragonBonesArmature::get_slot_display_color_multiplier);
-	ClassDB::bind_method(D_METHOD("set_slot_display_color_multiplier", "slot_name", "color"), &DragonBonesArmature::set_slot_display_color_multiplier);
 
 	ClassDB::bind_method(D_METHOD("get_ik_constraints"), &DragonBonesArmature::get_ik_constraints);
 	ClassDB::bind_method(D_METHOD("set_ik_constraint", "constraint_name", "new_position"), &DragonBonesArmature::set_ik_constraint);
@@ -122,7 +113,12 @@ void DragonBonesArmature::dispatchDBEvent(const std::string &p_type, dragonBones
 	}
 
 	ERR_FAIL_NULL(p_value);
-	emit_signal(SNAME("event_dispatched"), Ref<DragonBonesEventObject>(memnew(DragonBonesEventObject(p_value))));
+	Ref<DragonBonesEventObject> event_object{ memnew(DragonBonesEventObject(p_value)) };
+	emit_signal(SNAME("event_dispatched"), event_object);
+
+	if (armature_view) {
+		armature_view->dispatch_event(event_object);
+	}
 }
 
 void DragonBonesArmature::for_each_armature_(const Callable &p_action) {
@@ -132,8 +128,8 @@ void DragonBonesArmature::for_each_armature_(const Callable &p_action) {
 }
 
 void DragonBonesArmature::queue_redraw() const {
-	if (dragon_bones) {
-		dragon_bones->queue_redraw();
+	if (armature_view) {
+		armature_view->queue_redraw();
 	}
 }
 
@@ -192,6 +188,7 @@ Rect2 DragonBonesArmature::get_rect() const {
 void DragonBonesArmature::advance(float p_delta, bool p_recursively) {
 	if (armature_instance) {
 		armature_instance->advanceTime(p_delta);
+		DragonBones::get_singleton()->flush();
 	}
 
 	if (p_recursively) {
@@ -205,9 +202,9 @@ void DragonBonesArmature::set_current_animation(const String &p_animation) {
 	if (p_animation == "[none]" || p_animation.is_empty()) {
 		stop(get_current_animation());
 	} else if (!is_playing()) {
-		play(p_animation, dragon_bones->get_animation_loop_count());
+		play(p_animation, armature_view->get_animation_loop_count());
 	} else if (get_current_animation() != p_animation) {
-		play(p_animation, dragon_bones->get_animation_loop_count());
+		play(p_animation, armature_view->get_animation_loop_count());
 	} else {
 		// 相同动画，无需响应
 	}
@@ -366,124 +363,6 @@ Ref<DragonBonesSlot> DragonBonesArmature::get_slot(const String &p_slot_name) {
 	return it == slots.end() ? Ref<DragonBonesSlot>{} : it->second;
 }
 
-void DragonBonesArmature::set_slot_display_index(const String &p_slot_name, int p_index) {
-	if (!has_slot(p_slot_name)) {
-		WARN_PRINT("Slot " + p_slot_name + " doesn't exist");
-		return;
-	}
-
-	getSlot(p_slot_name)->setDisplayIndex(p_index);
-}
-
-void DragonBonesArmature::set_slot_display_by_item_name(const String &p_slot_name, const String &p_item_name) {
-	if (!has_slot(p_slot_name)) {
-		WARN_PRINT("Slot " + p_slot_name + " doesn't exist");
-		return;
-	}
-
-	const std::vector<DisplayData *> *rawData = getSlot(p_slot_name)->getRawDisplayDatas();
-
-	// we only want to update the slot if there's a choice
-	if (rawData->size() > 1) {
-		const char *desired_item = p_item_name.utf8().get_data();
-		std::string NONE_STRING("none");
-
-		if (NONE_STRING.compare(desired_item) == 0) {
-			getSlot(p_slot_name)->setDisplayIndex(-1);
-		}
-
-		for (int i = 0; i < rawData->size(); i++) {
-			DisplayData *display_data = rawData->at(i);
-
-			if (display_data->name.compare(desired_item) == 0) {
-				getSlot(p_slot_name)->setDisplayIndex(i);
-				return;
-			}
-		}
-	} else {
-		WARN_PRINT("Slot " + p_slot_name + " has only 1 item; refusing to set slot");
-		return;
-	}
-
-	WARN_PRINT("Slot " + p_slot_name + " has no item called \"" + p_item_name);
-}
-
-void DragonBonesArmature::set_all_slots_by_item_name(const String &p_item_name) {
-	for (Slot *slot : getArmature()->getSlots()) {
-		set_slot_display_by_item_name(to_gd_str(slot->getName()), p_item_name);
-	}
-}
-
-int DragonBonesArmature::get_slot_display_index(const String &p_slot_name) {
-	if (!has_slot(p_slot_name)) {
-		WARN_PRINT("Slot " + p_slot_name + " doesn't exist");
-		return -1;
-	}
-	return armature_instance->getSlot(to_std_str(p_slot_name))->getDisplayIndex();
-}
-
-int DragonBonesArmature::get_total_items_in_slot(const String &p_slot_name) {
-	if (!has_slot(p_slot_name)) {
-		WARN_PRINT("Slot " + p_slot_name + " doesn't exist");
-		return -1;
-	}
-	return armature_instance->getSlot(to_std_str(p_slot_name))->getDisplayList().size();
-}
-
-void DragonBonesArmature::cycle_next_item_in_slot(const String &p_slot_name) {
-	if (!has_slot(p_slot_name)) {
-		WARN_PRINT("Slot " + p_slot_name + " doesn't exist");
-		return;
-	}
-
-	int current_slot = get_slot_display_index(p_slot_name);
-	current_slot++;
-
-	set_slot_display_index(p_slot_name, current_slot < get_total_items_in_slot(p_slot_name) ? current_slot : -1);
-}
-
-void DragonBonesArmature::cycle_previous_item_in_slot(const String &p_slot_name) {
-	if (!has_slot(p_slot_name)) {
-		WARN_PRINT("Slot " + p_slot_name + " doesn't exist");
-		return;
-	}
-
-	int current_slot = get_slot_display_index(p_slot_name);
-	current_slot--;
-
-	set_slot_display_index(p_slot_name, current_slot >= -1 ? current_slot : get_total_items_in_slot(p_slot_name) - 1);
-}
-
-Color DragonBonesArmature::get_slot_display_color_multiplier(const String &p_slot_name) {
-	if (!has_slot(p_slot_name)) {
-		WARN_PRINT("Slot " + p_slot_name + " doesn't exist");
-		return Color(-1, -1, -1, -1);
-	}
-	ColorTransform transform(armature_instance->getSlot(to_std_str(p_slot_name))->_colorTransform);
-
-	Color return_color;
-	return_color.r = transform.redMultiplier;
-	return_color.g = transform.greenMultiplier;
-	return_color.b = transform.blueMultiplier;
-	return_color.a = transform.alphaMultiplier;
-	return return_color;
-}
-
-void DragonBonesArmature::set_slot_display_color_multiplier(const String &p_slot_name, const Color &p_color) {
-	if (!has_slot(p_slot_name)) {
-		WARN_PRINT("Slot " + p_slot_name + " doesn't exist");
-		return;
-	}
-
-	ColorTransform _new_color;
-	_new_color.redMultiplier = p_color.r;
-	_new_color.greenMultiplier = p_color.g;
-	_new_color.blueMultiplier = p_color.b;
-	_new_color.alphaMultiplier = p_color.a;
-
-	armature_instance->getSlot(to_std_str(p_slot_name))->_setColor(_new_color);
-}
-
 void DragonBonesArmature::set_flip_x(bool p_flip_x, bool p_recursively) {
 	getArmature()->setFlipX(p_flip_x);
 	getArmature()->advanceTime(0);
@@ -526,8 +405,8 @@ void DragonBonesArmature::set_texture_override(const Ref<Texture2D> &p_texture_o
 	texture_override = p_texture_override;
 }
 
-Dictionary DragonBonesArmature::get_ik_constraints() {
-	Dictionary dict;
+ConstraintsDictionary DragonBonesArmature::get_ik_constraints() {
+	ConstraintsDictionary dict;
 
 	for (auto &constraint : getArmature()->getArmatureData()->constraints) {
 		dict[to_gd_str(constraint.first)] = Vector2(constraint.second->target->transform.x, constraint.second->target->transform.y);
@@ -615,8 +494,8 @@ void DragonBonesArmature::release() {
 		dbClear();
 	}
 
-	if (dragon_bones) {
-		dragon_bones = nullptr;
+	if (armature_view) {
+		armature_view = nullptr;
 	}
 }
 
