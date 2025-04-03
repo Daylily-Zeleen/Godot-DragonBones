@@ -73,7 +73,7 @@ This repository is improved from [gddragonbones](https://github.com/sanja-sa/gdd
 4. `DragonBonesArmatureView` ![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesBlue.png) node:
    * The display node of DragonBones armature.
    * You can get its `DragonBonesArmature` instance by `get_armature()`.
-5. `DragonBonesArmature` ![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesBlue.png) node:
+5. `DragonBonesArmature` ![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesArmature.png) node:
    * **Instantiated by `DragonBonesArmatureView` node which according to `DragonBonesFactory`, don't instantiate it by yourself.**
    * **Don't free by yourself, it will lead to crash!!**
    * In editor, a proxy property in `DragonBonesArmatureView` node, which it's type is `DragonBonesArmatureProxy`, name is "armature", will be indicated as the `DragonBonesArmature` node. If the armature have child armatures, it will have a "sub_armatures" property in `DragonBonesArmatureProxy`.
