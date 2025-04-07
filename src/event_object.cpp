@@ -5,6 +5,10 @@
 #include "armature.h"
 
 namespace godot {
+DragonBonesUserData::DragonBonesUserData(dragonBones::UserData *p_user_data) :
+		user_data(p_user_data) {
+}
+
 PackedInt32Array DragonBonesUserData::get_ints() const {
 	PackedInt32Array ret;
 	if (!user_data) {
@@ -60,59 +64,57 @@ void DragonBonesUserData::set_strings(const PackedStringArray &) {
 	ERR_FAIL_MSG("\"strings\" is readonly.");
 }
 
-int DragonBonesUserData::get_int(DragonBonesUserData::v_size_t p_index) const {
-	if (!user_data) {
-		return {};
-	}
-	ERR_FAIL_INDEX_V(p_index, user_data->ints.size(), {});
-	return user_data->ints[p_index];
-}
+// int DragonBonesUserData::get_int(DragonBonesUserData::v_size_t p_index) const {
+// 	if (!user_data) {
+// 		return {};
+// 	}
+// 	ERR_FAIL_INDEX_V(p_index, user_data->ints.size(), {});
+// 	return user_data->ints[p_index];
+// }
 
-float DragonBonesUserData::get_float(DragonBonesUserData::v_size_t p_index) const {
-	if (!user_data) {
-		return {};
-	}
-	ERR_FAIL_INDEX_V(p_index, user_data->floats.size(), {});
-	return user_data->floats[p_index];
-}
+// float DragonBonesUserData::get_float(DragonBonesUserData::v_size_t p_index) const {
+// 	if (!user_data) {
+// 		return {};
+// 	}
+// 	ERR_FAIL_INDEX_V(p_index, user_data->floats.size(), {});
+// 	return user_data->floats[p_index];
+// }
 
-String DragonBonesUserData::get_string(DragonBonesUserData::v_size_t p_index) const {
-	if (!user_data) {
-		return {};
-	}
-	ERR_FAIL_INDEX_V(p_index, user_data->strings.size(), {});
-	return to_gd_str(user_data->strings[p_index]);
-}
+// String DragonBonesUserData::get_string(DragonBonesUserData::v_size_t p_index) const {
+// 	if (!user_data) {
+// 		return {};
+// 	}
+// 	ERR_FAIL_INDEX_V(p_index, user_data->strings.size(), {});
+// 	return to_gd_str(user_data->strings[p_index]);
+// }
 
-DragonBonesUserData::v_size_t DragonBonesUserData::get_ints_size() const {
-	if (!user_data) {
-		return {};
-	}
-	return user_data->ints.size();
-}
-DragonBonesUserData::v_size_t DragonBonesUserData::get_floats_size() const {
-	if (!user_data) {
-		return {};
-	}
-	return user_data->floats.size();
-}
-DragonBonesUserData::v_size_t DragonBonesUserData::get_strings_size() const {
-	if (!user_data) {
-		return {};
-	}
-	return user_data->strings.size();
-}
+// DragonBonesUserData::v_size_t DragonBonesUserData::get_ints_size() const {
+// 	if (!user_data) {
+// 		return {};
+// 	}
+// 	return user_data->ints.size();
+// }
+// DragonBonesUserData::v_size_t DragonBonesUserData::get_floats_size() const {
+// 	if (!user_data) {
+// 		return {};
+// 	}
+// 	return user_data->floats.size();
+// }
+// DragonBonesUserData::v_size_t DragonBonesUserData::get_strings_size() const {
+// 	if (!user_data) {
+// 		return {};
+// 	}
+// 	return user_data->strings.size();
+// }
 
 void DragonBonesUserData::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("has_data"), &DragonBonesUserData::has_data);
+	// ClassDB::bind_method(D_METHOD("get_ints_size"), &DragonBonesUserData::get_ints_size);
+	// ClassDB::bind_method(D_METHOD("get_floats_size"), &DragonBonesUserData::get_floats_size);
+	// ClassDB::bind_method(D_METHOD("get_strings_size"), &DragonBonesUserData::get_strings_size);
 
-	ClassDB::bind_method(D_METHOD("get_ints_size"), &DragonBonesUserData::get_ints_size);
-	ClassDB::bind_method(D_METHOD("get_floats_size"), &DragonBonesUserData::get_floats_size);
-	ClassDB::bind_method(D_METHOD("get_strings_size"), &DragonBonesUserData::get_strings_size);
-
-	ClassDB::bind_method(D_METHOD("get_int", "index"), &DragonBonesUserData::get_int, DEFVAL(0));
-	ClassDB::bind_method(D_METHOD("get_float", "index"), &DragonBonesUserData::get_float, DEFVAL(0));
-	ClassDB::bind_method(D_METHOD("get_string", "index"), &DragonBonesUserData::get_string, DEFVAL(0));
+	// ClassDB::bind_method(D_METHOD("get_int", "index"), &DragonBonesUserData::get_int, DEFVAL(0));
+	// ClassDB::bind_method(D_METHOD("get_float", "index"), &DragonBonesUserData::get_float, DEFVAL(0));
+	// ClassDB::bind_method(D_METHOD("get_string", "index"), &DragonBonesUserData::get_string, DEFVAL(0));
 
 	ClassDB::bind_method(D_METHOD("get_ints"), &DragonBonesUserData::get_ints);
 	ClassDB::bind_method(D_METHOD("set_ints_readonly", "_val"), &DragonBonesUserData::set_ints);
