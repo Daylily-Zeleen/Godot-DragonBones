@@ -30,6 +30,7 @@ plugin_bin_folder = f"{plugin_folder}/bin"
 
 extension_file = "demo/addons/godot_dragon_bones.daylily-zeleen/godot_dragon_bones.gdextension"
 
+generated_doc_data_file :str = "gen/doc_data.cpp"
 
 def add_sources_recursively(dir: str, glob_sources, exclude_folder: list = []):
     for f in os.listdir(dir):
@@ -48,6 +49,28 @@ if env.debug_features:
 
 add_sources_recursively("src/", sources, ["editor"])
 add_sources_recursively("thirdparty/", sources)
+
+
+def _generate_doc_data() -> list[str]:
+    # doc (godot-cpp 4.3 以上)
+    if env["target"] in ["editor", "template_debug"]:
+        try:
+            if not env.GetOption('clean'):
+                return env.GodotCPPDocData(generated_doc_data_file, source=env.Glob("doc_classes/*.xml"))
+            else:
+                return [generated_doc_data_file]
+        except AttributeError:
+            print("Not including class reference as we're targeting a pre-4.3 baseline.")
+    return []
+
+
+doc_data = _generate_doc_data()
+if len(doc_data) > 0:
+    sources.append(doc_data)
+
+if env.get("is_msvc", False):
+    env.Append(CXXFLAGS=["/bigobj"])
+
 
 if env["platform"] == "macos":
     library = env.SharedLibrary(
@@ -76,7 +99,6 @@ compile_target = env["target"]
 suffix = env["suffix"]
 ios_simulator = env["ios_simulator"]
 share_lib_suffix = env["SHLIBSUFFIX"]
-
 
 def copy_file(from_path, to_path):
     if not os.path.exists(os.path.dirname(to_path)):
