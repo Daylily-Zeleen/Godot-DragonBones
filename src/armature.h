@@ -233,3 +233,4 @@ private:
 };
 #endif // TOOLS_ENABLED
 } //namespace godot
+VARIANT_ENUM_CAST(godot::DragonBonesArmature::AnimFadeOutMode);

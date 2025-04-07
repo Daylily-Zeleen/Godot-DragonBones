@@ -176,4 +176,3 @@ private:
 } //namespace godot
 
 VARIANT_ENUM_CAST(godot::DragonBonesArmatureView::AnimationCallbackModeProcess);
-VARIANT_ENUM_CAST(godot::DragonBonesArmatureView::AnimFadeOutMode);
