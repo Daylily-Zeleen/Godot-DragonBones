@@ -23,3 +23,4 @@ bin/
 
 __pycache__/
 .godot/
+gen/

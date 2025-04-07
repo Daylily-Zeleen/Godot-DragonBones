@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DragonBonesArmatureView" inherits="Node2D" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		The visual node of [DragonBonesArmature].
+	</brief_description>
+	<description>
+		The visual node of [DragonBonesArmature], instantiate from [DragonBonesFactory].
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="advance">
+			<return type="void" />
+			<param index="0" name="delta" type="float" />
+			<description>
+				Wrapper of [method DragonBonesArmature.advance].
+			</description>
+		</method>
+		<method name="fade_in">
+			<return type="void" />
+			<param index="0" name="animation_name" type="String" />
+			<param index="1" name="time" type="float" />
+			<param index="2" name="loop" type="int" />
+			<param index="3" name="layer" type="int" />
+			<param index="4" name="group" type="String" />
+			<param index="5" name="fade_out_mode" type="int" enum="DragonBonesArmatureView.AnimFadeOutMode" />
+			<description>
+				Wrapper of [method DragonBonesArmature.fade_in].
+			</description>
+		</method>
+		<method name="get_animations">
+			<return type="PackedStringArray" />
+			<description>
+				Wrapper of [method DragonBonesArmature.get_animations].
+			</description>
+		</method>
+		<method name="get_armature">
+			<return type="DragonBonesArmature" />
+			<description>
+				Return the [DragonBonesArmature] instance if valid.
+			</description>
+		</method>
+		<method name="get_bone">
+			<return type="DragonBonesBone" />
+			<param index="0" name="bone_name" type="String" />
+			<description>
+				Wrapper of [method DragonBonesArmature.get_bone].
+			</description>
+		</method>
+		<method name="get_bones">
+			<return type="Dictionary" />
+			<description>
+				Wrapper of [method DragonBonesArmature.get_bones].
+			</description>
+		</method>
+		<method name="get_global_rect" qualifiers="const">
+			<return type="Rect2" />
+			<description>
+				Return the global bounding rect.
+			</description>
+		</method>
+		<method name="get_ik_constraints" experimental="May be changed in future.">
+			<return type="Dictionary" />
+			<description>
+				Wrapper of [method DragonBonesArmature.get_ik_constraints].
+			</description>
+		</method>
+		<method name="get_rect" qualifiers="const">
+			<return type="Rect2" />
+			<description>
+				Wrapper of [method DragonBonesArmature.get_rect].
+			</description>
+		</method>
+		<method name="get_slot">
+			<return type="DragonBonesSlot" />
+			<param index="0" name="slot_name" type="String" />
+			<description>
+				Wrapper of [method DragonBonesArmature.get_slot].
+			</description>
+		</method>
+		<method name="get_slots">
+			<return type="Dictionary" />
+			<description>
+				Wrapper of [method DragonBonesArmature.get_slots].
+			</description>
+		</method>
+		<method name="has_animation" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="animation_name" type="String" />
+			<description>
+				Wrapper of [method DragonBonesArmature.has_animation].
+			</description>
+		</method>
+		<method name="has_slot" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="slot_name" type="String" />
+			<description>
+				Wrapper of [method DragonBonesArmature.has_slot].
+			</description>
+		</method>
+		<method name="is_playing" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Wrapper of [method DragonBonesArmature.is_playing].
+			</description>
+		</method>
+		<method name="play">
+			<return type="void" />
+			<param index="0" name="animation_name" type="String" />
+			<param index="1" name="loop_count" type="int" default="-1" />
+			<description>
+				Wrapper of [method DragonBonesArmature.play].
+			</description>
+		</method>
+		<method name="play_from_progress">
+			<return type="void" />
+			<param index="0" name="animation_name" type="String" />
+			<param index="1" name="progress" type="float" />
+			<param index="2" name="loop_count" type="int" default="-1" />
+			<description>
+				Wrapper of [method DragonBonesArmature.play_from_progress].
+			</description>
+		</method>
+		<method name="play_from_time">
+			<return type="void" />
+			<param index="0" name="animation_name" type="String" />
+			<param index="1" name="time" type="float" />
+			<param index="2" name="loop_count" type="int" default="-1" />
+			<description>
+				Wrapper of [method DragonBonesArmature.play_from_time].
+			</description>
+		</method>
+		<method name="seek_animation">
+			<return type="void" />
+			<param index="0" name="animation_name" type="String" />
+			<param index="1" name="progress" type="float" />
+			<description>
+				Wrapper of [method DragonBonesArmature.seek_animation].
+			</description>
+		</method>
+		<method name="set_ik_constraint" experimental="May be changed in future.">
+			<return type="void" />
+			<param index="0" name="constraint_name" type="String" />
+			<param index="1" name="new_position" type="Vector2" />
+			<description>
+				Wrapper of [method DragonBonesArmature.set_ik_constraint].
+			</description>
+		</method>
+		<method name="set_ik_constraint_bend_positive" experimental="May be changed in future.">
+			<return type="void" />
+			<param index="0" name="constraint_name" type="String" />
+			<param index="1" name="bend_positive" type="bool" />
+			<description>
+				Wrapper of [method DragonBonesArmature.set_ik_constraint_bend_positive].
+			</description>
+		</method>
+		<method name="stop">
+			<return type="void" />
+			<param index="0" name="animation_name" type="String" />
+			<param index="1" name="reset" type="bool" />
+			<param index="2" name="recursively" type="bool" default="false" />
+			<description>
+				Wrapper of [method DragonBonesArmature.stop].
+			</description>
+		</method>
+		<method name="stop_all_animations">
+			<return type="void" />
+			<param index="0" name="reset" type="bool" />
+			<param index="1" name="recursively" type="bool" default="false" />
+			<description>
+				Wrapper of [method DragonBonesArmature.stop_all_animations].
+			</description>
+		</method>
+		<method name="tell_animation" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="animation_name" type="String" />
+			<description>
+				Wrapper of [method DragonBonesArmature.tell_animation].
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="active" type="bool" setter="set_active" getter="is_active" default="true">
+			If [code true], the armature's animation will be progressed.
+		</member>
+		<member name="animation_callback_mode_process" type="int" setter="set_callback_mode_process" getter="get_callback_mode_process" enum="DragonBonesArmatureView.AnimationCallbackModeProcess" default="1">
+			The process mode of animation, see [enum AnimationCallbackModeProcess].
+		</member>
+		<member name="animation_loop_count" type="int" setter="set_animation_loop_count" getter="get_animation_loop_count" default="0">
+			Animation loop count, equal or less than 0 means infinite loop.
+		</member>
+		<member name="animation_progress" type="float" setter="set_animation_progress" getter="get_animation_progress">
+			Wrapper of [member DragonBonesArmature.animation_progress].
+		</member>
+		<member name="animation_time_scale" type="float" setter="set_time_scale" getter="get_time_scale" default="1.0">
+			The time scale of animation.
+		</member>
+		<member name="current_animation" type="String" setter="set_current_animation" getter="get_current_animation">
+			Wrapper of [member DragonBonesArmature.current_animation].
+		</member>
+		<member name="debug" type="bool" setter="set_debug" getter="is_debug" default="false">
+			Draw debug mesh if [code true].
+			NOTE: only available in debug build.
+		</member>
+		<member name="factory" type="DragonBonesFactory" setter="set_factory" getter="get_factory">
+			The factory to create armature.
+		</member>
+		<member name="flip_x" type="bool" setter="set_flip_x_" getter="is_flipped_x">
+			Wrapper of [member DragonBonesArmature.flip_x].
+		</member>
+		<member name="flip_y" type="bool" setter="set_flip_y_" getter="is_flipped_y">
+			Wrapper of [member DragonBonesArmature.flip_y].
+		</member>
+		<member name="instantiate_armature_name" type="String" setter="set_instantiate_armature_name" getter="get_instantiate_armature_name" default="&quot;&quot;">
+			The armature name to instantiate. Set [member factory] first, available armature names can be gotten can be gotten from [member factory] in inspector if [member instantiate_dragon_bones_data_name] is available in [member factory].
+		</member>
+		<member name="instantiate_dragon_bones_data_name" type="String" setter="set_instantiate_dragon_bones_data_name" getter="get_instantiate_dragon_bones_data_name" default="&quot;&quot;">
+			The dragon bones data name to instantiate. Set [member factory] first, available dragon bones data names can be gotten from [member factory] in inspector.
+		</member>
+		<member name="instantiate_skin_name" type="String" setter="set_instantiate_skin_name" getter="get_instantiate_skin_name" default="&quot;&quot;">
+			The skin name to instantiate. Set [member factory] first, available skin names can be gotten from [member factory] in inspector if [member instantiate_dragon_bones_data_name] and [member instantiate_dragon_bones_data_name] area available in [member factory].
+		</member>
+		<member name="texture_override" type="Texture2D" setter="set_texture_override" getter="get_texture_override">
+			Wrapper of [member DragonBonesArmature.texture_override].
+		</member>
+	</members>
+	<signals>
+		<signal name="event_dispatched">
+			<param index="0" name="event_object" type="DragonBonesEventObject" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</signal>
+	</signals>
+	<constants>
+		<constant name="ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS" value="0" enum="AnimationCallbackModeProcess">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="ANIMATION_CALLBACK_MODE_PROCESS_IDLE" value="1" enum="AnimationCallbackModeProcess">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="ANIMATION_CALLBACK_MODE_PROCESS_MANUAL" value="2" enum="AnimationCallbackModeProcess">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="AnimFadeOutMode::FADE_OUT_NONE" value="0" enum="AnimFadeOutMode">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="AnimFadeOutMode::FADE_OUT_SAME_LAYER" value="1" enum="AnimFadeOutMode">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="AnimFadeOutMode::FADE_OUT_SAME_GROUP" value="2" enum="AnimFadeOutMode">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="AnimFadeOutMode::FADE_OUT_SAME_LAYER_AND_GROUP" value="3" enum="AnimFadeOutMode">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="AnimFadeOutMode::FADE_OUT_ALL" value="4" enum="AnimFadeOutMode">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="AnimFadeOutMode::FADE_OUT_SINGLE" value="5" enum="AnimFadeOutMode">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+	</constants>
+</class>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DragonBonesUserData" inherits="RefCounted" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Custom user data which defined in DragonBones.
+	</brief_description>
+	<description>
+		Properties are available only when getting from [DragonBonesEventObject] during the callback of [signal DragonBonesArmature.event_dispatched] or [signal DragonBonesArmatureView.event_dispatched].
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="floats" type="PackedFloat32Array" setter="set_floats_readonly" getter="get_floats">
+			Read only, return a copy of the float array. Set this property will push an error.
+		</member>
+		<member name="ints" type="PackedInt32Array" setter="set_ints_readonly" getter="get_ints">
+			Read only, return a copy of the int array. Set this property will push an error.
+		</member>
+		<member name="strings" type="PackedStringArray" setter="set_strings_readonly" getter="get_strings">
+			Read only, return a copy of the string array. Set this property will push an error.
+		</member>
+	</members>
+</class>

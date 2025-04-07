@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DragonBonesFactory" inherits="Resource" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+	</brief_description>
+	<description>
+		TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_loaded_dragon_bones_data_name_list" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="get_loaded_dragon_bones_skin_name_list" qualifiers="const">
+			<return type="PackedStringArray" />
+			<param index="0" name="dragon_bones_data_name" type="String" />
+			<param index="1" name="_unnamed_arg1" type="String" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="dragon_bones_ske_file_list" type="PackedStringArray" setter="set_dragon_bones_ske_file_list" getter="get_dragon_bones_ske_file_list" default="PackedStringArray()">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="texture_atlas_json_file_list" type="PackedStringArray" setter="set_texture_atlas_json_file_list" getter="get_texture_atlas_json_file_list" default="PackedStringArray()">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+	</members>
+</class>

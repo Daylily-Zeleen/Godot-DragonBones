@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DragonBonesBone" inherits="RefCounted" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+	</brief_description>
+	<description>
+		TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_animation_pose" qualifiers="const">
+			<return type="Transform2D" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="get_name" qualifiers="const">
+			<return type="String" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="get_offset" qualifiers="const">
+			<return type="Transform2D" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="get_offset_mode" qualifiers="const">
+			<return type="int" enum="DragonBonesBone.OffsetMode" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="get_origin" qualifiers="const">
+			<return type="Transform2D" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="get_parent" qualifiers="const">
+			<return type="DragonBonesBone" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="is_valid" qualifiers="const">
+			<return type="bool" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="global_position" type="Vector2" setter="set_global_position" getter="get_global_position">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="global_rotation" type="float" setter="set_global_rotation" getter="get_global_rotation">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="global_scale" type="Vector2" setter="set_global_scale" getter="get_global_scale">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="global_transform" type="Transform2D" setter="set_global_transform" getter="get_global_transform">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="position" type="Vector2" setter="set_position" getter="get_position">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="rotation" type="float" setter="set_rotation" getter="get_rotation">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="scale" type="Vector2" setter="set_scale" getter="get_scale">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="transform" type="Transform2D" setter="set_transform" getter="get_transform">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+	</members>
+	<constants>
+		<constant name="OFFSET_MODE_NONE" value="0" enum="OffsetMode">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="OFFSET_MODE_ADDITIVE" value="1" enum="OffsetMode">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="OFFSET_MODE_OVERRIDE" value="2" enum="OffsetMode">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+	</constants>
+</class>

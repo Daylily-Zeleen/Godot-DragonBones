@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DragonBonesEventObject" inherits="RefCounted" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+	</brief_description>
+	<description>
+		TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="armature" type="DragonBonesArmature" setter="set_armature" getter="get_armature">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="bone" type="String" setter="set_bone" getter="get_bone">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="data" type="DragonBonesUserData" setter="set_data" getter="get_data">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="name" type="String" setter="set_name" getter="get_name">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="slot" type="String" setter="set_slot" getter="get_slot">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="time" type="float" setter="set_time" getter="get_time">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="type" type="int" setter="set_type" getter="get_type" enum="DragonBonesEventObject.Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+		<member name="type_text" type="String" setter="set_type_text" getter="get_type_text">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</member>
+	</members>
+	<constants>
+		<constant name="TYPE_ANIM_START" value="0" enum="Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="TYPE_ANIM_LOOP_COMPLETE" value="1" enum="Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="TYPE_ANIM_COMPLETE" value="2" enum="Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="TYPE_ANIM_FADE_IN" value="3" enum="Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="TYPE_ANIM_FADE_IN_COMPLETE" value="4" enum="Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="TYPE_ANIM_FADE_OUT" value="5" enum="Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="TYPE_ANIM_FADE_OUT_COMPLETE" value="6" enum="Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="TYPE_FRAME_EVENT" value="7" enum="Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="TYPE_SOUND_EVENT" value="8" enum="Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="TYPE_CUSTOM" value="9" enum="Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+		<constant name="TYPE_MAX" value="10" enum="Type">
+			TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+		</constant>
+	</constants>
+</class>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DragonBonesSlot" inherits="RefCounted" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+	</brief_description>
+	<description>
+		TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_child_armature">
+			<return type="DragonBonesArmature" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="get_display_color_multiplier">
+			<return type="Color" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="get_display_count">
+			<return type="int" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="get_display_index">
+			<return type="int" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="get_slot_name">
+			<return type="String" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="next_display">
+			<return type="void" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="previous_display">
+			<return type="void" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="set_display_by_name">
+			<return type="void" />
+			<param index="0" name="name" type="String" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="set_display_color_multiplier">
+			<return type="void" />
+			<param index="0" name="color" type="Color" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+		<method name="set_display_index">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
+			</description>
+		</method>
+	</methods>
+</class>
