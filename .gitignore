@@ -13,3 +13,4 @@ src/
 compile_commands.json
 *.obj
 *.pdb
+gen/
