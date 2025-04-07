@@ -42,11 +42,6 @@ def add_sources_recursively(dir: str, glob_sources, exclude_folder: list = []):
             add_sources_recursively(sub_dir, glob_sources, exclude_folder)
 
 
-if env.debug_features:
-    env.Append(CPPDEFINES=["TOOLS_ENABLED"])
-    sources += Glob("src/editor/*.cpp")
-
-
 add_sources_recursively("src/", sources, ["editor"])
 add_sources_recursively("thirdparty/", sources)
 
@@ -64,12 +59,18 @@ def _generate_doc_data() -> list[str]:
     return []
 
 
-doc_data = _generate_doc_data()
-if len(doc_data) > 0:
-    sources.append(doc_data)
+if env.debug_features:
+    env.Append(CPPDEFINES=["TOOLS_ENABLED"])
+    sources += Glob("src/editor/*.cpp")
 
-if env.get("is_msvc", False):
-    env.Append(CXXFLAGS=["/bigobj"])
+
+if env.editor_build:
+    doc_data = _generate_doc_data()
+    if len(doc_data) > 0:
+        sources.append(doc_data)
+
+    if env.get("is_msvc", False):
+        env.Append(CXXFLAGS=["/bigobj"])
 
 
 if env["platform"] == "macos":
