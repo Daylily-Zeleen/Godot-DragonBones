@@ -251,10 +251,6 @@ jobs:
               run: |
                   chmod +x ./generate_xcframework.sh
                   ./generate_xcframework.sh ${{ matrix.target }} debug_symbols=${{ matrix.debug_symbols }}
-                  # scons arch=universal ios_simulator=yes platform=ios target='${{ matrix.target }}' debug_symbols=${{ matrix.debug_symbols }}
-                  # scons arch=arm64 ios_simulator=no platform=ios target='${{ matrix.target }}' debug_symbols=${{ matrix.debug_symbols }}
-                  # xcodebuild -create-xcframework -library ./demo/addons/godot_dragon_bones.daylily-zeleen/bin/libgddragonbones.ios.'${{ matrix.target }}'.a -library ./demo/addons/godot_dragon_bones.daylily-zeleen/bin/libgddragonbones.ios.'${{ matrix.target }}'.simulator.a -output ./demo/addons/godot_dragon_bones.daylily-zeleen/bin/libgddragonbones.ios.'${{ matrix.target }}'.xcframework
-                  # xcodebuild -create-xcframework -library ./godot-cpp/bin/libgodot-cpp.ios.'${{ matrix.target }}'.arm64.a -library ./godot-cpp/bin/libgodot-cpp.ios.'${{ matrix.target }}'.universal.simulator.a  -output ./demo/addons/godot_dragon_bones.daylily-zeleen/bin/libgodot-cpp.ios.'${{ matrix.target }}'.xcframework
 
             - name: Create artifact folder ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
               shell: sh

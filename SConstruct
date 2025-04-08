@@ -116,17 +116,18 @@ def on_complete(target, source, env):
             ),
         )
     elif platform == "ios":
+        # 仅移除 .dev, 路径在生成 xcframework 时矫正
         if ios_simulator:
             copy_file(
                 f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a",
-                f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a".replace(
+                f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a".replace(
                     ".dev.", "."
                 ),
             )
         else:
             copy_file(
                 f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.a",
-                f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.a".replace(
+                f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.a".replace(
                     ".dev.", "."
                 ),
             )
