@@ -64,7 +64,7 @@ if env.debug_features:
     sources += Glob("src/editor/*.cpp")
 
 
-if env.editor_build:
+if False: # env.editor_build:
     doc_data = _generate_doc_data()
     if len(doc_data) > 0:
         sources.append(doc_data)

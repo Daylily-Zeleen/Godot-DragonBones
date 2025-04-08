@@ -31,7 +31,7 @@ jobs:
                       name: 🐧 Linux x86 Debug
                       runner: ubuntu-20.04
                       target: template_debug
-                      debug_symbols: yes
+                      debug_symbols: no # 库太大了
                       platform: linux
                       arch: x86_32
                     - identifier: linux-x86-release
@@ -59,7 +59,7 @@ jobs:
                       name: 🍏 ios arm64 Debug
                       runner: macos-latest
                       target: template_debug
-                      debug_symbols: yes
+                      debug_symbols: no # 库太大了
                       platform: ios
                       arch: arm64
                     - identifier: ios-arm64-release
@@ -87,7 +87,7 @@ jobs:
                       name: 🏁 Windows x86 Debug
                       runner: windows-latest
                       target: template_debug
-                      debug_symbols: yes
+                      debug_symbols: no # 库太大了
                       platform: windows
                       arch: x86_32
                     - identifier: windows-x86-release
@@ -115,7 +115,7 @@ jobs:
                       name: 🤖 Android x86_64 Debug
                       runner: ubuntu-20.04
                       target: template_debug
-                      debug_symbols: yes
+                      debug_symbols: no  # 库太大了
                       platform: android
                       arch: x86_64
                     - identifier: android-x86_64-release
@@ -129,7 +129,7 @@ jobs:
                       name: 🤖 Android arm32 Debug
                       runner: ubuntu-20.04
                       target: template_debug
-                      debug_symbols: yes
+                      debug_symbols: no  # 库太大了
                       platform: android
                       arch: arm32
                     - identifier: android-arm32-release
@@ -143,7 +143,7 @@ jobs:
                       name: 🤖 Android x86_32 Debug
                       runner: ubuntu-20.04
                       target: template_debug
-                      debug_symbols: yes
+                      debug_symbols: no # 库太大了
                       platform: android
                       arch: x86_32
                     - identifier: android-x86_32-release
