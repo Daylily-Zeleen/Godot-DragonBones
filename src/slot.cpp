@@ -59,6 +59,11 @@ void Slot_GD::_updateBlendMode() {
 }
 
 void Slot_GD::_updateColor() {
+	color.r = _colorTransform.redMultiplier;
+	color.g = _colorTransform.greenMultiplier;
+	color.b = _colorTransform.blueMultiplier;
+	color.a = _colorTransform.alphaMultiplier;
+
 	ERR_FAIL_NULL(get_display());
 	get_display()->queue_redraw();
 }
@@ -137,11 +142,10 @@ void Slot_GD::_updateFrame() {
 			const unsigned uvOffset = vertexOffset + (vertexCount << 1);
 
 			frameDisplay->indices.resize(triangleCount * 3);
-			frameDisplay->colors.resize(vertexCount);
+			frameDisplay->colors.resize(vertexCount); // 仅改变数组大小，在绘制前将被合并计算具体颜色
 			frameDisplay->vertices_uv.resize(vertexCount);
 			frameDisplay->vertices.resize(vertexCount);
 			auto indices_ptr = frameDisplay->indices.ptrw();
-			auto verticesColor_ptr = frameDisplay->colors.ptrw();
 			auto verticesUV_ptr = frameDisplay->vertices_uv.ptrw();
 			auto verticesPos_ptr = frameDisplay->vertices.ptrw();
 
@@ -152,7 +156,6 @@ void Slot_GD::_updateFrame() {
 				Point2 __uv;
 				__get_uv_pt(__uv, currentTextureData->rotated, u, v, region, atlas);
 
-				verticesColor_ptr[iH] = Color(1, 1, 1, 1);
 				verticesUV_ptr[iH] = __uv;
 				verticesPos_ptr[iH] = Point2(floatArray[vertexOffset + i],
 						hasFFD * floatArray[vertexOffset + i + 1]);
@@ -168,11 +171,10 @@ void Slot_GD::_updateFrame() {
 		} else {
 			// Normal texture
 			frameDisplay->indices.resize(6);
-			frameDisplay->colors.resize(4);
+			frameDisplay->colors.resize(4); // 仅改变数组大小，在绘制前将被合并计算具体颜色
 			frameDisplay->vertices_uv.resize(4);
 			frameDisplay->vertices.resize(4);
 			auto indices_ptr = frameDisplay->indices.ptrw();
-			auto verticesColor_ptr = frameDisplay->colors.ptrw();
 			auto verticesUV_ptr = frameDisplay->vertices_uv.ptrw();
 			auto verticesPos_ptr = frameDisplay->vertices.ptrw();
 
@@ -186,11 +188,6 @@ void Slot_GD::_updateFrame() {
 			const auto scale = currentTextureData->parent->scale * _armature->_armatureData->scale;
 			const auto height = (currentTextureData->rotated ? region.width : region.height) * scale / 2.f;
 			const auto width = (currentTextureData->rotated ? region.height : region.width) * scale / 2.f;
-
-			verticesColor_ptr[0] = Color(1, 1, 1, 1);
-			verticesColor_ptr[1] = Color(1, 1, 1, 1);
-			verticesColor_ptr[2] = Color(1, 1, 1, 1);
-			verticesColor_ptr[3] = Color(1, 1, 1, 1);
 
 			verticesPos_ptr[3] = Vector2(-width, -height);
 			verticesPos_ptr[2] = Vector2(width, -height);
@@ -364,26 +361,19 @@ void DragonBonesSlot::_bind_methods() {
 
 Color DragonBonesSlot::get_display_color_multiplier() {
 	ERR_FAIL_NULL_V(slot, {});
-	const ColorTransform &transform = slot->_colorTransform;
-
-	Color return_color;
-	return_color.r = transform.redMultiplier;
-	return_color.g = transform.greenMultiplier;
-	return_color.b = transform.blueMultiplier;
-	return_color.a = transform.alphaMultiplier;
-
-	return return_color;
+	// 跳过基类的颜色设置
+	return slot->color;
 }
 
 void DragonBonesSlot::set_display_color_multiplier(const Color &p_color) {
 	ERR_FAIL_NULL(slot);
-	ColorTransform _new_color;
-	_new_color.redMultiplier = p_color.r;
-	_new_color.greenMultiplier = p_color.g;
-	_new_color.blueMultiplier = p_color.b;
-	_new_color.alphaMultiplier = p_color.a;
 
-	slot->_setColor(_new_color);
+	// 跳过基类的颜色设置
+	slot->color = p_color;
+
+	if (auto display = slot->get_display()) {
+		display->queue_redraw();
+	}
 }
 
 void DragonBonesSlot::set_display_index(int index) {

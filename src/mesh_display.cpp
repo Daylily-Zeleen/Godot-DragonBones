@@ -26,9 +26,8 @@ DragonBonesMeshDisplay::DragonBonesMeshDisplay()
 {
 }
 
-void DragonBonesMeshDisplay::update_modulate(const Color &p_modulate) {
-	// modulate = p_modulate;
-	colors.fill(p_modulate);
+void DragonBonesMeshDisplay::fill_vertices_colors(const Color &p_color) {
+	colors.fill(p_color);
 }
 
 DragonBonesArmature *DragonBonesMeshDisplay::get_armature() const {
@@ -41,10 +40,12 @@ void DragonBonesMeshDisplay::queue_redraw() const {
 	get_armature()->queue_redraw();
 }
 
-void DragonBonesMeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom) const {
+void DragonBonesMeshDisplay::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom, const Color &p_modulate) const {
 	if (!slot->getVisible()) {
 		return;
 	}
+
+	const_cast<DragonBonesMeshDisplay *>(this)->fill_vertices_colors(slot->color * p_modulate);
 
 	if (!r_data.has(slot->_zOrder)) {
 		r_data.insert(slot->_zOrder, LocalVector<DrawData>());

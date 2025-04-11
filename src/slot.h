@@ -21,10 +21,9 @@ private:
 
 public:
 	CanvasItemMaterial::BlendMode blend_mode{ CanvasItemMaterial::BLEND_MODE_MIX };
+	Color color; // 直接对该变量进行设置，跳过基类的 _setColor()/colorTransform
 
 	Ref<Texture2D> get_texture() const;
-	// void update_display_texture() const;
-
 	Display *get_display() const { return static_cast<Display *>(getDisplay()); }
 
 public:
