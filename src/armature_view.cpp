@@ -337,6 +337,7 @@ void DragonBonesArmatureView::_draw() {
 	}
 
 	// Add rendering commands.
+	const Transform2D identity{};
 	for (int mesh_idx = 0; mesh_idx < meshes.size(); ++mesh_idx) {
 		const RID mesh = get_draw_mesh(mesh_idx);
 		const Surfaces &surfaces = meshes[mesh_idx];
@@ -354,7 +355,7 @@ void DragonBonesArmatureView::_draw() {
 			RS->mesh_surface_set_material(mesh, surface_idx, mat);
 		}
 
-		RS->canvas_item_add_mesh(get_canvas_item(), mesh, get_canvas_transform(), get_modulate(), surfaces[0].texture);
+		RS->canvas_item_add_mesh(get_canvas_item(), mesh, identity, get_modulate(), surfaces[0].texture);
 	}
 
 #ifdef DEBUG_ENABLED
@@ -406,7 +407,7 @@ void DragonBonesArmatureView::_draw() {
 		arr[RenderingServer::ARRAY_VERTEX] = debug_vertices;
 		arr[RenderingServer::ARRAY_COLOR] = debug_colors;
 		RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_LINES, arr);
-		RS->canvas_item_add_mesh(get_canvas_item(), debug_mesh, get_canvas_transform(), get_modulate());
+		RS->canvas_item_add_mesh(get_canvas_item(), debug_mesh, identity, get_modulate());
 	}
 #endif // DEBUG_ENABLED
 }
