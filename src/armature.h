@@ -117,7 +117,7 @@ public:
 	}
 
 	virtual void queue_redraw() const override;
-	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const override;
+	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const override;
 
 public:
 	bool is_valid() const { return armature_instance && armature_view; }

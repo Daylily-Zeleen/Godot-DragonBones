@@ -10,7 +10,7 @@ others = "诚接Godot游戏开发，欢迎邮件联系。/ Receive game developm
 
 [icons]
 
-DragonBonesArmatureDisplay = "icons/DragonBonesBlue.png"
+DragonBonesArmatureView = "icons/DragonBonesBlue.png"
 DragonBonesFactory = "icons/DragonBonesFactory.png"
 
 DragonBonesArmatureProxy = "icons/DragonBonesArmature.png"

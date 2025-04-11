@@ -133,7 +133,7 @@ void DragonBonesArmature::queue_redraw() const {
 	}
 }
 
-void DragonBonesArmature::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom) const {
+void DragonBonesArmature::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom, const Color &p_modulate) const {
 	if (slot && !slot->getVisible()) {
 		return;
 	}
@@ -142,7 +142,7 @@ void DragonBonesArmature::append_draw_data(VMap<int, LocalVector<DrawData>> &r_d
 	for (const Slot *raw_slot : armature_instance->getSlots()) {
 		const Slot_GD *slot = static_cast<const Slot_GD *>(raw_slot);
 		if (auto display = slot->get_display()) {
-			display->append_draw_data(r_data, global_transform);
+			display->append_draw_data(r_data, global_transform, slot->color * p_modulate);
 		}
 	}
 }

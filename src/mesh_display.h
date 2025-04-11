@@ -33,7 +33,7 @@ public:
 	Transform2D transform{};
 
 	virtual void queue_redraw() const = 0;
-	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const = 0;
+	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const = 0;
 
 	virtual void release(); // NOTE: 子类要在此出处理自身的内存管理 （多继承的情况下必须用指在开头的指针才能 memdelete）
 };
@@ -41,6 +41,8 @@ public:
 class DragonBonesMeshDisplay : public Display {
 private:
 	DragonBonesMeshDisplay(const DragonBonesMeshDisplay &);
+
+	void fill_vertices_colors(const Color &p_color);
 
 public:
 	PackedInt32Array indices;
@@ -56,11 +58,10 @@ public:
 	DragonBonesMeshDisplay();
 
 	void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) {}
-	void update_modulate(const Color &p_modulate);
 	class DragonBonesArmature *get_armature() const;
 
 	virtual void queue_redraw() const override;
-	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D()) const override;
+	virtual void append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const override;
 
 	virtual void release() override;
 
