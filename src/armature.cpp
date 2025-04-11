@@ -15,6 +15,21 @@
 using namespace godot;
 using namespace dragonBones;
 
+// -----------
+#ifdef DEBUG_ENABLED
+struct StoredProperty {
+	StringName name;
+	Variant default_value;
+};
+static std::vector<StoredProperty> storage_properties;
+static LocalVector<PropertyInfo> armature_property_list{};
+static void clean_static() {
+	storage_properties.clear();
+	armature_property_list.clear();
+}
+#endif // DEBUG_ENABLED
+// -----------
+
 DragonBonesArmature::~DragonBonesArmature() {} // 不需要额外清理
 
 void DragonBonesArmature::_bind_methods() {
@@ -95,7 +110,7 @@ void DragonBonesArmature::_bind_methods() {
 			storage_properties.emplace_back(StoredProperty{ prop["name"], tmp_obj->get(prop["name"]) });
 		}
 
-		DragonBonesArmatureProxy::armature_property_list.emplace_back(PropertyInfo(
+		armature_property_list.push_back(PropertyInfo(
 				(Variant::Type)((int)prop["type"]), (StringName)prop["name"], (PropertyHint)((int)prop["hint"]),
 				(String)prop["hint_string"], (uint64_t)(prop["usage"]), (StringName)prop["class"]));
 	}
@@ -103,6 +118,8 @@ void DragonBonesArmature::_bind_methods() {
 	storage_properties.emplace_back(StoredProperty{ "current_animation", String() });
 
 	memdelete(tmp_obj);
+
+	DragonBones::add_clean_static_callback(&clean_static);
 #endif // TOOLS_ENABLED
 }
 
@@ -526,8 +543,6 @@ float DragonBonesArmature::get_animation_progress() const {
 }
 
 #ifdef TOOLS_ENABLED
-std::vector<DragonBonesArmature::StoredProperty> DragonBonesArmature::storage_properties{};
-
 bool DragonBonesArmature::_set(const StringName &p_name, const Variant &p_val) {
 	if (p_name == SNAME("sub_armatures")) {
 		return true;
@@ -649,7 +664,6 @@ Dictionary DragonBonesArmature::get_settings() const {
 #endif //  TOOLS_ENABLED
 ////////////
 #ifdef TOOLS_ENABLED
-std::vector<PropertyInfo> DragonBonesArmatureProxy::armature_property_list{};
 
 bool DragonBonesArmatureProxy::_set(const StringName &p_name, const Variant &p_val) {
 	if (!armature || !armature->is_valid()) {
