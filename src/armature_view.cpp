@@ -13,6 +13,23 @@
 
 using namespace godot;
 
+// ----------------
+static HashMap<CanvasItemMaterial::BlendMode, Ref<CanvasItemMaterial>> blend_materials{};
+static RID get_blend_material(CanvasItemMaterial::BlendMode p_blend_mode) {
+	auto it = blend_materials.find(p_blend_mode);
+	if (it == blend_materials.end()) {
+		Ref<CanvasItemMaterial> mat;
+		mat.instantiate();
+		mat->set_blend_mode(p_blend_mode);
+		return blend_materials.insert(p_blend_mode, mat)->value->get_rid();
+	}
+	return it->value->get_rid();
+}
+static void clear_static() {
+	blend_materials.clear();
+}
+// ----------------
+
 void DragonBonesArmatureView::rebuild_armature() {
 	if (armature) {
 		armature->release(); // 已经处理内存的释放
@@ -546,6 +563,9 @@ void DragonBonesArmatureView::_bind_methods() {
 	// BIND_ENUM_CONSTANT(AnimFadeOutMode::FADE_OUT_SAME_LAYER_AND_GROUP);
 	// BIND_ENUM_CONSTANT(AnimFadeOutMode::FADE_OUT_ALL);
 	// BIND_ENUM_CONSTANT(AnimFadeOutMode::FADE_OUT_SINGLE);
+
+	//
+	DragonBones::add_clean_static_callback(&clear_static);
 }
 
 DragonBonesArmatureView::DragonBonesArmatureView() {
@@ -569,22 +589,6 @@ DragonBonesArmatureView::~DragonBonesArmatureView() {
 		RenderingServer::get_singleton()->free_rid(debug_mesh);
 	}
 #endif // DEBUG_ENABLED
-}
-
-HashMap<CanvasItemMaterial::BlendMode, Ref<CanvasItemMaterial>> DragonBonesArmatureView::blend_materials;
-void DragonBonesArmatureView::clear_static() {
-	blend_materials.clear();
-}
-
-RID DragonBonesArmatureView::get_blend_material(CanvasItemMaterial::BlendMode p_blend_mode) {
-	auto it = blend_materials.find(p_blend_mode);
-	if (it == blend_materials.end()) {
-		Ref<CanvasItemMaterial> mat;
-		mat.instantiate();
-		mat->set_blend_mode(p_blend_mode);
-		return blend_materials.insert(p_blend_mode, mat)->value->get_rid();
-	}
-	return it->value->get_rid();
 }
 
 // ---------

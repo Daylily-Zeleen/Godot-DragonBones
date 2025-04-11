@@ -191,12 +191,6 @@ public:
 
 protected:
 #ifdef TOOLS_ENABLED
-	struct StoredProperty {
-		StringName name;
-		Variant default_value;
-	};
-	static std::vector<StoredProperty> storage_properties;
-
 	bool _set(const StringName &p_name, const Variant &p_val);
 	bool _get(const StringName &p_name, Variant &r_val) const;
 	void _get_property_list(List<PropertyInfo> *p_list) const;
@@ -225,9 +219,6 @@ public:
 			armature(p_armature) {}
 
 private:
-	static std::vector<PropertyInfo> armature_property_list;
-	friend class DragonBonesArmature;
-
 	DragonBonesArmature *armature{ nullptr };
 	friend class DragonBonesArmatureView;
 };

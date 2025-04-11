@@ -66,8 +66,6 @@ void uninitialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_l
 		dragonBones::BaseObject::clearPool();
 		DragonBonesMeshDisplay::clear_pool();
 
-		DragonBonesArmatureView::clear_static();
-
 		ResourceSaver::get_singleton()->remove_resource_format_saver(saver);
 		saver.unref();
 
