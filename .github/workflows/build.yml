@@ -251,33 +251,34 @@ jobs:
                   chmod +x ./generate_xcframework.sh
                   ./generate_xcframework.sh ${{ matrix.target }} debug_symbols=${{ matrix.debug_symbols }}
 
-            - name: Create artifact folder ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
-              shell: sh
-              run: |
-                  mkdir -p '${{ github.workspace }}/${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}/artifact/${{ github.event.repository.name }}/'
+            # - name: Create artifact folder ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
+            #   shell: sh
+            #   run: |
+            #       mkdir -p '${{ github.workspace }}/${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}/artifact/${{ github.event.repository.name }}/'
 
-            - name: Create artifact folder for all in one.
-              shell: sh
-              run: |
-                  mkdir -p '${{ github.workspace }}/artifact/${{ github.event.repository.name }}/'
+            # - name: Create artifact folder for all in one.
+            #   shell: sh
+            #   run: |
+            #       mkdir -p '${{ github.workspace }}/artifact/${{ github.event.repository.name }}/'
 
-            - name: Copy addons folder to artifact folder ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
-              shell: sh
-              run: |
-                  cp -n -r '${{ github.workspace }}/demo/addons' '${{ github.workspace }}/${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}/artifact/${{ github.event.repository.name }}/'
+            # - name: Copy addons folder to artifact folder ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
+            #   shell: sh
+            #   run: |
+            #       cp -n -r '${{ github.workspace }}/demo/addons' '${{ github.workspace }}/${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}/artifact/${{ github.event.repository.name }}/'
 
-            - name: Copy addons folder to artifact folder
-              shell: sh
-              run: |
-                  cp -n -r '${{ github.workspace }}/demo/addons' '${{ github.workspace }}/artifact/${{ github.event.repository.name }}/'
+            # - name: Copy addons folder to artifact folder
+            #   shell: sh
+            #   run: |
+            #       cp -n -r '${{ github.workspace }}/demo/addons' '${{ github.workspace }}/artifact/${{ github.event.repository.name }}/'
 
             - name: Upload artifact ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
               uses: actions/upload-artifact@v4
               with:
                   name: ${{ github.event.repository.name }}-${{ github.sha }}-${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
                   path: |
-                      ${{ github.workspace }}/${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}/artifact/
+                      ${{ github.workspace }}/demo/addons
                   retention-days: 14
+            # ${{ github.workspace }}/${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}/artifact/
 
     merge_artifacts:
         runs-on: ubuntu-latest

@@ -159,6 +159,8 @@ def on_complete(target, source, env):
         f.writelines(lines)
         f.close()
 
+    print("Copy README and LICENSE files.")
+
     # 更新.gdextension中的版本信息
     f = open(extension_file, "r", encoding="utf8")
     lines = f.readlines()
@@ -174,6 +176,8 @@ def on_complete(target, source, env):
     f = open(extension_file, "w", encoding="utf8")
     f.writelines(lines)
     f.close()
+
+    print(f"Update version number in \"godot_dragon_bones.gdextension\", {version}")
 
 
 # Disable scons cache for source files
