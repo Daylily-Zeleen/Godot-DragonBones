@@ -172,7 +172,6 @@ jobs:
           SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
           EM_VERSION: 3.1.39
           EM_CACHE_FOLDER: "emsdk-cache"
-          BUILD_VERSION: "v0.0.0"
 
         steps:
             - name: Set up Python
@@ -289,20 +288,9 @@ jobs:
               with:
                   submodules: false
 
-            - name: Set up Python
-              uses: actions/setup-python@v5
-              with:
-                  python-version: "3.x"
-
             - name: Setup version
-              if: ${{ matrix.platform != 'windows' }}
               run: |
-                python build_version.py >> $GITHUB_ENV
-
-            - name: Setup version (windows)
-              if: ${{ matrix.platform == 'windows' }}
-              run: |
-                python build_version.py >> $env:GITHUB_ENV
+                echo BUILD_VERSION=$(head -n 1 ./version) >> $GITHUB_ENV
 
             - name: Merge Artifacts to all in one
               uses: actions/upload-artifact/merge@v4
