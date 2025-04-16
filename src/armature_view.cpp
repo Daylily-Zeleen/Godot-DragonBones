@@ -321,7 +321,7 @@ void DragonBonesArmatureView::_draw() {
 	using Surfaces = LocalVector<SurfaceData>;
 	LocalVector<Surfaces> meshes{ { { first_draw_data.texture, first_draw_data.blend_mode } } };
 	for (auto i = 0; i < draw_data.size(); ++i) {
-		for (const auto &draw_data : pairs[i].value) {
+		for (const DrawData &draw_data : pairs[i].value) {
 			Surfaces &surfaces = meshes[meshes.size() - 1];
 			auto &surface_data = surfaces[surfaces.size() - 1];
 
