@@ -15,28 +15,28 @@ jobs:
                 include:
                     - identifier: linux-x64-debug
                       name: 🐧 Linux x64 Debug
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_debug
                       debug_symbols: yes
                       platform: linux
                       arch: x86_64
                     - identifier: linux-x64-release
                       name: 🐧Linux x64 Release
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_release
                       debug_symbols: no
                       platform: linux
                       arch: x86_64
                     - identifier: linux-x86-debug
                       name: 🐧 Linux x86 Debug
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_debug
                       debug_symbols: no # 库太大了
                       platform: linux
                       arch: x86_32
                     - identifier: linux-x86-release
                       name: 🐧Linux x86 Release
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_release
                       debug_symbols: no
                       platform: linux
@@ -99,70 +99,70 @@ jobs:
                       arch: x86_32
                     - identifier: android-arm64-debug
                       name: 🤖 Android arm64 Debug
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_debug
                       debug_symbols: yes
                       platform: android
                       arch: arm64
                     - identifier: android-arm64-release
                       name: 🤖 Android arm64 Release
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_release
                       debug_symbols: no
                       platform: android
                       arch: arm64
                     - identifier: android-x86_64-debug
                       name: 🤖 Android x86_64 Debug
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_debug
                       debug_symbols: no  # 库太大了
                       platform: android
                       arch: x86_64
                     - identifier: android-x86_64-release
                       name: 🤖 Android x86_64 Release
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_release
                       debug_symbols: no
                       platform: android
                       arch: x86_64
                     - identifier: android-arm32-debug
                       name: 🤖 Android arm32 Debug
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_debug
                       debug_symbols: no  # 库太大了
                       platform: android
                       arch: arm32
                     - identifier: android-arm32-release
                       name: 🤖 Android arm32 Release
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_release
                       debug_symbols: no
                       platform: android
                       arch: arm32
                     - identifier: android-x86_32-debug
                       name: 🤖 Android x86_32 Debug
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_debug
                       debug_symbols: no # 库太大了
                       platform: android
                       arch: x86_32
                     - identifier: android-x86_32-release
                       name: 🤖 Android x86_32 Release
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_release
                       debug_symbols: no
                       platform: android
                       arch: x86_32
                     - identifier: web-wasm32-debug
                       name: 🌐 Web wasm32 Debug
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_debug
                       debug_symbols: yes
                       platform: web
                       arch: wasm32
                     - identifier: web-wasm32-release
                       name: 🌐 Web wasm32 Release
-                      runner: ubuntu-20.04
+                      runner: ubuntu-latest
                       target: template_release
                       debug_symbols: no
                       platform: web
