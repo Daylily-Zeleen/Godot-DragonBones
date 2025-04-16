@@ -360,6 +360,11 @@ void DragonBonesArmatureView::_draw() {
 		const Surfaces &surfaces = meshes[mesh_idx];
 		for (int surface_idx = 0; surface_idx < surfaces.size(); ++surface_idx) {
 			const SurfaceData &surface_data = surfaces[surface_idx];
+			if (surface_data.indices.is_empty()) {
+				// 索引为空时跳过
+				continue;
+			}
+
 			Array arr;
 			arr.resize(RenderingServer::ARRAY_MAX);
 			arr[RenderingServer::ARRAY_INDEX] = surface_data.indices;
@@ -419,12 +424,15 @@ void DragonBonesArmatureView::_draw() {
 		// Add debug rendering commands.
 		RS->mesh_clear(debug_mesh);
 		Array arr;
-		arr.resize(RenderingServer::ARRAY_MAX);
-		arr[RenderingServer::ARRAY_INDEX] = debug_lines_indices;
-		arr[RenderingServer::ARRAY_VERTEX] = debug_vertices;
-		arr[RenderingServer::ARRAY_COLOR] = debug_colors;
-		RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_LINES, arr);
-		RS->canvas_item_add_mesh(get_canvas_item(), debug_mesh, identity, get_modulate());
+		if (!debug_lines_indices.is_empty()) {
+			// 索引不为空时绘制
+			arr.resize(RenderingServer::ARRAY_MAX);
+			arr[RenderingServer::ARRAY_INDEX] = debug_lines_indices;
+			arr[RenderingServer::ARRAY_VERTEX] = debug_vertices;
+			arr[RenderingServer::ARRAY_COLOR] = debug_colors;
+			RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_LINES, arr);
+			RS->canvas_item_add_mesh(get_canvas_item(), debug_mesh, identity, get_modulate());
+		}
 	}
 #endif // DEBUG_ENABLED
 }
