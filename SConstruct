@@ -63,7 +63,7 @@ if env.debug_features:
     sources += Glob("src/editor/*.cpp")
 
 
-if False: # env.editor_build:
+if env.editor_build:
     doc_data = _generate_doc_data()
     if len(doc_data) > 0:
         sources.append(doc_data)
@@ -94,19 +94,27 @@ else:
         source=sources,
     )
 
+
+def copy_file(from_path, to_path):
+    try:
+        if not os.path.exists(os.path.dirname(to_path)):
+            os.makedirs(os.path.dirname(to_path))
+        shutil.copyfile(from_path, to_path)
+    except Exception as e:
+        print(e)
+        raise e
+
+
 platform = env["platform"]
 compile_target = env["target"]
 suffix = env["suffix"]
 ios_simulator = env["ios_simulator"]
 share_lib_suffix = env["SHLIBSUFFIX"]
 
-def copy_file(from_path, to_path):
-    if not os.path.exists(os.path.dirname(to_path)):
-        os.makedirs(os.path.dirname(to_path))
-    shutil.copyfile(from_path, to_path)
-
 
 def on_complete(target, source, env):
+    print("Begin post-build process.")
+
     if platform == "macos":
         copy_file(
             f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.framework/{lib_name}.{platform}.{compile_target}",
@@ -130,6 +138,7 @@ def on_complete(target, source, env):
                     ".dev.", "."
                 ),
             )
+        print("Fix ios lib name.")
     else:
         copy_file(
             f"{output_bin_folder}/{lib_name}{suffix}{share_lib_suffix}",

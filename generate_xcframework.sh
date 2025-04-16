@@ -2,9 +2,6 @@
 
 echo $1 $2
 
-scons arch=universal ios_simulator=yes platform=ios target=$1 $2
-scons arch=arm64 ios_simulator=no platform=ios target=$1 $2
-
 xcodebuild -create-xcframework \
 -library ./bin/libgddragonbones.ios.$1.a \
 -library ./bin/libgddragonbones.ios.$1.simulator.a \
