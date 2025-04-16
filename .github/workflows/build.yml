@@ -13,55 +13,55 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    # - identifier: linux-x64-debug
-                    #   name: 🐧 Linux x64 Debug
-                    #   runner: ubuntu-latest
-                    #   target: template_debug
-                    #   debug_symbols: yes
-                    #   platform: linux
-                    #   arch: x86_64
-                    # - identifier: linux-x64-release
-                    #   name: 🐧Linux x64 Release
-                    #   runner: ubuntu-latest
-                    #   target: template_release
-                    #   debug_symbols: no
-                    #   platform: linux
-                    #   arch: x86_64
-                    # - identifier: linux-x86-debug
-                    #   name: 🐧 Linux x86 Debug
-                    #   runner: ubuntu-latest
-                    #   target: template_debug
-                    #   debug_symbols: no # 库太大了
-                    #   platform: linux
-                    #   arch: x86_32
-                    # - identifier: linux-x86-release
-                    #   name: 🐧Linux x86 Release
-                    #   runner: ubuntu-latest
-                    #   target: template_release
-                    #   debug_symbols: no
-                    #   platform: linux
-                    #   arch: x86_32
-                    # - identifier: macos-universal-debug
-                    #   name: 🍎 macOS (universal) Debug
-                    #   runner: macos-latest
-                    #   target: template_debug
-                    #   debug_symbols: yes
-                    #   platform: macos
-                    #   arch: universal
-                    # - identifier: macos-universal-release
-                    #   name: 🍎 macOS (universal) Release
-                    #   runner: macos-latest
-                    #   target: template_release
-                    #   debug_symbols: no
-                    #   platform: macos
-                    #   arch: universal
-                    # - identifier: ios-arm64-debug
-                    #   name: 🍏 ios arm64 Debug
-                    #   runner: macos-latest
-                    #   target: template_debug
-                    #   debug_symbols: no # 库太大了
-                    #   platform: ios
-                    #   arch: arm64
+                    - identifier: linux-x64-debug
+                      name: 🐧 Linux x64 Debug
+                      runner: ubuntu-latest
+                      target: template_debug
+                      debug_symbols: yes
+                      platform: linux
+                      arch: x86_64
+                    - identifier: linux-x64-release
+                      name: 🐧Linux x64 Release
+                      runner: ubuntu-latest
+                      target: template_release
+                      debug_symbols: no
+                      platform: linux
+                      arch: x86_64
+                    - identifier: linux-x86-debug
+                      name: 🐧 Linux x86 Debug
+                      runner: ubuntu-latest
+                      target: template_debug
+                      debug_symbols: no # 库太大了
+                      platform: linux
+                      arch: x86_32
+                    - identifier: linux-x86-release
+                      name: 🐧Linux x86 Release
+                      runner: ubuntu-latest
+                      target: template_release
+                      debug_symbols: no
+                      platform: linux
+                      arch: x86_32
+                    - identifier: macos-universal-debug
+                      name: 🍎 macOS (universal) Debug
+                      runner: macos-latest
+                      target: template_debug
+                      debug_symbols: yes
+                      platform: macos
+                      arch: universal
+                    - identifier: macos-universal-release
+                      name: 🍎 macOS (universal) Release
+                      runner: macos-latest
+                      target: template_release
+                      debug_symbols: no
+                      platform: macos
+                      arch: universal
+                    - identifier: ios-arm64-debug
+                      name: 🍏 ios arm64 Debug
+                      runner: macos-latest
+                      target: template_debug
+                      debug_symbols: no # 库太大了
+                      platform: ios
+                      arch: arm64
                     - identifier: ios-arm64-release
                       name: 🍏 ios arm64 Release
                       runner: macos-latest
@@ -69,104 +69,104 @@ jobs:
                       debug_symbols: no
                       platform: ios
                       arch: arm64
-                    # - identifier: windows-x64-debug
-                    #   name: 🏁 Windows x64 Debug
-                    #   runner: windows-latest
-                    #   target: template_debug
-                    #   debug_symbols: yes
-                    #   platform: windows
-                    #   arch: x86_64
-                    # - identifier: windows-x64-release
-                    #   name: 🏁 Windows x64 Release
-                    #   runner: windows-latest
-                    #   target: template_release
-                    #   debug_symbols: no
-                    #   platform: windows
-                    #   arch: x86_64
-                    # - identifier: windows-x86-debug
-                    #   name: 🏁 Windows x86 Debug
-                    #   runner: windows-latest
-                    #   target: template_debug
-                    #   debug_symbols: no # 库太大了
-                    #   platform: windows
-                    #   arch: x86_32
-                    # - identifier: windows-x86-release
-                    #   name: 🏁 Windows x86 Release
-                    #   runner: windows-latest
-                    #   target: template_release
-                    #   debug_symbols: no
-                    #   platform: windows
-                    #   arch: x86_32
-                    # - identifier: android-arm64-debug
-                    #   name: 🤖 Android arm64 Debug
-                    #   runner: ubuntu-latest
-                    #   target: template_debug
-                    #   debug_symbols: yes
-                    #   platform: android
-                    #   arch: arm64
-                    # - identifier: android-arm64-release
-                    #   name: 🤖 Android arm64 Release
-                    #   runner: ubuntu-latest
-                    #   target: template_release
-                    #   debug_symbols: no
-                    #   platform: android
-                    #   arch: arm64
-                    # - identifier: android-x86_64-debug
-                    #   name: 🤖 Android x86_64 Debug
-                    #   runner: ubuntu-latest
-                    #   target: template_debug
-                    #   debug_symbols: no  # 库太大了
-                    #   platform: android
-                    #   arch: x86_64
-                    # - identifier: android-x86_64-release
-                    #   name: 🤖 Android x86_64 Release
-                    #   runner: ubuntu-latest
-                    #   target: template_release
-                    #   debug_symbols: no
-                    #   platform: android
-                    #   arch: x86_64
-                    # - identifier: android-arm32-debug
-                    #   name: 🤖 Android arm32 Debug
-                    #   runner: ubuntu-latest
-                    #   target: template_debug
-                    #   debug_symbols: no  # 库太大了
-                    #   platform: android
-                    #   arch: arm32
-                    # - identifier: android-arm32-release
-                    #   name: 🤖 Android arm32 Release
-                    #   runner: ubuntu-latest
-                    #   target: template_release
-                    #   debug_symbols: no
-                    #   platform: android
-                    #   arch: arm32
-                    # - identifier: android-x86_32-debug
-                    #   name: 🤖 Android x86_32 Debug
-                    #   runner: ubuntu-latest
-                    #   target: template_debug
-                    #   debug_symbols: no # 库太大了
-                    #   platform: android
-                    #   arch: x86_32
-                    # - identifier: android-x86_32-release
-                    #   name: 🤖 Android x86_32 Release
-                    #   runner: ubuntu-latest
-                    #   target: template_release
-                    #   debug_symbols: no
-                    #   platform: android
-                    #   arch: x86_32
-                    # - identifier: web-wasm32-debug
-                    #   name: 🌐 Web wasm32 Debug
-                    #   runner: ubuntu-latest
-                    #   target: template_debug
-                    #   debug_symbols: yes
-                    #   platform: web
-                    #   arch: wasm32
-                    # - identifier: web-wasm32-release
-                    #   name: 🌐 Web wasm32 Release
-                    #   runner: ubuntu-latest
-                    #   target: template_release
-                    #   debug_symbols: no
-                    #   platform: web
-                    #   arch: wasm32
+                    - identifier: windows-x64-debug
+                      name: 🏁 Windows x64 Debug
+                      runner: windows-latest
+                      target: template_debug
+                      debug_symbols: yes
+                      platform: windows
+                      arch: x86_64
+                    - identifier: windows-x64-release
+                      name: 🏁 Windows x64 Release
+                      runner: windows-latest
+                      target: template_release
+                      debug_symbols: no
+                      platform: windows
+                      arch: x86_64
+                    - identifier: windows-x86-debug
+                      name: 🏁 Windows x86 Debug
+                      runner: windows-latest
+                      target: template_debug
+                      debug_symbols: no # 库太大了
+                      platform: windows
+                      arch: x86_32
+                    - identifier: windows-x86-release
+                      name: 🏁 Windows x86 Release
+                      runner: windows-latest
+                      target: template_release
+                      debug_symbols: no
+                      platform: windows
+                      arch: x86_32
+                    - identifier: android-arm64-debug
+                      name: 🤖 Android arm64 Debug
+                      runner: ubuntu-latest
+                      target: template_debug
+                      debug_symbols: yes
+                      platform: android
+                      arch: arm64
+                    - identifier: android-arm64-release
+                      name: 🤖 Android arm64 Release
+                      runner: ubuntu-latest
+                      target: template_release
+                      debug_symbols: no
+                      platform: android
+                      arch: arm64
+                    - identifier: android-x86_64-debug
+                      name: 🤖 Android x86_64 Debug
+                      runner: ubuntu-latest
+                      target: template_debug
+                      debug_symbols: no  # 库太大了
+                      platform: android
+                      arch: x86_64
+                    - identifier: android-x86_64-release
+                      name: 🤖 Android x86_64 Release
+                      runner: ubuntu-latest
+                      target: template_release
+                      debug_symbols: no
+                      platform: android
+                      arch: x86_64
+                    - identifier: android-arm32-debug
+                      name: 🤖 Android arm32 Debug
+                      runner: ubuntu-latest
+                      target: template_debug
+                      debug_symbols: no  # 库太大了
+                      platform: android
+                      arch: arm32
+                    - identifier: android-arm32-release
+                      name: 🤖 Android arm32 Release
+                      runner: ubuntu-latest
+                      target: template_release
+                      debug_symbols: no
+                      platform: android
+                      arch: arm32
+                    - identifier: android-x86_32-debug
+                      name: 🤖 Android x86_32 Debug
+                      runner: ubuntu-latest
+                      target: template_debug
+                      debug_symbols: no # 库太大了
+                      platform: android
+                      arch: x86_32
+                    - identifier: android-x86_32-release
+                      name: 🤖 Android x86_32 Release
+                      runner: ubuntu-latest
+                      target: template_release
+                      debug_symbols: no
+                      platform: android
+                      arch: x86_32
+                    - identifier: web-wasm32-debug
+                      name: 🌐 Web wasm32 Debug
+                      runner: ubuntu-latest
+                      target: template_debug
+                      debug_symbols: yes
+                      platform: web
+                      arch: wasm32
+                    - identifier: web-wasm32-release
+                      name: 🌐 Web wasm32 Release
+                      runner: ubuntu-latest
+                      target: template_release
+                      debug_symbols: no
+                      platform: web
+                      arch: wasm32
 
         env:
           SCONS_CACHE: ${{ github.workspace }}/.scons-cache/

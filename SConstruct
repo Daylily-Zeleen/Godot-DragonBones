@@ -124,20 +124,14 @@ def on_complete(target, source, env):
         )
     elif platform == "ios":
         # 仅移除 .dev, 路径在生成 xcframework 时矫正
+        lib_file_path :str = ""
         if ios_simulator:
-            copy_file(
-                f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a",
-                f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a".replace(
-                    ".dev.", "."
-                ),
-            )
+            lib_file_path = f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a"
         else:
-            copy_file(
-                f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.a",
-                f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.a".replace(
-                    ".dev.", "."
-                ),
-            )
+            lib_file_path = f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.a"
+
+        if ".dev." in lib_file_path:
+            shutil.move(lib_file_path, lib_file_path.replace(".dev.", "."))
         print("Fix ios lib name.")
     else:
         copy_file(
