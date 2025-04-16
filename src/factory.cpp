@@ -205,7 +205,7 @@ Error DragonBonesFactory::load_dragon_bones_ske_file_list(PackedStringArray p_fi
 		auto file = p_files[i];
 		if (p_files.count(file) > 1) {
 			p_files.remove_at(i);
-			++i;
+			--i;
 		}
 	}
 
@@ -246,7 +246,7 @@ Error DragonBonesFactory::load_texture_atlas_json_file_list(PackedStringArray p_
 		auto file = p_files[i];
 		if (p_files.count(file) > 1) {
 			p_files.remove_at(i);
-			++i;
+			--i;
 		}
 	}
 
