@@ -261,12 +261,17 @@ jobs:
                   chmod +x ./generate_xcframework.sh
                   ./generate_xcframework.sh ${{ matrix.target }} debug_symbols=${{ matrix.debug_symbols }}
 
+            - name: Copy to artifacts directory
+              shell: bash
+              run: |
+                  python ./misc/copy_dir.py ./demo/addons ./artifact/addons/
+
             - name: Upload artifact ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
               uses: actions/upload-artifact@v4
               with:
                   name: ${{ github.event.repository.name }}-${{ github.sha }}-${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
                   path: |
-                      ${{ github.workspace }}/demo/addons
+                      ./artifact/
                   retention-days: 14
 
     merge_artifacts:
