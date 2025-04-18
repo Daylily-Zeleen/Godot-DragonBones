@@ -3,8 +3,6 @@
 #include <dragonBones/armature/DeformVertices.h>
 #include <dragonBones/model/DisplayData.h>
 #include <dragonBones/model/DragonBonesData.h>
-#include <godot_cpp/classes/image.hpp>
-#include <godot_cpp/classes/image_texture.hpp>
 
 #include "armature.h"
 #include "mesh_display.h"
@@ -20,13 +18,7 @@ Ref<Texture2D> Slot_GD::get_texture() const {
 		}
 	}
 
-	static Ref<Texture2D> empty_texture{ [] {
-		Ref<Image> image = Image::create_empty(2, 2, false, Image::FORMAT_RGBA8);
-		image->fill(Color(0.0f, 0.0f, 0.0f, 0.0f));
-		Ref<ImageTexture> ret = ImageTexture::create_from_image(image);
-		return ret;
-	}() };
-	return empty_texture;
+	return {};
 }
 
 void Slot_GD::_updateZOrder() {
