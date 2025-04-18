@@ -22,8 +22,9 @@ Ref<Texture2D> Slot_GD::get_texture() const {
 }
 
 void Slot_GD::_updateZOrder() {
-	ERR_FAIL_NULL(get_display());
-	get_display()->queue_redraw();
+	if (get_display()) {
+		get_display()->queue_redraw();
+	}
 }
 
 void Slot_GD::_updateVisible() {
