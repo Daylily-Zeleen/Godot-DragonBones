@@ -307,6 +307,7 @@ void DragonBonesArmatureView::_draw() {
 		PackedVector2Array vertices;
 		PackedColorArray colors;
 		PackedVector2Array vertices_uv;
+
 		RID texture;
 		CanvasItemMaterial::BlendMode blend_mode;
 
@@ -326,20 +327,22 @@ void DragonBonesArmatureView::_draw() {
 			auto &surface_data = surfaces[surfaces.size() - 1];
 
 			if (surface_data.texture != draw_data.texture) {
+				// 纹理与上一个不一致时创建新的mesh
 				surface_data = SurfaceData(draw_data.texture, draw_data.blend_mode);
 				surfaces = Surfaces{ std::move(surface_data) };
 				meshes.push_back(std::move(surfaces));
 			} else if (surface_data.blend_mode != draw_data.blend_mode) {
+				// 混合模式与上一个不一致时创建新的 mesh surface
 				surface_data = SurfaceData(draw_data.texture, draw_data.blend_mode);
 				surfaces.push_back(std::move(surface_data));
 			}
 
-			int base_index = surface_data.vertices.size();
-			int insert_begin_index = surface_data.indices.size();
+			int base_vertices_index = surface_data.vertices.size();
+			int base_indices_index = surface_data.indices.size();
 
 			surface_data.indices.resize(surface_data.indices.size() + draw_data.indices.size());
 			for (int idx = 0; idx < draw_data.indices.size(); ++idx) {
-				surface_data.indices[idx + insert_begin_index] = draw_data.indices[idx] + base_index;
+				surface_data.indices[idx + base_indices_index] = draw_data.indices[idx] + base_vertices_index;
 			}
 
 			surface_data.vertices.append_array(draw_data.transform.xform(draw_data.vertices));
@@ -356,8 +359,9 @@ void DragonBonesArmatureView::_draw() {
 	// Add rendering commands.
 	const Transform2D identity{};
 	for (int mesh_idx = 0; mesh_idx < meshes.size(); ++mesh_idx) {
-		const RID mesh = get_draw_mesh(mesh_idx);
 		const Surfaces &surfaces = meshes[mesh_idx];
+
+		const RID mesh = get_draw_mesh(mesh_idx);
 		for (int surface_idx = 0; surface_idx < surfaces.size(); ++surface_idx) {
 			const SurfaceData &surface_data = surfaces[surface_idx];
 			if (surface_data.indices.is_empty()) {

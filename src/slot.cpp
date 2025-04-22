@@ -102,15 +102,15 @@ void Slot_GD::_replaceDisplay(void *value, bool isArmatureDisplay) {
 void Slot_GD::_removeDisplay() {
 }
 
-void Slot_GD::__get_uv_pt(Point2 &_pt, bool _is_rot, float _u, float _v, const Rectangle &_reg, const TextureAtlasData *_p_atlas) {
-	Size2 tex_size(_p_atlas->width, _p_atlas->height);
+void Slot_GD::__get_uv_pt(Point2 &pt, bool p_rotated, float p_u, float p_v, const Rectangle &p_rect, const TextureAtlasData *p_atlas) {
+	Size2 tex_size(p_atlas->width, p_atlas->height);
 
-	if (_is_rot) {
-		_pt.x = (_reg.x + (1.f - _v) * _reg.width) / tex_size.x;
-		_pt.y = (_reg.y + _u * _reg.height) / tex_size.y;
+	if (p_rotated) {
+		pt.x = (p_rect.x + (1.f - p_v) * p_rect.width) / tex_size.x;
+		pt.y = (p_rect.y + p_u * p_rect.height) / tex_size.y;
 	} else {
-		_pt.x = (_reg.x + _u * _reg.width) / tex_size.x;
-		_pt.y = (_reg.y + _v * _reg.height) / tex_size.y;
+		pt.x = (p_rect.x + p_u * p_rect.width) / tex_size.x;
+		pt.y = (p_rect.y + p_v * p_rect.height) / tex_size.y;
 	}
 }
 
@@ -155,10 +155,10 @@ void Slot_GD::_updateFrame() {
 				std::size_t iH = i >> 1;
 				float u = floatArray[uvOffset + i];
 				float v = floatArray[uvOffset + i + 1];
-				Point2 __uv;
-				__get_uv_pt(__uv, currentTextureData->rotated, u, v, region, atlas);
+				Point2 uv;
+				__get_uv_pt(uv, currentTextureData->rotated, u, v, region, atlas);
 
-				verticesUV_ptr[iH] = __uv;
+				verticesUV_ptr[iH] = uv;
 				verticesPos_ptr[iH] = Point2(floatArray[vertexOffset + i],
 						hasFFD * floatArray[vertexOffset + i + 1]);
 			}
@@ -241,7 +241,7 @@ void Slot_GD::_updateMesh() {
 		const auto intArray = data->intArray;
 		const auto floatArray = data->floatArray;
 		const auto vertexCount = (std::size_t)intArray[verticesData->offset + (unsigned)BinaryOffset::MeshVertexCount];
-		int weightFloatOffset = intArray[weightData->offset + (unsigned)BinaryOffset::WeightFloatOffset];
+		auto weightFloatOffset = intArray[weightData->offset + (unsigned)BinaryOffset::WeightFloatOffset];
 
 		if (weightFloatOffset < 0) {
 			weightFloatOffset += 65536;
@@ -253,7 +253,7 @@ void Slot_GD::_updateMesh() {
 				i < vertexCount;
 				++i) {
 			const auto boneCount = (std::size_t)intArray[iB++];
-			auto xG = 0.0f, yG = 0.0f;
+			float xG = 0.0f, yG = 0.0f;
 			for (std::size_t j = 0; j < boneCount; ++j) {
 				const auto boneIndex = (unsigned)intArray[iB++];
 				const auto bone = bones[boneIndex];
@@ -273,7 +273,7 @@ void Slot_GD::_updateMesh() {
 				}
 			}
 
-			meshDisplay->vertices[i] = Vector2(xG, yG);
+			verticesPos_ptr[i] = Vector2(xG, yG);
 		}
 	} else if (hasFFD) {
 		const auto data = verticesData->data;
