@@ -133,15 +133,15 @@ void Slot_GD::_updateFrame() {
 			const auto data = currentVerticesData->data;
 			const auto intArray = data->intArray;
 			const auto floatArray = data->floatArray;
-			const unsigned vertexCount = intArray[currentVerticesData->offset + (unsigned)BinaryOffset::MeshVertexCount];
-			const unsigned triangleCount = intArray[currentVerticesData->offset + (unsigned)BinaryOffset::MeshTriangleCount];
+			const auto vertexCount = intArray[currentVerticesData->offset + (unsigned)BinaryOffset::MeshVertexCount];
+			const auto triangleCount = intArray[currentVerticesData->offset + (unsigned)BinaryOffset::MeshTriangleCount];
 			int vertexOffset = intArray[currentVerticesData->offset + (unsigned)BinaryOffset::MeshFloatOffset];
 
 			if (vertexOffset < 0) {
 				vertexOffset += 65536; // Fixed out of bounds bug.
 			}
 
-			const unsigned uvOffset = vertexOffset + (vertexCount << 1);
+			const auto uvOffset = vertexOffset + (vertexCount << 1);
 
 			frameDisplay->indices.resize(triangleCount * 3);
 			frameDisplay->colors.resize(vertexCount); // 仅改变数组大小，在绘制前将被合并计算具体颜色
