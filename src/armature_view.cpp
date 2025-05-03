@@ -319,35 +319,38 @@ void DragonBonesArmatureView::_draw() {
 
 	// Prepare mesh data.
 	const auto &first_draw_data = pairs[0].value[0];
-	using Surfaces = LocalVector<SurfaceData>;
-	LocalVector<Surfaces> meshes{ { { first_draw_data.texture, first_draw_data.blend_mode } } };
-	for (auto i = 0; i < draw_data.size(); ++i) {
-		for (const DrawData &draw_data : pairs[i].value) {
-			Surfaces &surfaces = meshes[meshes.size() - 1];
-			auto &surface_data = surfaces[surfaces.size() - 1];
-
-			if (surface_data.texture != draw_data.texture) {
-				// 纹理与上一个不一致时创建新的mesh
-				surface_data = SurfaceData(draw_data.texture, draw_data.blend_mode);
-				surfaces = Surfaces{ std::move(surface_data) };
-				meshes.push_back(std::move(surfaces));
-			} else if (surface_data.blend_mode != draw_data.blend_mode) {
-				// 混合模式与上一个不一致时创建新的 mesh surface
-				surface_data = SurfaceData(draw_data.texture, draw_data.blend_mode);
-				surfaces.push_back(std::move(surface_data));
+	using Surfaces = std::vector<SurfaceData>;
+	std::vector<Surfaces> meshes{ { { first_draw_data.texture, first_draw_data.blend_mode } } };
+	for (decltype(draw_data.size()) i = 0; i < draw_data.size(); ++i) {
+		for (const DrawData &data : pairs[i].value) {
+			if (data.indices.is_empty()) {
+				continue;
 			}
 
-			int base_vertices_index = surface_data.vertices.size();
-			int base_indices_index = surface_data.indices.size();
+			Surfaces &surfaces = meshes.back();
+			SurfaceData *surface_data = &surfaces.back(); // NOTE: 不使用引用，引用初始化之后不能重新绑定
 
-			surface_data.indices.resize(surface_data.indices.size() + draw_data.indices.size());
-			for (int idx = 0; idx < draw_data.indices.size(); ++idx) {
-				surface_data.indices[idx + base_indices_index] = draw_data.indices[idx] + base_vertices_index;
+			if (surface_data->texture != data.texture) {
+				meshes.emplace_back(Surfaces{ SurfaceData(data.texture, data.blend_mode) });
+				surface_data = &meshes.back().front();
+			} else if (surface_data->blend_mode != data.blend_mode) {
+				surfaces.emplace_back(SurfaceData(data.texture, data.blend_mode));
+				surface_data = &surfaces.back();
 			}
 
-			surface_data.vertices.append_array(draw_data.transform.xform(draw_data.vertices));
-			surface_data.colors.append_array(draw_data.colors);
-			surface_data.vertices_uv.append_array(draw_data.vertices_uv);
+			using size_ty = int64_t;
+			const size_ty base_vertices_index = surface_data->vertices.size();
+			const size_ty base_indices_index = surface_data->indices.size();
+
+			surface_data->indices.resize(base_indices_index + data.indices.size());
+			size_ty data_indices_count = data.indices.size();
+			for (size_ty idx = 0; idx < data_indices_count; ++idx) {
+				surface_data->indices[idx + base_indices_index] = data.indices[idx] + base_vertices_index;
+			}
+
+			surface_data->vertices.append_array(data.transform.xform(data.vertices));
+			surface_data->colors.append_array(data.colors);
+			surface_data->vertices_uv.append_array(data.vertices_uv);
 		}
 	}
 
@@ -358,16 +361,12 @@ void DragonBonesArmatureView::_draw() {
 
 	// Add rendering commands.
 	const Transform2D identity{};
-	for (int mesh_idx = 0; mesh_idx < meshes.size(); ++mesh_idx) {
-		const Surfaces &surfaces = meshes[mesh_idx];
-
+	for (decltype(meshes.size()) mesh_idx = 0; mesh_idx < meshes.size(); ++mesh_idx) {
 		const RID mesh = get_draw_mesh(mesh_idx);
-		for (int surface_idx = 0; surface_idx < surfaces.size(); ++surface_idx) {
-			const SurfaceData &surface_data = surfaces[surface_idx];
-			if (surface_data.indices.is_empty()) {
-				// 索引为空时跳过
-				continue;
-			}
+		const Surfaces &surfaces = meshes.at(mesh_idx);
+
+		for (decltype(surfaces.size()) surface_idx = 0; surface_idx < surfaces.size(); ++surface_idx) {
+			const SurfaceData &surface_data = surfaces.at(surface_idx);
 
 			Array arr;
 			arr.resize(RenderingServer::ARRAY_MAX);
@@ -378,7 +377,7 @@ void DragonBonesArmatureView::_draw() {
 
 			RS->mesh_add_surface_from_arrays(mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
 			auto mat = get_blend_material(surface_data.blend_mode);
-			RS->mesh_surface_set_material(mesh, surface_idx, mat);
+			RS->mesh_surface_set_material(mesh, RS->mesh_get_surface_count(mesh) - 1, mat);
 		}
 
 		RS->canvas_item_add_mesh(get_canvas_item(), mesh, identity, get_modulate(), surfaces[0].texture);
@@ -391,21 +390,21 @@ void DragonBonesArmatureView::_draw() {
 		PackedVector2Array debug_vertices;
 		PackedColorArray debug_colors;
 
-		for (auto i = 0; i < draw_data.size(); ++i) {
-			for (const auto &draw_data : pairs[i].value) {
+		for (decltype(draw_data.size()) i = 0; i < draw_data.size(); ++i) {
+			for (const auto &data : pairs[i].value) {
 				int base_index = debug_vertices.size();
 				int insert_begin_index = debug_mesh_indices.size();
 
-				debug_mesh_indices.resize(debug_mesh_indices.size() + draw_data.indices.size());
-				for (int idx = 0; idx < draw_data.indices.size(); ++idx) {
-					debug_mesh_indices[idx + insert_begin_index] = draw_data.indices[idx] + base_index;
+				debug_mesh_indices.resize(debug_mesh_indices.size() + data.indices.size());
+				for (int idx = 0; idx < data.indices.size(); ++idx) {
+					debug_mesh_indices[idx + insert_begin_index] = data.indices[idx] + base_index;
 				}
 
-				debug_vertices.append_array(draw_data.transform.xform(draw_data.vertices));
+				debug_vertices.append_array(data.transform.xform(data.vertices));
 
 				PackedColorArray colors;
-				colors.resize(draw_data.vertices.size());
-				colors.fill(draw_data.debug_color);
+				colors.resize(data.vertices.size());
+				colors.fill(data.debug_color);
 				debug_colors.append_array(colors);
 			}
 		}
