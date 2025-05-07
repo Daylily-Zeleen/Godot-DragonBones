@@ -1,0 +1,134 @@
+[gd_scene load_steps=5 format=3 uid="uid://8apibgrqeqe7"]
+
+[ext_resource type="Script" path="res://dragonbones_demo/demo.gd" id="1_23ee0"]
+[ext_resource type="DragonBonesFactory" uid="uid://cswy4t3ejn2lu" path="res://dragonbones_demo/assets/Dragon_ske.dbfactory" id="2_rkqf0"]
+
+[sub_resource type="SystemFont" id="SystemFont_t0rb7"]
+
+[sub_resource type="Theme" id="Theme_hseux"]
+default_font = SubResource("SystemFont_t0rb7")
+default_font_size = 37
+
+[node name="Demo" type="Node"]
+script = ExtResource("1_23ee0")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer"]
+anchors_preset = 9
+anchor_bottom = 1.0
+grow_vertical = 2
+theme = SubResource("Theme_hseux")
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 70
+
+[node name="GridContainer" type="GridContainer" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="Label4" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "Debug:"
+
+[node name="DebugCheck" type="CheckButton" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Label6" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "Active:"
+
+[node name="ActiveCheck" type="CheckButton" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+
+[node name="Label5" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "ProcessMode"
+
+[node name="AnimationProcessModeOptionBtn" type="OptionButton" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "Aniamtion:"
+
+[node name="AniamtionOptionBtn" type="OptionButton" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Label7" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "TimeScale:"
+
+[node name="TimeScaleSpinBox" type="SpinBox" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = -10.0
+max_value = 10.0
+step = 0.05
+value = 1.0
+
+[node name="Label2" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "Flipx:"
+
+[node name="FlipXCheck" type="CheckButton" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Label3" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+layout_mode = 2
+text = "FlipY:"
+
+[node name="FlipYCheck" type="CheckButton" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/GridContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="AdvanceUI" type="VBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="Label6" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/AdvanceUI"]
+layout_mode = 2
+text = "Advance Manually:"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/AdvanceUI"]
+layout_mode = 2
+
+[node name="AdvanceTime" type="SpinBox" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/AdvanceUI/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 0.05
+max_value = 1.0
+step = 0.05
+value = 0.05
+suffix = "s"
+
+[node name="AdvanceBtn" type="Button" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/AdvanceUI/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Advance"
+
+[node name="DragonBonesArmatureView" type="DragonBonesArmatureView" parent="."]
+factory = ExtResource("2_rkqf0")
+instantiate_dragon_bones_data_name = "Dragon"
+instantiate_armature_name = "Dragon"
+armature_settings = {
+"current_animation": "walk",
+"sub_armatures": {}
+}
+position = Vector2(737, 364)
+scale = Vector2(0.7, 0.7)

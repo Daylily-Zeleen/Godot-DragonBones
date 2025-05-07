@@ -1,0 +1,11 @@
+VERSION="1.0.0"
+UID="uid://cswy4t3ejn2lu"
+
+[properties]
+
+skeleton_files=PackedStringArray("res://dragonbones_demo/assets/Dragon_ske.json")
+texture_atlas_files=PackedStringArray("res://dragonbones_demo/assets/Dragon_tex.json")
+
+[other]
+
+imported=true
