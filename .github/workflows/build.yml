@@ -221,16 +221,16 @@ jobs:
                 version: ${{env.EM_VERSION}}
                 actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
-            - name: Setup build cache
-              uses: actions/cache@v4
-              with:
-                  path: ${{ github.workspace }}/.scons-cache/
-                  key: ${{ matrix.identifier }}
-                  #   key: ${{ matrix.identifier }}-${{ github.ref }}
-                  restore-keys: |
-                      #   ${{ matrix.identifier }}-${{ github.ref }}
-                        ${{ matrix.identifier }}
-              continue-on-error: true
+            # - name: Setup build cache
+            #   uses: actions/cache@v4
+            #   with:
+            #       path: ${{ github.workspace }}/.scons-cache/
+            #       key: ${{ matrix.identifier }}
+            #       #   key: ${{ matrix.identifier }}-${{ github.ref }}
+            #       restore-keys: |
+            #           #   ${{ matrix.identifier }}-${{ github.ref }}
+            #             ${{ matrix.identifier }}
+            #   continue-on-error: true
 
             - name: (Other) Compile extension 
               if: ${{ matrix.platform != 'ios' }}
