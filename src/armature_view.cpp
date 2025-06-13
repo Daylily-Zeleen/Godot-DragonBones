@@ -347,11 +347,18 @@ void DragonBonesArmatureView::_draw() {
 			using size_ty = int64_t;
 			const size_ty base_vertices_index = surface_data->vertices.size();
 			const size_ty base_indices_index = surface_data->indices.size();
-
-			surface_data->indices.resize(base_indices_index + data.indices.size());
 			size_ty data_indices_count = data.indices.size();
-			for (size_ty idx = 0; idx < data_indices_count; ++idx) {
-				surface_data->indices[idx + base_indices_index] = data.indices[idx] + base_vertices_index;
+
+			surface_data->indices.resize(base_indices_index + data_indices_count);
+			auto surface_indices_ptrw = surface_data->indices.ptrw() + base_indices_index;
+			auto data_indices_ptr = data.indices.ptr();
+
+			while (data_indices_count > 0) {
+				*surface_indices_ptrw = *data_indices_ptr + base_vertices_index;
+				++surface_indices_ptrw;
+				++data_indices_ptr;
+
+				--data_indices_count;
 			}
 
 			surface_data->vertices.append_array(data.transform.xform(data.vertices));
@@ -398,12 +405,20 @@ void DragonBonesArmatureView::_draw() {
 
 		for (decltype(draw_data.size()) i = 0; i < draw_data.size(); ++i) {
 			for (const auto &data : pairs[i].value) {
-				int base_index = debug_vertices.size();
-				int insert_begin_index = debug_mesh_indices.size();
+				auto base_index = debug_vertices.size();
+				auto insert_begin_index = debug_mesh_indices.size();
+				auto data_indices_count = data.indices.size();
 
-				debug_mesh_indices.resize(debug_mesh_indices.size() + data.indices.size());
-				for (int idx = 0; idx < data.indices.size(); ++idx) {
-					debug_mesh_indices[idx + insert_begin_index] = data.indices[idx] + base_index;
+				debug_mesh_indices.resize(debug_mesh_indices.size() + data_indices_count);
+				auto debug_mesh_indices_ptrw = debug_mesh_indices.ptrw() + insert_begin_index;
+				auto data_indices_ptr = data.indices.ptr();
+
+				while (data_indices_count > 0) {
+					*debug_mesh_indices_ptrw = *data_indices_ptr + base_index;
+					++debug_mesh_indices_ptrw;
+					++data_indices_ptr;
+
+					--data_indices_count;
 				}
 
 				debug_vertices.append_array(data.transform.xform(data.vertices));
