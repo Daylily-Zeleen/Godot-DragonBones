@@ -24,7 +24,7 @@
 			<param index="2" name="loop" type="int" />
 			<param index="3" name="layer" type="int" />
 			<param index="4" name="group" type="String" />
-			<param index="5" name="fade_out_mode" type="int" enum="DragonBonesArmatureView.AnimFadeOutMode" />
+			<param index="5" name="fade_out_mode" type="int" enum="DragonBonesArmature.AnimFadeOutMode" />
 			<description>
 				TODO: There still not description, please consider to [url=https://github.com/Daylily-Zeleen/Godot-DragonBones]contribute[/url].
 			</description>
