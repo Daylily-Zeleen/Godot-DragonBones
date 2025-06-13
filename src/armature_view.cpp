@@ -107,6 +107,9 @@ void DragonBonesArmatureView::set_instantiate_dragon_bones_data_name(String p_na
 
 	instantiate_dragon_bones_data_name = p_name;
 	rebuild_armature();
+#ifdef TOOLS_ENABLED
+	notify_property_list_changed(); // 触发 _validate_property
+#endif //TOOLS_ENABLED
 }
 
 String DragonBonesArmatureView::get_instantiate_dragon_bones_data_name() const {
@@ -123,6 +126,9 @@ void DragonBonesArmatureView::set_instantiate_armature_name(String p_name) {
 
 	instantiate_armature_name = p_name;
 	rebuild_armature();
+#ifdef TOOLS_ENABLED
+	notify_property_list_changed(); // 触发 _validate_property
+#endif //TOOLS_ENABLED
 }
 
 String DragonBonesArmatureView::get_instantiate_armature_name() const {
