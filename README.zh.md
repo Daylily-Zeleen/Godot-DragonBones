@@ -12,7 +12,7 @@
 
 * Godot: <https://godotengine.org>
 * DragonBones: <http://dragonbones.com>
-* 一个来自@blurymind的简单演示: <https://github.com/blurymind/godot4-dragonbones-demo-animations-and-slots/tree/main>.
+* 一个来自@blurymind的简单演示 **(已过时，该演示不兼容v2.x.x版本)** : <https://github.com/blurymind/godot4-dragonbones-demo-animations-and-slots/tree/main>.
 
 ## 支持的版本
 

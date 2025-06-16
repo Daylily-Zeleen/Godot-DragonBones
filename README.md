@@ -12,7 +12,7 @@ A GDExtension plugin to add DragonBones for Godot.
 
 * Godot: <https://godotengine.org>
 * DragonBones: <http://dragonbones.com>
-* A simple demo from @blurymind: <https://github.com/blurymind/godot4-dragonbones-demo-animations-and-slots/tree/main>.
+* A simple demo **(Outdated, this demo is incompatible with v2.x.x)** from @blurymind: <https://github.com/blurymind/godot4-dragonbones-demo-animations-and-slots/tree/main>.
 
 ## Support Versions
 
