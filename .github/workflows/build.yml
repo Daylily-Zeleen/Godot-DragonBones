@@ -267,7 +267,7 @@ jobs:
                   python ./misc/copy_dir.py ./demo/addons ./artifact/addons/
 
             - name: Upload artifact ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v6
               with:
                   name: ${{ github.event.repository.name }}-${{ github.sha }}-${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
                   path: |
@@ -288,7 +288,7 @@ jobs:
                 echo BUILD_VERSION=$(head -n 1 ./version) >> $GITHUB_ENV
 
             - name: Merge Artifacts to all in one
-              uses: actions/upload-artifact/merge@v4
+              uses: actions/upload-artifact/merge@v6
               with:
                   name: ${{ github.event.repository.name }}-all-platforms-${{ env.BUILD_VERSION }}-${{ github.sha }}
                   pattern: ${{ github.event.repository.name }}-${{ github.sha }}*
