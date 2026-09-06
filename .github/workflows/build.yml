@@ -217,14 +217,13 @@ jobs:
                   scons --version
 
             - name: Checkout project
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
               with:
                   submodules: recursive
 
             - name: (Windows) Install mingw64
               if: ${{ matrix.platform == 'windows' }}
-              # change to egor-tensin/setup-mingw@v2 once pr #16 is merged
-              uses: e-t-l/setup-mingw@patch-1
+              uses: egor-tensin/setup-mingw@v3
 
             - name: (Linux) Install dependencies
               if: ${{ matrix.platform == 'linux' }}
@@ -246,13 +245,13 @@ jobs:
 
             - name: (Web) Install dependencies
               if: ${{ matrix.platform == 'web' }}
-              uses: mymindstorm/setup-emsdk@v14
+              uses: emscripten-core/setup-emsdk@v16
               with:
                 version: ${{env.EM_VERSION}}
                 actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
             # - name: Setup build cache
-            #   uses: actions/cache@v4
+            #   uses: actions/cache@v6
             #   with:
             #       path: ${{ github.workspace }}/.scons-cache/
             #       key: ${{ matrix.identifier }}
@@ -297,7 +296,7 @@ jobs:
                   python ./misc/copy_dir.py ./demo/addons ./artifact/addons/
 
             - name: Upload artifact ${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: ${{ github.event.repository.name }}-${{ github.sha }}-${{ matrix.platform }}-${{ matrix.target }}-${{ matrix.arch }}
                   path: |
@@ -309,7 +308,7 @@ jobs:
         needs: build
         steps:
             - name: Checkout project
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
               with:
                   submodules: false
 
@@ -318,7 +317,7 @@ jobs:
                 echo BUILD_VERSION=$(head -n 1 ./version) >> $GITHUB_ENV
 
             - name: Merge Artifacts to all in one
-              uses: actions/upload-artifact/merge@v4
+              uses: actions/upload-artifact/merge@v7
               with:
                   name: ${{ github.event.repository.name }}-all-platforms-${{ env.BUILD_VERSION }}-${{ github.sha }}
                   pattern: ${{ github.event.repository.name }}-${{ github.sha }}*
