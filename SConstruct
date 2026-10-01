@@ -38,7 +38,7 @@ import os
 os.system("chcp 65001")
 
 
-env = SConscript("godot-cpp/SConstruct")
+env = SConscript("thirdparty/godot-cpp/SConstruct")
 lib_name = "libgddragonbones"
 # For the reference:
 # - CCFLAGS are compilation flags shared between C and C++

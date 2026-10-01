@@ -8,15 +8,15 @@ set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(GODOT_GDEXTENSION_DIR STREQUAL "")
-	set(GODOT_GDEXTENSION_DIR ./godot-cpp/gdextension/ CACHE STRING "Path to GDExtension interface header directory")
+	set(GODOT_GDEXTENSION_DIR ./thirdparty/godot-cpp/gdextension/ CACHE STRING "Path to GDExtension interface header directory")
 endif()
 
 if(CPP_BINDINGS_PATH STREQUAL "")
-	set(CPP_BINDINGS_PATH ./godot-cpp CACHE STRING "Path to C++ bindings")
+	set(CPP_BINDINGS_PATH ./thirdparty/godot-cpp CACHE STRING "Path to C++ bindings")
 endif()
 
 if(CPP_BINDINGS_BUILD_PATH STREQUAL "")
-	set(CPP_BINDINGS_BUILD_PATH ./godot-cpp/build CACHE STRING "Path to C++ bindings building.")
+	set(CPP_BINDINGS_BUILD_PATH ./thirdparty/godot-cpp/build CACHE STRING "Path to C++ bindings building.")
 endif()
 
 if(BUILD_SHARED STREQUAL "")

@@ -8,6 +8,6 @@ xcodebuild -create-xcframework \
 -output ./demo/addons/godot_dragon_bones.daylily-zeleen/bin/libgddragonbones.ios.$1.xcframework
 
 xcodebuild -create-xcframework \
--library ./godot-cpp/bin/libgodot-cpp.ios.$1.arm64.a \
--library ./godot-cpp/bin/libgodot-cpp.ios.$1.universal.simulator.a \
+-library ./thirdparty/godot-cpp/bin/libgodot-cpp.ios.$1.arm64.a \
+-library ./thirdparty/godot-cpp/bin/libgodot-cpp.ios.$1.universal.simulator.a \
 -output ./demo/addons/godot_dragon_bones.daylily-zeleen/bin/libgodot-cpp.ios.$1.xcframework

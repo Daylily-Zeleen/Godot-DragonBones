@@ -26,3 +26,6 @@ __pycache__/
 gen/
 
 *.log
+
+demo/addons/godot_dragon_bones.daylily-zeleen/LICENSE
+demo/addons/godot_dragon_bones.daylily-zeleen/README.*
