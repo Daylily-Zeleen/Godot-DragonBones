@@ -174,9 +174,12 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 endif()
 
 # Get Sources
-file(GLOB_RECURSE SOURCES src/*.c** thirdparty/*.c**)
+# NOTE: godot-cpp is a submodule that is built and linked separately (see target_link_libraries
+# below), so it must be excluded here, otherwise its sources are compiled twice and produce
+# duplicate symbols at link time.
+file(GLOB_RECURSE SOURCES src/*.c** thirdparty/dragonBones/*.c**)
 
-file(GLOB_RECURSE HEADERS src/*.h** thirdparty/*.h**)
+file(GLOB_RECURSE HEADERS src/*.h** thirdparty/dragonBones/*.h** thirdparty/rapidjson/*.h**)
 
 # Define our library
 if(BUILD_SHARED)

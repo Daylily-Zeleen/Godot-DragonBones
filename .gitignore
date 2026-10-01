@@ -2,6 +2,7 @@
 
 *.obj
 *.os
+*.o
 
 compile_commands.json
 

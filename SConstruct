@@ -73,7 +73,9 @@ def add_sources_recursively(dir: str, glob_sources, exclude_folder: list = []):
 
 
 add_sources_recursively("src/", sources, ["editor"])
-add_sources_recursively("thirdparty/", sources)
+# godot-cpp is built and linked separately by its own SConstruct (env.GodotCPP()),
+# so it must not be globbed in here again (duplicate symbols at link time).
+add_sources_recursively("thirdparty/", sources, ["godot-cpp"])
 
 
 def _generate_doc_data() -> list[str]:
