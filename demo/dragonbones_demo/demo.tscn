@@ -1,9 +1,10 @@
 [gd_scene load_steps=5 format=3 uid="uid://8apibgrqeqe7"]
 
 [ext_resource type="Script" path="res://dragonbones_demo/demo.gd" id="1_23ee0"]
-[ext_resource type="DragonBonesFactory" uid="uid://cswy4t3ejn2lu" path="res://dragonbones_demo/assets/Dragon_ske.dbfactory" id="2_rkqf0"]
+[ext_resource type="DragonBonesFactory" uid="uid://cs5pavjfb6qxw" path="res://dragonbones_demo/assets/Dragon/Dragon_ske.dbfactory" id="2_bqjym"]
 
 [sub_resource type="SystemFont" id="SystemFont_t0rb7"]
+subpixel_positioning = 0
 
 [sub_resource type="Theme" id="Theme_hseux"]
 default_font = SubResource("SystemFont_t0rb7")
@@ -123,12 +124,12 @@ layout_mode = 2
 text = "Advance"
 
 [node name="DragonBonesArmatureView" type="DragonBonesArmatureView" parent="."]
-factory = ExtResource("2_rkqf0")
+factory = ExtResource("2_bqjym")
 instantiate_dragon_bones_data_name = "Dragon"
 instantiate_armature_name = "Dragon"
 armature_settings = {
-"current_animation": "walk",
+"current_animation": "stand",
 "sub_armatures": {}
 }
-position = Vector2(737, 364)
+position = Vector2(751, 420)
 scale = Vector2(0.7, 0.7)

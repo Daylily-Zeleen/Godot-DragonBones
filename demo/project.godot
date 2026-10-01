@@ -14,13 +14,13 @@ auto_generate_dbfactory=true
 
 [application]
 
-config/name="Demo"
+config/name="Godot-DragonBones-Demo"
 run/main_scene="res://dragonbones_demo/demo.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/adb_wifi_connector/plugin.cfg")
+enabled=PackedStringArray()
 
 [filesystem]
 
