@@ -149,7 +149,7 @@ public:
 	void stop(const String &p_animation_name, bool b_reset = false, bool p_recursively = false);
 	void stop_all_animations(bool b_reset = false, bool p_recursively = false);
 	void fade_in(const String &p_animation_name, float p_time,
-			int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode);
+				 int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode);
 
 	bool has_slot(const String &p_slot_name) const;
 	Ref<DragonBonesSlot> get_slot(const String &p_slot_name);
