@@ -240,7 +240,12 @@ jobs:
               if: ${{ matrix.platform == 'android' }}
               uses: nttld/setup-ndk@v1
               with:
-                ndk-version: r23c
+                # Must match godot-cpp's default `ndk_version`
+                # (thirdparty/godot-cpp/tools/android.py). It was 23.2.8568313 on the
+                # godot-cpp 4.3 branch and is 28.1.13356709 on 10.x, so r23c no longer
+                # resolves and every Android job fails with
+                # "Could not find NDK toolchain ... Make sure NDK version ... is installed".
+                ndk-version: r28b
                 link-to-sdk: true
 
             - name: (Web) Install dependencies

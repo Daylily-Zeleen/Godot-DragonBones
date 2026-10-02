@@ -18,6 +18,8 @@ Two allocators meet in this codebase and must never cross. The vendored DragonBo
 
 > **Rule**: never add a raw `new`/`delete` in `src/`. If you must allocate, use `memnew`/`memdelete`, `memnew_arr`/`memdelete_arr`, or `Ref<>`.
 
+> **Gotcha (godot-cpp 10.x)**: godot-cpp's allocation macros are **self-qualifying** now — `memnew_arr` expands to `::godot::memnew_arr_template<...>`, `memalloc` to `::godot::Memory::alloc_static(...)`. Always invoke them **bare**, never with a `godot::` prefix: `godot::memnew_arr(...)` expands to `godot::::godot::...`, which is a syntax error. The `memnew`-based and `memdelete`-based entries in `godot_dragon_bones.h:45,52-53` are already correct in this respect.
+
 ## Ownership Model
 
 | Kind | Declaration | Who frees | Evidence |
@@ -25,7 +27,7 @@ Two allocators meet in this codebase and must never cross. The vendored DragonBo
 | Runtime object | raw `dragonBones::*` pointer | the runtime (`Armature`), or a pool | `src/bone.h:44`, `src/slot.h:87` |
 | Godot wrapper handle | `Ref<T>` | ref-counting | `src/armature_view.h:56`, `src/slot.h:87` |
 | User-visible Godot object | raw `DragonBonesArmature *` | `dbClear()` → `memdelete(this)` | `src/armature.cpp:519-521` |
-| Pooled render helper | raw `DragonBonesMeshDisplay *` | static pool | `src/mesh_display.h:93-96` |
+| Pooled render helper | raw `DragonBonesMeshDisplay *` | static pool | `src/mesh_display.h:106-107` |
 | RenderingServer mesh | `RID` | explicit `free_rid` | `src/armature_view.cpp:645-648` |
 
 ### Rule: wrapper handles hold raw runtime pointers
@@ -62,7 +64,7 @@ Do not add a pool for `DragonBonesArmature`. Do not `memdelete` one yourself —
 ```cpp
 virtual void release(); // NOTE: 子类要在此出处理自身的内存管理 （多继承的情况下必须用指在开头的指针才能 memdelete）
 ```
-— `src/mesh_display.h:68`
+— `src/mesh_display.h:75`
 
 `Slot_GD::_disposeDisplay` is the caller that relies on this (`src/slot.cpp:111-118`).
 
@@ -113,7 +115,7 @@ static LocalVector<CleanCallback *> clean_callbacks;
 ```
 — `src/dragon_bones.h:66-71`; invoked from `~DragonBones` (`src/dragon_bones.cpp:44,50-56`).
 
-Register a callback (like `src/armature.cpp:152` and `src/armature_view.cpp:631`) whenever you add file-static state that holds Godot objects.
+Register a callback (like `src/armature.cpp:152` and `src/armature_view.cpp:629`) whenever you add file-static state that holds Godot objects.
 
 ## Checklist
 

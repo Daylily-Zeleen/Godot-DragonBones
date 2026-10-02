@@ -34,7 +34,6 @@
 #include <godot_cpp/classes/main_loop.hpp>
 #include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/classes/rendering_server.hpp>
-#include <godot_cpp/templates/vmap.hpp>
 #include <godot_cpp/variant/array.hpp>
 
 #include "armature.h"
@@ -328,7 +327,7 @@ void DragonBonesArmatureView::_draw() {
 	}
 
 	// Collect draw data.
-	VMap<int, LocalVector<DrawData>> draw_data;
+	DrawData draw_data; // TODO: 避免每帧重建
 	armature->append_draw_data(draw_data);
 
 	if (draw_data.is_empty()) {
@@ -336,7 +335,6 @@ void DragonBonesArmatureView::_draw() {
 	}
 
 	const auto RS = RenderingServer::get_singleton();
-	const auto pairs = draw_data.get_array();
 
 	struct SurfaceData {
 		PackedInt32Array indices;
@@ -354,11 +352,11 @@ void DragonBonesArmatureView::_draw() {
 	};
 
 	// Prepare mesh data.
-	const auto &first_draw_data = pairs[0].value[0];
+	const auto &first_data = draw_data.begin()->data[0];
 	using Surfaces = std::vector<SurfaceData>;
-	std::vector<Surfaces> meshes{ { { first_draw_data.texture, first_draw_data.blend_mode } } };
-	for (decltype(draw_data.size()) i = 0; i < draw_data.size(); ++i) {
-		for (const DrawData &data : pairs[i].value) {
+	std::vector<Surfaces> meshes{ { { first_data.texture, first_data.blend_mode } } };
+	for (const DrawData::Layer &layer : draw_data) {
+		for (const DrawData::Data &data : layer.data) {
 			if (data.indices.is_empty()) {
 				continue;
 			}
@@ -433,8 +431,8 @@ void DragonBonesArmatureView::_draw() {
 		PackedVector2Array debug_vertices;
 		PackedColorArray debug_colors;
 
-		for (decltype(draw_data.size()) i = 0; i < draw_data.size(); ++i) {
-			for (const auto &data : pairs[i].value) {
+		for (const DrawData::Layer &layer : draw_data) {
+			for (const auto &data : layer.data) {
 				auto base_index = debug_vertices.size();
 				auto insert_begin_index = debug_mesh_indices.size();
 				auto data_indices_count = data.indices.size();

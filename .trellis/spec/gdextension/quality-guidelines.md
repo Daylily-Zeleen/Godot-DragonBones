@@ -26,10 +26,10 @@ Indentation is `tab`, 4-wide. There is **no root `.editorconfig`** and no root `
 
 ## Godot Version Support
 
-Declared support lives in `demo/addons/godot_dragon_bones.daylily-zeleen/godot_dragon_bones.gdextension:26` (`compatibility_minimum = 4.2`), and the code must compile across that range:
+Declared support lives in `demo/addons/godot_dragon_bones.daylily-zeleen/godot_dragon_bones.gdextension:26` (`compatibility_minimum = 4.3`), and the code must compile across that range:
 
-- **4.2 → current**: no `TypedDictionary`; containers fall back to `godot::Dictionary` via the guard in `src/armature.h:43-52`.
-- **4.3+**: `GodotCPPDocData` is available; the build degrades gracefully below it via `AttributeError` fallback (`SConstruct:89-90`).
+- **4.3 → current**: `TypedDictionary` exists only from 4.4, so containers fall back to `godot::Dictionary` via the guard in `src/armature.h:43-52`. This is the only remaining version-conditional code path.
+- **Floor is set at build time**, not here: godot-cpp 10.x only offers API files for 4.3+, and the chosen `api_version` is written into the generated `version.hpp`, which `GDExtensionBinding::init()` uses to reject older engines. See [../build/build-systems.md](../build/build-systems.md).
 
 Rules:
 
@@ -57,7 +57,7 @@ Not present anywhere in `src/`. Use `ERR_FAIL_*` / `ERR_PRINT` / `WARN_PRINT` so
 
 ### Unguarded forward into the runtime
 
-Every wrapper entry point that touches an owned runtime pointer must null-guard first (`src/armature_view.cpp:659-804` is the reference). Unguarded calls produce crashes rather than errors — see the `is_playing()` gap documented in [error-handling.md](./error-handling.md).
+Every wrapper entry point that touches an owned runtime pointer must null-guard first (`src/armature_view.cpp:657-802` is the reference). Unguarded calls produce crashes rather than errors — see the `is_playing()` gap documented in [error-handling.md](./error-handling.md).
 
 ### Hand-rolling a version or platform branch per call site
 
@@ -96,12 +96,12 @@ Documented reality, not endorsement. Fixing these is welcome but must be its own
 | Inner loop increments the outer index when restoring `sub_armatures` | `src/armature.cpp:649` |
 | No-op normalization statements `if (p_name == "") { p_name = ""; }` ×3 | `src/armature_view.cpp:131-133,150-152,169-171` |
 | `set_instantiate_skin_name` omits `notify_property_list_changed()` unlike its siblings | `src/armature_view.cpp:168-178` |
-| `get_global_rect` applies the inverse transform | `src/armature_view.cpp:757` |
+| `get_global_rect` applies the inverse transform | `src/armature_view.cpp:755` |
 | `_to_string` hand-written instead of the macro; missing on `DragonBonesEventObject` | `src/bone.h:60`, `src/factory.h:83` |
 | `get_strings` indexes without `resize`; `get_floats` copies with `sizeof(int)` | `src/event_object.cpp:68,85-87` |
 | `TextureData::operator==` can deref null after a partial null check | `src/texture_atlas_data.h:134` |
 | `DragonBones` listener API are intentional no-op stubs, undocumented as such | `src/armature.h:90-94`, `src/dragon_bones.h:52-57` |
-| ~40 View methods hand-forward to Armature with repeated null guards | `src/armature_view.cpp:659-804` |
+| ~40 View methods hand-forward to Armature with repeated null guards | `src/armature_view.cpp:657-802` |
 | Dead/commented code: UserData index API, binary save path, View fade-out binds | `src/event_object.cpp:97-160`, `src/factory.cpp:493-518`, `src/armature_view.cpp:624-630` |
 | `b_reset` vs `p_recursively` in one signature | `src/armature.h:176-177` |
 | `String` setter params by value instead of `const String &` | `src/armature_view.h:105-112` |

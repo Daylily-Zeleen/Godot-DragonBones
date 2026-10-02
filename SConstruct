@@ -38,7 +38,43 @@ import os
 os.system("chcp 65001")
 
 
-env = SConscript("thirdparty/godot-cpp/SConstruct")
+from SCons.Script import ARGUMENTS
+
+import json
+
+# godot-cpp 10.x ships one API JSON per Godot version (gdextension/
+# extension_api-4-3.json ... 4-7.json), so the target must be stated explicitly.
+# "4.3" is the lowest godot-cpp 10.x can target, and it is also the runtime floor:
+# the version is baked into the generated version.hpp and GDExtensionBinding::init()
+# refuses to load in older Godot.
+API_VERSION = ARGUMENTS.get("api_version", "4.3")
+
+# Resolve the API JSON actually used for this build so the runtime floor declared in
+# the .gdextension can never drift from the bindings it was compiled against.
+# `custom_api_file` takes precedence over `api_version`, matching godot-cpp's own
+# precedence (tools/godotcpp.py:572-575).
+API_JSON = ARGUMENTS.get("custom_api_file") or os.path.join(
+    "thirdparty", "godot-cpp", "gdextension",
+    f"extension_api-{API_VERSION.replace('.', '-')}.json")
+
+
+def read_api_version(json_path):
+    """Return "major.minor" from an extension_api.json, falling back to API_VERSION."""
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            header = json.load(f)["header"]
+    except Exception as e:
+        print(f"Warning: cannot read '{json_path}' ({e}); falling back to {API_VERSION}.")
+        return API_VERSION
+    return f"{header['version_major']}.{header['version_minor']}"
+
+
+MIN_GODOT_VERSION = read_api_version(API_JSON)
+
+# Apply the trimmed binding set automatically; an explicit CLI argument still wins.
+ARGUMENTS.setdefault("build_profile", Dir("#").File("build_profile.json").abspath)
+
+env = SConscript("thirdparty/godot-cpp/SConstruct", {"api_version": API_VERSION})
 lib_name = "libgddragonbones"
 # For the reference:
 # - CCFLAGS are compilation flags shared between C and C++
@@ -195,12 +231,9 @@ def on_complete(target, source, env):
         f.writelines(lines)
         f.close()
 
-    print("Copy README and LICENSE files.")
-
     # 更新.gdextension中的版本信息
-    f = open(extension_file, "r", encoding="utf8")
-    lines = f.readlines()
-    f.close()
+    with open(extension_file, "r", encoding="utf8") as f:
+        lines = f.readlines()
 
     version: str = open("version", "r").readline().strip()
 
@@ -209,11 +242,20 @@ def on_complete(target, source, env):
             lines[i] = f'version = "{version}"\n'
             break
 
-    f = open(extension_file, "w", encoding="utf8")
-    f.writelines(lines)
-    f.close()
+    # Keep the declared runtime floor in sync with the API version the bindings were
+    # generated from. Godot parses this as three ints and defaults the missing ones to
+    # 0 (core/extension/gdextension_library_loader.cpp:324-335), so "4.3" == "4.3.0"
+    # and no patch number is needed.
+    for i in range(len(lines)):
+        if lines[i].startswith("compatibility_minimum"):
+            lines[i] = f"compatibility_minimum = {MIN_GODOT_VERSION}\n"
+            break
+
+    with open(extension_file, "w", encoding="utf8") as f:
+        f.writelines(lines)
 
     print(f"Update version number in \"godot_dragon_bones.gdextension\", {version}")
+    print(f"Update compatibility_minimum to {MIN_GODOT_VERSION} (from {API_JSON})")
 
 
 # Disable scons cache for source files

@@ -1,0 +1,30 @@
+{
+	"enabled_classes": [
+		"OS",
+		"Engine",
+		"MainLoop",
+		"ResourceUID",
+		"RenderingServer",
+		"ProjectSettings",
+		"ResourceLoader",
+		"ResourceSaver",
+		"Object",
+		"Node2D",
+		"RefCounted",
+		"Resource",
+		"Texture2D",
+		"ConfigFile",
+		"CanvasItemMaterial",
+		"DirAccess",
+		"ResourceFormatSaver",
+		"ResourceFormatLoader",
+		"FileSystemDock",
+		"EditorFileSystem",
+		"EditorInterface",
+		"EditorFileSystemDirectory",
+		"EditorPlugin",
+		"EditorExportPlugin",
+		"EditorImportPlugin",
+		"EditorPlugin"
+	]
+}

@@ -180,7 +180,7 @@ void DragonBonesArmature::queue_redraw() const {
 	}
 }
 
-void DragonBonesArmature::append_draw_data(VMap<int, LocalVector<DrawData>> &r_data, const Transform2D &p_base_transfrom, const Color &p_modulate) const {
+void DragonBonesArmature::append_draw_data(DrawData &r_data, const Transform2D &p_base_transfrom, const Color &p_modulate) const {
 	if (slot && !slot->getVisible()) {
 		return;
 	}
@@ -761,8 +761,8 @@ void DragonBonesArmatureProxy::_get_property_list(List<PropertyInfo> *p_list) co
 
 	if (armature->has_sub_armature()) {
 		p_list->push_back(PropertyInfo(Variant::ARRAY, SNAME("sub_armatures"),
-				PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:%s", Variant::OBJECT, PROPERTY_HINT_RESOURCE_TYPE, DragonBonesArmatureProxy::get_class_static()),
-				PROPERTY_USAGE_EDITOR));
+									   PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:%s", Variant::OBJECT, PROPERTY_HINT_RESOURCE_TYPE, DragonBonesArmatureProxy::get_class_static()),
+									   PROPERTY_USAGE_EDITOR));
 	}
 }
 

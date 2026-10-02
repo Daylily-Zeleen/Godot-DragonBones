@@ -28,5 +28,7 @@ gen/
 
 *.log
 
+.agent_tmp/
+
 demo/addons/godot_dragon_bones.daylily-zeleen/LICENSE
 demo/addons/godot_dragon_bones.daylily-zeleen/README.*

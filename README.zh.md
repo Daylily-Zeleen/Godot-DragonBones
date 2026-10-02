@@ -16,8 +16,10 @@
 
 ## 支持的版本
 
-* Godot 4.2 以上(可以尝试切换子模块godot-cpp来编译4.1的gdextension)
+* 本仓库默认配置支持 Godot 4.3 以上
 * DragonBones Pro 5.6
+
+> **说明**：本仓库默认最低支持 Godot 4.3 以上。如需支持 Godot 4.2，请手动将`thirdparty/godot-cpp` 切换到 `4.2` 分支后再编译。
 
 ## 获取插件
 

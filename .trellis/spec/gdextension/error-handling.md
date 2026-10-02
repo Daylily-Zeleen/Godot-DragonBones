@@ -27,7 +27,7 @@ Always return a **type-correct** default: `ERR_FAIL_NULL_V(armature, {})`, `(arm
 
 ### Rule: guard every accessor that crosses into the runtime
 
-`DragonBonesArmatureView` delegates to a nullable `armature` pointer and guards each entry point (`src/armature_view.cpp:659-804`). Follow that pattern for any new wrapper method that forwards to an owned runtime object:
+`DragonBonesArmatureView` delegates to a nullable `armature` pointer and guards each entry point (`src/armature_view.cpp:657-802`). Follow that pattern for any new wrapper method that forwards to an owned runtime object:
 
 ```cpp
 bool DragonBonesArmatureView::has_animation(const String &p_animation_name) const {
