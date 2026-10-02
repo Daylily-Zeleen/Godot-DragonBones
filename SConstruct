@@ -38,7 +38,19 @@ import os
 os.system("chcp 65001")
 
 
-env = SConscript("thirdparty/godot-cpp/SConstruct")
+from SCons.Script import ARGUMENTS
+
+# godot-cpp 10.x ships one API JSON per Godot version (gdextension/
+# extension_api-4-3.json ... 4-7.json), so the target must be stated explicitly.
+# "4.3" is the lowest godot-cpp 10.x can target, and it is also the runtime floor:
+# the version is baked into the generated version.hpp and GDExtensionBinding::init()
+# refuses to load in older Godot.
+API_VERSION = ARGUMENTS.get("api_version", "4.3")
+
+# Apply the trimmed binding set automatically; an explicit CLI argument still wins.
+ARGUMENTS.setdefault("build_profile", Dir("#").File("build_profile.json").abspath)
+
+env = SConscript("thirdparty/godot-cpp/SConstruct", {"api_version": API_VERSION})
 lib_name = "libgddragonbones"
 # For the reference:
 # - CCFLAGS are compilation flags shared between C and C++

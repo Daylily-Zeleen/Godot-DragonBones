@@ -7,21 +7,47 @@ set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES OFF)
 # 生成 compile_command.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(GODOT_GDEXTENSION_DIR STREQUAL "")
-	set(GODOT_GDEXTENSION_DIR ./thirdparty/godot-cpp/gdextension/ CACHE STRING "Path to GDExtension interface header directory")
+# NOTE: these must use `if(NOT DEFINED ...)`, not `if(<var> STREQUAL "")`.
+# In CMake, `if(UNDEFINED_VAR STREQUAL "")` compares the *literal name* against the
+# empty string, which is false - so an unset `set(<var> ... CACHE ...)` default would
+# never run and the variable would stay empty. `if(NOT DEFINED ...)` is the correct form.
+if(NOT DEFINED GODOT_GDEXTENSION_DIR)
+	set(GODOT_GDEXTENSION_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/godot-cpp/gdextension CACHE STRING "Path to GDExtension interface header directory")
 endif()
 
-if(CPP_BINDINGS_PATH STREQUAL "")
-	set(CPP_BINDINGS_PATH ./thirdparty/godot-cpp CACHE STRING "Path to C++ bindings")
+if(NOT DEFINED CPP_BINDINGS_PATH)
+	set(CPP_BINDINGS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/godot-cpp CACHE STRING "Path to godot-cpp source (submodule)")
 endif()
 
-if(CPP_BINDINGS_BUILD_PATH STREQUAL "")
-	set(CPP_BINDINGS_BUILD_PATH ./thirdparty/godot-cpp/build CACHE STRING "Path to C++ bindings building.")
-endif()
-
-if(BUILD_SHARED STREQUAL "")
+if(NOT DEFINED BUILD_SHARED)
 	set(BUILD_SHARED ON CACHE STRING "If ON, build shared library for GDExtension, if OFF, build static library without C Extence for GDExtension. Default ON.")
-endif(BUILD_SHARED STREQUAL "")
+endif()
+
+# godot-cpp 10.x resolves the API version and build profile itself, so this project only
+# has to point it at the profile; no local trimming step is needed.
+#   GODOTCPP_API_VERSION   -> gdextension/extension_api-<x>-<y>.json
+#   GODOTCPP_BUILD_PROFILE -> trims that API file before generating bindings
+if(NOT DEFINED GODOTCPP_API_VERSION)
+	set(GODOTCPP_API_VERSION "4.3" CACHE STRING "Target Godot API version for godot-cpp bindings")
+endif()
+
+if(NOT DEFINED GODOTCPP_BUILD_PROFILE)
+	set(GODOTCPP_BUILD_PROFILE ${CMAKE_CURRENT_SOURCE_DIR}/build_profile.json CACHE FILEPATH "Path to a feature build profile JSON for godot-cpp (\"\" disables trimming)")
+endif()
+
+if(WIN32 AND NOT DEFINED GODOTCPP_USE_STATIC_CPP)
+	set(GODOTCPP_USE_STATIC_CPP OFF CACHE BOOL "Link the C++ runtime statically")
+endif()
+
+# ---------------------------------------------------------------------------
+# godot-cpp
+# ---------------------------------------------------------------------------
+# Build godot-cpp from the submodule with its own CMake target. Earlier revisions
+# expected a prebuilt static library at CPP_BINDINGS_BUILD_PATH (default
+# ./thirdparty/godot-cpp/build), a directory the SCons workflow never creates, so the
+# link step could not resolve. Building from source also guarantees the generated
+# bindings match this build's Godot version and build profile.
+add_subdirectory("${CPP_BINDINGS_PATH}" godot-cpp)
 
 # 命名
 
@@ -190,8 +216,6 @@ endif()
 
 target_include_directories(${PROJECT_NAME} SYSTEM
 	PRIVATE
-	${CPP_BINDINGS_PATH}/include
-	${CPP_BINDINGS_BUILD_PATH}/gen/include
 	${GODOT_GDEXTENSION_DIR}
 	./src
 	./thirdparty
@@ -199,7 +223,9 @@ target_include_directories(${PROJECT_NAME} SYSTEM
 
 set(compiler_is_msvc "$<CXX_COMPILER_ID:MSVC>")
 target_link_options(${PROJECT_NAME} PRIVATE
-	$<$<NOT:${compiler_is_msvc}>:
+	# -static-libgcc / -static-libstdc++ are GCC-driver flags and are rejected by
+	# lld-link, so on Windows they are dropped for every compiler.
+	$<$<AND:$<NOT:${compiler_is_msvc}>,$<NOT:$<PLATFORM_ID:Windows>>>:
 	-static-libgcc
 	-static-libstdc++
 	>
@@ -226,21 +252,10 @@ if(ANDROID)
 	set(PLATFORM ${PLATFORM}.${ANDROID_ABI})
 endif()
 
-if(CMAKE_VERSION VERSION_GREATER "3.13")
-	target_link_directories(${PROJECT_NAME}
-		PRIVATE
-		${CPP_BINDINGS_BUILD_PATH}/bin/
-		${CPP_BINDINGS_BUILD_PATH}/bin/${BUILD_TYPE}/
-	)
-
-	target_link_libraries(${PROJECT_NAME}
-		${CMAKE_STATIC_LIBRARY_PREFIX}godot-cpp.${SYSTEM_NAME}.${BUILD_TYPE}$<$<NOT:$<PLATFORM_ID:Android>>:.${BITS}>
-	)
-else()
-	target_link_libraries(${PROJECT_NAME}
-		${CPP_BINDINGS_BUILD_PATH}/bin/${CMAKE_STATIC_LIBRARY_PREFIX}godot-cpp.${SYSTEM_NAME}.${BUILD_TYPE}$<$<NOT:$<PLATFORM_ID:Android>>:.${BITS}>${CMAKE_STATIC_LIBRARY_SUFFIX}
-	)
-endif()
+target_link_libraries(${PROJECT_NAME}
+	PRIVATE
+	godot::cpp
+)
 
 # Add the compile flags
 set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY COMPILE_FLAGS ${GODOT_COMPILE_FLAGS})

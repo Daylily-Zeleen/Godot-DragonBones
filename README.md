@@ -16,8 +16,14 @@ A GDExtension plugin to add DragonBones for Godot.
 
 ## Support Versions
 
-* Godot 4.2 +
+* Godot 4.3 +
 * DragonBones Pro 5.6
+
+> **Note**: The minimum is 4.3 because `godot-cpp` 10.x can only target Godot 4.3 or
+> newer. A build made against 4.3 loads in 4.3 and any later version, but a build made
+> against a newer API version will refuse to load in an older engine
+> (`GDExtensionBinding::init` enforces this). To target an older engine, pin
+> `thirdparty/godot-cpp` to a matching branch.
 
 ## Get plugin
 

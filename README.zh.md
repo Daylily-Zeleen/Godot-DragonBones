@@ -16,8 +16,10 @@
 
 ## 支持的版本
 
-* Godot 4.2 以上(可以尝试切换子模块godot-cpp来编译4.1的gdextension)
+* Godot 4.3 以上
 * DragonBones Pro 5.6
+
+> **说明**：最低要求是 4.3，因为 `godot-cpp` 10.x 最低只能针对 Godot 4.3 生成绑定。以 4.3 为目标构建的产物可以在 4.3 及更高版本加载，但以更高 API 版本构建的产物会被旧引擎拒绝加载（由 `GDExtensionBinding::init` 强制校验）。如需支持更旧的引擎，请把 `thirdparty/godot-cpp` 切换到对应分支。
 
 ## 获取插件
 
