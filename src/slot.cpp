@@ -419,7 +419,8 @@ void DragonBonesSlot::set_display_by_name(const String &_name) {
 
 	// we only want to update the slot if there's a choice
 	if (rawData->size() > 1) {
-		const char *desired_item = _name.utf8().get_data();
+		const CharString utf8_name = _name.utf8();
+		const char *desired_item = utf8_name.get_data();
 		std::string NONE_STRING("none");
 
 		if (NONE_STRING.compare(desired_item) == 0) {
