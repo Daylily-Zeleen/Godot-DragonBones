@@ -112,10 +112,10 @@ void DragonBonesMeshDisplay::release() {
 	vertices_uv.clear();
 	vertices.clear();
 
+#ifdef DEV_ENABLED
 	// DEBUG: 清理完后回池, 待移除
-	if (pool.has(this)) {
-		ERR_FAIL_COND_MSG(pool.has(this), "DragonBonesMeshDisplay instance already in pool");
-	}
+	CRASH_COND_MSG(pool.has(this), "DragonBonesMeshDisplay instance already in pool");
+#endif // DEV_ENABLED
 	pool.push_back(this);
 }
 
