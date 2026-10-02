@@ -29,7 +29,7 @@ Before writing code in this layer:
 - [ ] Read [memory-and-lifetime.md](./memory-and-lifetime.md) before touching any raw `dragonBones::*` pointer or `Ref<>` member.
 - [ ] Read [error-handling.md](./error-handling.md) before choosing how a failure surfaces.
 - [ ] Read [type-conversion.md](./type-conversion.md) before converting `String`/`Vector2`/`Transform2D` across the boundary.
-- [ ] Searched for an existing wrapper method before adding a new one — ~40 methods on `DragonBonesArmatureView` already forward to `DragonBonesArmature` (`src/armature_view.cpp:659-804`). See [code-reuse-thinking-guide.md](../guides/code-reuse-thinking-guide.md).
+- [ ] Searched for an existing wrapper method before adding a new one — ~40 methods on `DragonBonesArmatureView` already forward to `DragonBonesArmature` (`src/armature_view.cpp:657-802`). See [code-reuse-thinking-guide.md](../guides/code-reuse-thinking-guide.md).
 - [ ] Confirmed the change compiles on the full CI matrix, not only your host platform (see [../build/ci-and-release.md](../build/ci-and-release.md)).
 
 ## Quality Check

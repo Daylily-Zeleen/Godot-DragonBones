@@ -25,10 +25,10 @@ VARIANT_ENUM_CAST(godot::DragonBonesX::SomeEnum);
 |-------|------|----------|
 | `DragonBonesArmature` | `Object` + `Display` + `dragonBones::IArmatureProxy` | `src/armature.h:58-59` |
 | `DragonBonesArmatureView` | `Node2D` | `src/armature_view.h:43-44` |
-| `DragonBonesBone` | `RefCounted` | `src/bone.h:40-41` |
+| `DragonBonesBone` | `RefCounted` | `src/bone.h:42` |
 | `DragonBonesSlot` | `RefCounted` | `src/slot.h:83-84` |
-| `DragonBonesUserData` | `RefCounted` | `src/event_object.h:40-41` |
-| `DragonBonesEventObject` | `RefCounted` | `src/event_object.h:74-75` |
+| `DragonBonesUserData` | `RefCounted` | `src/event_object.h:42` |
+| `DragonBonesEventObject` | `RefCounted` | `src/event_object.h:76` |
 | `DragonBonesFactory` | `Resource` + **private** `dragonBones::BaseFactory` | `src/factory.h:50-51` |
 | `ResourceFormatSaverDragonBones` | `ResourceFormatSaver` + **protected** `DragonBonesFactoryFileProcessor` | `src/factory.h:150-151` |
 
@@ -90,7 +90,7 @@ Emit with the cached `StringName` macro: `emit_signal(SNAME("event_dispatched"),
 
 ## Enums
 
-Plain unscoped `enum` in the public section (`src/armature.h:75-83`, `src/armature_view.h:47-51`, `src/bone.h:48-52`, `src/event_object.h:81-92`), cast **outside** the namespace closing brace (`src/armature.h:257`, `src/armature_view.h:203`, `src/bone.h:101`, `src/event_object.h:135`), and one `BIND_ENUM_CONSTANT` per value at the end of `_bind_methods` (`src/armature.cpp:126-132`).
+Plain unscoped `enum` in the public section (`src/armature.h:75-83`, `src/armature_view.h:47-51`, `src/bone.h:48-52`, `src/event_object.h:81-92`), cast **outside** the namespace closing brace (`src/armature.h:257`, `src/armature_view.h:203`, `src/bone.h:102`, `src/event_object.h:135`), and one `BIND_ENUM_CONSTANT` per value at the end of `_bind_methods` (`src/armature.cpp:126-132`).
 
 > **Gotcha**: `DragonBonesArmatureView::AnimFadeOutMode` is only a `using` alias of the Armature enum (`src/armature_view.h:53`) and its `BIND_ENUM_CONSTANT` block is commented out (`src/armature_view.cpp:624-630`). Only `DragonBonesArmature` owns the registration — do not re-register the same constants from the View (duplicate enum registration).
 

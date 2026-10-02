@@ -19,7 +19,7 @@ _FORCE_INLINE_ std::string to_std_str(const String &p_gd_str) {
 	return p_gd_str.utf8().get_data();
 }
 ```
-— `src/godot_dragon_bones.h:62-68`
+— `src/godot_dragon_bones.h:67-73`
 
 > **Rule**: all `String` ↔ `std::string` traffic goes through these. Never call `.utf8()` / `String::utf8()` inline at a call site, and never assume ASCII — DragonBones asset names are frequently CJK (see `demo/dragonbones_demo/assets/龙/`).
 
@@ -78,7 +78,7 @@ The real names — `Glyph`, `RID`, `safe_ref`, and the `RenderingServer`/`Resour
 - If only a return type differs, avoid pinning it by hand — use a `decltype` on the engine's own virtual: `virtual decltype(EditorImportPlugin()._get_priority()) _get_priority() const override;` (`src/editor/dragon_bones_editor_plugin.h:72`).
 - Never introduce a platform-specific guard for this; only `TOOLS_ENABLED`, `DEBUG_ENABLED`, and Godot version guards are allowed.
 
-> **Rule**: a new API must compile against the whole supported range. Update the declared minimum in `demo/addons/godot_dragon_bones.daylily-zeleen/godot_dragon_bones.gdextension:26` (`compatibility_minimum = 4.2`) if you raise the floor; do not silently drop support for a version you did not intend to drop.
+> **Rule**: a new API must compile against the whole supported range. Update the declared minimum in `demo/addons/godot_dragon_bones.daylily-zeleen/godot_dragon_bones.gdextension:26` (`compatibility_minimum = 4.3`) if you raise the floor; do not silently drop support for a version you did not intend to drop.
 
 ## Cached String Constants
 
@@ -89,7 +89,7 @@ Use `SNAME(...)` for any `StringName` built from a literal at runtime — it cac
 ```
 — `src/godot_dragon_bones.h:74`
 
-Required for `emit_signal(SNAME("event_dispatched"), ...)` (`src/armature.cpp:164`, `src/armature_view.cpp:499`) and dynamic property lookups in `_set`/`_get` (`src/armature_view.cpp:242,256`, `src/armature.cpp:577,584,703,727`).
+Required for `emit_signal(SNAME("event_dispatched"), ...)` (`src/armature.cpp:164`, `src/armature_view.cpp:497`) and dynamic property lookups in `_set`/`_get` (`src/armature_view.cpp:242,256`, `src/armature.cpp:577,584,703,727`).
 
 Do **not** construct `StringName("literal")` inline in these paths — it defeats the cache and allocates per call.
 

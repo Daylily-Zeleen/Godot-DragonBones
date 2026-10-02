@@ -11,7 +11,7 @@
 | Duplicated thing | Cost | Where |
 |------------------|------|-------|
 | Source list / exclusion rules | Build works in one system, fails in the other | `SConstruct` vs `CMakeLists.txt` |
-| Null-guard forwarding | ~40 near-identical methods to keep in sync | `src/armature_view.cpp:659-804` |
+| Null-guard forwarding | ~40 near-identical methods to keep in sync | `src/armature_view.cpp:657-802` |
 | Path/extension literals | Rename misses a copy, import breaks | `src/factory.h`, `generate_xcframework.sh`, `SConstruct` |
 | Binding + doc + header triples | API silently undocumented or renamed in one place only | `_bind_methods`, `doc_classes/`, class headers |
 
