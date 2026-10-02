@@ -1,0 +1,32 @@
+{
+  "id": "00-bootstrap-guidelines",
+  "name": "00-bootstrap-guidelines",
+  "title": "Bootstrap Guidelines",
+  "description": "Fill in project development guidelines for AI agents",
+  "status": "completed",
+  "dev_type": "docs",
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "'忘忧の-Daylily_Zeleen'",
+  "assignee": "'忘忧の-Daylily_Zeleen'",
+  "createdAt": "2026-10-02",
+  "completedAt": "2026-10-02",
+  "branch": null,
+  "base_branch": null,
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    ".trellis/spec/gdextension/",
+    ".trellis/spec/editor/",
+    ".trellis/spec/build/",
+    ".trellis/spec/guides/",
+    "AGENTS.md"
+  ],
+  "notes": "Trellis init seeded a fullstack-web spec template (backend=ORM/DB, frontend=React/TS) that does not apply to this Godot 4 C++ GDExtension. Spec replaced with layers matching the real code: gdextension/ (src binding layer), editor/ (src/editor + TOOLS_ENABLED), build/ (SConstruct/CMake/CI). guides/ rewritten for this project. Chinese commit/PR language rule added to AGENTS.md.",
+  "meta": {}
+}
