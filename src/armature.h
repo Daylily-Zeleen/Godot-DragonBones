@@ -45,11 +45,11 @@
 using SlotsDictionary = godot::TypedDictionary<godot::String, godot::DragonBonesSlot>;
 using BonesDictionary = godot::TypedDictionary<godot::String, godot::DragonBonesBone>;
 using ConstraintsDictionary = godot::TypedDictionary<godot::String, godot::Vector2>;
-#else // GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
+#else
 using SlotsDictionary = godot::Dictionary;
 using BonesDictionary = godot::Dictionary;
 using ConstraintsDictionary = godot::Dictionary;
-#endif // GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
+#endif
 
 namespace godot {
 
@@ -68,8 +68,8 @@ private:
 protected:
 	dragonBones::Armature *armature_instance{ nullptr };
 
-	std::map<std::string, Ref<DragonBonesBone>> bones;
-	std::map<std::string, Ref<DragonBonesSlot>> slots;
+	std::map<StringName, Ref<DragonBonesBone>> bones;
+	std::map<StringName, Ref<DragonBonesSlot>> slots;
 
 public:
 	enum AnimFadeOutMode {
@@ -84,8 +84,8 @@ public:
 	DragonBonesArmature() = default;
 	virtual ~DragonBonesArmature() override;
 
-	void add_bone(std::string p_name, const Ref<DragonBonesBone> &p_new_bone);
-	void add_slot(std::string p_name, const Ref<DragonBonesSlot> &p_new_slot);
+	void add_bone(StringName &&p_name, const Ref<DragonBonesBone> &p_new_bone);
+	void add_slot(StringName &&p_name, const Ref<DragonBonesSlot> &p_new_slot);
 
 	virtual bool hasDBEventListener(const std::string &p_type) const override { return true; }
 	virtual void addDBEventListener(const std::string &p_type, const std::function<void(dragonBones::EventObject *)> &p_listener) override {}
@@ -176,12 +176,12 @@ public:
 	void stop(const String &p_animation_name, bool b_reset = false, bool p_recursively = false);
 	void stop_all_animations(bool b_reset = false, bool p_recursively = false);
 	void fade_in(const String &p_animation_name, float p_time,
-			int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode);
+				 int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode);
 
 	void reset(bool p_recursively = false);
 
-	bool has_slot(const String &p_slot_name) const;
-	Ref<DragonBonesSlot> get_slot(const String &p_slot_name);
+	bool has_slot(const StringName &p_slot_name) const;
+	Ref<DragonBonesSlot> get_slot(const StringName &p_slot_name);
 	SlotsDictionary get_slots();
 
 	ConstraintsDictionary get_ik_constraints();
@@ -189,7 +189,7 @@ public:
 	void set_ik_constraint_bend_positive(const String &p_name, bool p_bend_positive);
 
 	BonesDictionary get_bones();
-	Ref<DragonBonesBone> get_bone(const String &p_name);
+	Ref<DragonBonesBone> get_bone(const StringName &p_name);
 
 	Rect2 get_rect() const;
 	void advance(float p_delta, bool p_recursively = false);

@@ -151,8 +151,8 @@ public:
 	void fade_in(const String &p_animation_name, float p_time,
 				 int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode);
 
-	bool has_slot(const String &p_slot_name) const;
-	Ref<DragonBonesSlot> get_slot(const String &p_slot_name);
+	bool has_slot(const StringName &p_slot_name) const;
+	Ref<DragonBonesSlot> get_slot(const StringName &p_slot_name);
 	SlotsDictionary get_slots();
 
 	ConstraintsDictionary get_ik_constraints();
@@ -160,7 +160,7 @@ public:
 	void set_ik_constraint_bend_positive(const String &p_name, bool p_bend_positive);
 
 	BonesDictionary get_bones();
-	Ref<DragonBonesBone> get_bone(const String &p_name);
+	Ref<DragonBonesBone> get_bone(const StringName &p_name);
 
 	Rect2 get_rect() const;
 	Rect2 get_global_rect() const;

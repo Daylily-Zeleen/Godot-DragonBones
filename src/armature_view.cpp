@@ -708,11 +708,11 @@ void DragonBonesArmatureView::fade_in(const String &p_animation_name, float p_ti
 	armature->fade_in(p_animation_name, p_time, p_loop_count, p_layer, p_group, p_fade_out_mode);
 }
 
-bool DragonBonesArmatureView::has_slot(const String &p_slot_name) const {
+bool DragonBonesArmatureView::has_slot(const StringName &p_slot_name) const {
 	ERR_FAIL_NULL_V(armature, false);
 	return armature->has_slot(p_slot_name);
 }
-Ref<DragonBonesSlot> DragonBonesArmatureView::get_slot(const String &p_slot_name) {
+Ref<DragonBonesSlot> DragonBonesArmatureView::get_slot(const StringName &p_slot_name) {
 	ERR_FAIL_NULL_V(armature, {});
 	return armature->get_slot(p_slot_name);
 }
@@ -738,7 +738,7 @@ BonesDictionary DragonBonesArmatureView::get_bones() {
 	ERR_FAIL_NULL_V(armature, {});
 	return armature->get_bones();
 }
-Ref<DragonBonesBone> DragonBonesArmatureView::get_bone(const String &p_name) {
+Ref<DragonBonesBone> DragonBonesArmatureView::get_bone(const StringName &p_name) {
 	ERR_FAIL_NULL_V(armature, {});
 	return armature->get_bone(p_name);
 }

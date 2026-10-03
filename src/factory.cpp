@@ -144,7 +144,7 @@ Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, co
 	slot->update(0);
 
 	const auto proxy = static_cast<DragonBonesArmature *>(slot->getArmature()->getDisplay());
-	proxy->add_slot(slot->getName(), tree_slot);
+	proxy->add_slot(to_gd_str(slot->getName()), tree_slot);
 
 	return slot;
 }
@@ -173,7 +173,7 @@ void DragonBonesFactory::_buildBones(const BuildArmaturePackage &dataPackage, Ar
 
 		DragonBonesArmature *display = static_cast<DragonBonesArmature *>(armature->getDisplay());
 		Ref<DragonBonesBone> new_bone{ memnew(DragonBonesBone(bone, display)) };
-		display->add_bone(bone->getName(), new_bone);
+		display->add_bone(to_gd_str(bone->getName()), new_bone);
 	}
 
 	for (const auto &pair : dataPackage.armature->constraints) {
