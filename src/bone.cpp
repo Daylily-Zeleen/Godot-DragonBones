@@ -82,6 +82,7 @@ _FORCE_INLINE_ Transform2D to_gd_transform(const dragonBones::Transform &p_t) {
 void DragonBonesBone::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_name"), &DragonBonesBone::get_name);
 	ClassDB::bind_method(D_METHOD("get_parent"), &DragonBonesBone::get_parent);
+	ClassDB::bind_method(D_METHOD("get_length"), &DragonBonesBone::get_length);
 	ClassDB::bind_method(D_METHOD("is_valid"), &DragonBonesBone::is_valid);
 
 	ClassDB::bind_method(D_METHOD("get_position"), &DragonBonesBone::get_position);
@@ -121,6 +122,8 @@ void DragonBonesBone::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "global_scale"), "set_global_scale", "get_global_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM2D, "transform"), "set_transform", "get_transform");
 	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM2D, "global_transform"), "set_global_transform", "get_global_transform");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "name"), "", "get_name");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "length"), "", "get_length");
 
 	// 枚举
 	BIND_ENUM_CONSTANT(OFFSET_MODE_NONE);
@@ -143,6 +146,11 @@ Ref<DragonBonesBone> DragonBonesBone::get_parent() const {
 		return {};
 	}
 	return armature->get_bone(to_gd_str(boneData->getParent()->getName()));
+}
+
+float DragonBonesBone::get_length() const {
+	ERR_FAIL_NULL_V(boneData, 0.0f);
+	return boneData->getBoneData()->length;
 }
 
 // Local

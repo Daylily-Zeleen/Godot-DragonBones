@@ -149,6 +149,9 @@ public:
 	virtual void queue_redraw() const override;
 	virtual void append_draw_data(DrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const override;
 
+	_FORCE_INLINE_ const std::map<StringName, Ref<DragonBonesBone>> &get_bones() { return bones; };
+	_FORCE_INLINE_ const std::map<StringName, Ref<DragonBonesSlot>> &get_slots() { return slots; };
+
 public:
 	bool is_valid() const { return armature_instance && armature_view; }
 
@@ -182,13 +185,13 @@ public:
 
 	bool has_slot(const StringName &p_slot_name) const;
 	Ref<DragonBonesSlot> get_slot(const StringName &p_slot_name);
-	SlotsDictionary get_slots();
+	SlotsDictionary get_slots_();
 
 	ConstraintsDictionary get_ik_constraints();
 	void set_ik_constraint(const String &p_name, Vector2 p_position);
 	void set_ik_constraint_bend_positive(const String &p_name, bool p_bend_positive);
 
-	BonesDictionary get_bones();
+	BonesDictionary get_bones_();
 	Ref<DragonBonesBone> get_bone(const StringName &p_name);
 
 	Rect2 get_rect() const;

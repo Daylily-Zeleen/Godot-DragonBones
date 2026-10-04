@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  bone.h                                                                */
+/*  debug_draw.h                                                          */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                           Godot-DragonBones                            */
@@ -32,72 +32,41 @@
 
 #include <godot_dragon_bones.h>
 
-#include <dragonBones/armature/Bone.h>
-#include <godot_cpp/classes/ref.hpp>
-#include <godot_cpp/classes/ref_counted.hpp>
+#include "armature.h"
+
+#include <godot_cpp/classes/canvas_item.hpp>
 
 namespace godot {
 
-class DragonBonesBone : public RefCounted {
-	GDCLASS(DragonBonesBone, RefCounted);
+#ifdef DEBUG_ENABLED
+// Tunables for the debug overlay, exposed on DragonBonesArmatureView as
+// `debug_draw_*` properties.
+struct DebugDraw {
+	bool draw_mesh = true;
+	bool draw_bone = true;
+	bool draw_bone_name = true;
 
-protected:
-	dragonBones::Bone *boneData{ nullptr }; // 生命周期由 dragonBones::Armature 管理
-	class DragonBonesArmature *armature{ nullptr };
+	// Radius of the pivot symbol drawn at every bone's start, in SCREEN pixels. The view
+	// converts it to world units by the current canvas scale, so the glyph keeps a
+	// constant apparent size instead of shrinking to nothing when the node is zoomed out
+	// (or swelling across the whole armature when it is zoomed in).
+	float bone_pivot_radius = 5.0f;
+
+	// Generic bone colour. IK targets and IK-driven bones override it.
+	Color color_bone{ 0.8f, 0.8f, 0.8f, 0.8f };
+	Color color_ik_target{ 1.0f, 0.55f, 0.2f, 0.9f };
+	Color color_ik_bone_outline{ 1.0f, 0.6f, 0.1f, 1.0f };
+
+	DebugDraw(CanvasItem *p_owner) : owner(p_owner) {}
 
 public:
-	enum OffsetMode {
-		OFFSET_MODE_NONE,
-		OFFSET_MODE_ADDITIVE,
-		OFFSET_MODE_OVERRIDE,
-	};
+	// 只能在 CanvasItem::_draw 阶段调用。
+	void draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data, const RID &p_debug_mesh);
 
-	DragonBonesBone() = default;
-	DragonBonesBone(dragonBones::Bone *p_bone_data, DragonBonesArmature *p_armature) :
-			boneData(p_bone_data), armature(p_armature) {}
-
-public:
-	static void _bind_methods();
-	String _to_string() const { return vformat("<%s#%s>", get_class_static(), get_instance_id()); }
-
-	bool is_valid() const;
-	String get_name() const;
-	float get_length() const;
-	Ref<DragonBonesBone> get_parent() const;
-
-	// Local
-	Vector2 get_position() const;
-	void set_position(Vector2 p_new_pos);
-
-	float get_rotation() const;
-	void set_rotation(float p_rotation);
-
-	Vector2 get_scale() const;
-	void set_scale(Vector2 p_scale);
-
-	Transform2D get_transform() const;
-	void set_transform(const Transform2D &p_transform);
-
-	// Global
-	void set_global_position(Vector2 p_new_pos);
-	Vector2 get_global_position() const;
-
-	void set_global_rotation(float p_rotation);
-	float get_global_rotation() const;
-
-	void set_global_scale(Vector2 p_scale);
-	Vector2 get_global_scale() const;
-
-	Transform2D get_global_transform() const;
-	void set_global_transform(const Transform2D &p_transform);
-
-	// Others
-	OffsetMode get_offset_mode() const;
-	Transform2D get_offset() const;
-	Transform2D get_animation_pose() const;
-	Transform2D get_origin() const;
+private:
+	CanvasItem *owner;
 };
 
-} //namespace godot
+#endif // DEBUG_ENABLED
 
-VARIANT_ENUM_CAST(godot::DragonBonesBone::OffsetMode);
+} //namespace godot

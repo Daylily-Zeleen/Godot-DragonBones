@@ -103,20 +103,88 @@ bool DragonBonesArmatureView::is_active() const {
 	return active;
 }
 
-void DragonBonesArmatureView::set_debug(bool p_debug) {
-	debug = p_debug;
-
 #ifdef DEBUG_ENABLED
-	if (debug) {
+void DragonBonesArmatureView::set_debug_draw_enabled(bool p_enabled) {
+	if (debug_draw.draw_mesh == p_enabled && debug_mesh.is_valid() == p_enabled) {
+		queue_redraw();
+		return;
+	}
+	if (p_enabled) {
 		debug_mesh = RenderingServer::get_singleton()->mesh_create();
+	} else if (debug_mesh.is_valid()) {
+		RenderingServer::get_singleton()->free_rid(debug_mesh);
+		debug_mesh = RID();
 	}
 	queue_redraw();
-#endif // DEBUG_ENABLED
 }
 
-bool DragonBonesArmatureView::is_debug() const {
-	return debug;
+bool DragonBonesArmatureView::is_debug_draw_enabled() const {
+	return debug_mesh.is_valid();
 }
+
+void DragonBonesArmatureView::set_debug_draw_bone_pivot_radius(float p_radius) {
+	debug_draw.bone_pivot_radius = MAX(p_radius, 0.5f);
+	queue_redraw();
+}
+
+float DragonBonesArmatureView::get_debug_draw_bone_pivot_radius() const {
+	return debug_draw.bone_pivot_radius;
+}
+
+void DragonBonesArmatureView::set_debug_draw_visible_mesh(bool p_visible) {
+	debug_draw.draw_mesh = p_visible;
+	queue_redraw();
+}
+
+bool DragonBonesArmatureView::is_debug_draw_visible_mesh() const {
+	return debug_draw.draw_mesh;
+}
+
+void DragonBonesArmatureView::set_debug_draw_visible_bone(bool p_visible) {
+	debug_draw.draw_bone = p_visible;
+	queue_redraw();
+}
+
+bool DragonBonesArmatureView::is_debug_draw_visible_bone() const {
+	return debug_draw.draw_bone;
+}
+
+void DragonBonesArmatureView::set_debug_draw_visible_bone_name(bool p_visible) {
+	debug_draw.draw_bone_name = p_visible;
+	queue_redraw();
+}
+
+bool DragonBonesArmatureView::is_debug_draw_visible_bone_name() const {
+	return debug_draw.draw_bone_name;
+}
+
+void DragonBonesArmatureView::set_debug_draw_color_bone(const Color &p_color) {
+	debug_draw.color_bone = p_color;
+	queue_redraw();
+}
+
+Color DragonBonesArmatureView::get_debug_draw_color_bone() const {
+	return debug_draw.color_bone;
+}
+
+void DragonBonesArmatureView::set_debug_draw_color_ik_target(const Color &p_color) {
+	debug_draw.color_ik_target = p_color;
+	queue_redraw();
+}
+
+Color DragonBonesArmatureView::get_debug_draw_color_ik_target() const {
+	return debug_draw.color_ik_target;
+}
+
+void DragonBonesArmatureView::set_debug_draw_color_ik_bone_outline(const Color &p_color) {
+	debug_draw.color_ik_bone_outline = p_color;
+	queue_redraw();
+}
+
+Color DragonBonesArmatureView::get_debug_draw_color_ik_bone_outline() const {
+	return debug_draw.color_ik_bone_outline;
+}
+#endif // DEBUG_ENABLED
 
 void DragonBonesArmatureView::set_time_scale(float p_time_scale) {
 	time_scale = p_time_scale < 0.0 ? 0.0 : p_time_scale;
@@ -425,66 +493,8 @@ void DragonBonesArmatureView::_draw() {
 	}
 
 #ifdef DEBUG_ENABLED
-	if (debug) {
-		// Prepare debug mesh data.
-		PackedInt32Array debug_mesh_indices;
-		PackedVector2Array debug_vertices;
-		PackedColorArray debug_colors;
-
-		for (const DrawData::Layer &layer : draw_data) {
-			for (const auto &data : layer.data) {
-				auto base_index = debug_vertices.size();
-				auto insert_begin_index = debug_mesh_indices.size();
-				auto data_indices_count = data.indices.size();
-
-				debug_mesh_indices.resize(debug_mesh_indices.size() + data_indices_count);
-				auto debug_mesh_indices_ptrw = debug_mesh_indices.ptrw() + insert_begin_index;
-				auto data_indices_ptr = data.indices.ptr();
-
-				while (data_indices_count > 0) {
-					*debug_mesh_indices_ptrw = *data_indices_ptr + base_index;
-					++debug_mesh_indices_ptrw;
-					++data_indices_ptr;
-
-					--data_indices_count;
-				}
-
-				debug_vertices.append_array(data.transform.xform(data.vertices));
-
-				PackedColorArray colors;
-				colors.resize(data.vertices.size());
-				colors.fill(data.debug_color);
-				debug_colors.append_array(colors);
-			}
-		}
-
-		// Triangles to lines.
-		PackedInt32Array debug_lines_indices;
-		debug_lines_indices.resize(debug_mesh_indices.size() * 2);
-		for (int i = 0; i < debug_mesh_indices.size(); i += 3) {
-			int base_index = 2 * i;
-			debug_lines_indices[base_index] = debug_mesh_indices[i];
-			debug_lines_indices[base_index + 1] = debug_mesh_indices[i + 1];
-
-			debug_lines_indices[base_index + 2] = debug_mesh_indices[i + 1];
-			debug_lines_indices[base_index + 3] = debug_mesh_indices[i + 2];
-
-			debug_lines_indices[base_index + 4] = debug_mesh_indices[i + 2];
-			debug_lines_indices[base_index + 5] = debug_mesh_indices[i];
-		}
-
-		// Add debug rendering commands.
-		RS->mesh_clear(debug_mesh);
-		Array arr;
-		if (!debug_lines_indices.is_empty()) {
-			// 索引不为空时绘制
-			arr.resize(RenderingServer::ARRAY_MAX);
-			arr[RenderingServer::ARRAY_INDEX] = debug_lines_indices;
-			arr[RenderingServer::ARRAY_VERTEX] = debug_vertices;
-			arr[RenderingServer::ARRAY_COLOR] = debug_colors;
-			RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_LINES, arr);
-			RS->canvas_item_add_mesh(get_canvas_item(), debug_mesh, identity, get_modulate());
-		}
+	if (debug_mesh.is_valid()) {
+		debug_draw.draw(armature, draw_data, debug_mesh);
 	}
 #endif // DEBUG_ENABLED
 }
@@ -523,8 +533,26 @@ void DragonBonesArmatureView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_active", "active"), &DragonBonesArmatureView::set_active);
 	ClassDB::bind_method(D_METHOD("is_active"), &DragonBonesArmatureView::is_active);
 
-	ClassDB::bind_method(D_METHOD("set_debug", "debug"), &DragonBonesArmatureView::set_debug);
-	ClassDB::bind_method(D_METHOD("is_debug"), &DragonBonesArmatureView::is_debug);
+#ifdef DEBUG_ENABLED
+	ClassDB::bind_method(D_METHOD("set_debug_draw_enabled", "enabled"), &DragonBonesArmatureView::set_debug_draw_enabled);
+	ClassDB::bind_method(D_METHOD("is_debug_draw_enabled"), &DragonBonesArmatureView::is_debug_draw_enabled);
+	ClassDB::bind_method(D_METHOD("set_debug_draw_bone_pivot_radius", "radius"), &DragonBonesArmatureView::set_debug_draw_bone_pivot_radius);
+	ClassDB::bind_method(D_METHOD("get_debug_draw_bone_pivot_radius"), &DragonBonesArmatureView::get_debug_draw_bone_pivot_radius);
+
+	ClassDB::bind_method(D_METHOD("set_debug_draw_visible_mesh", "visible"), &DragonBonesArmatureView::set_debug_draw_visible_mesh);
+	ClassDB::bind_method(D_METHOD("is_debug_draw_visible_mesh"), &DragonBonesArmatureView::is_debug_draw_visible_mesh);
+	ClassDB::bind_method(D_METHOD("set_debug_draw_visible_bone", "visible"), &DragonBonesArmatureView::set_debug_draw_visible_bone);
+	ClassDB::bind_method(D_METHOD("is_debug_draw_visible_bone"), &DragonBonesArmatureView::is_debug_draw_visible_bone);
+	ClassDB::bind_method(D_METHOD("set_debug_draw_visible_bone_name", "visible"), &DragonBonesArmatureView::set_debug_draw_visible_bone_name);
+	ClassDB::bind_method(D_METHOD("is_debug_draw_visible_bone_name"), &DragonBonesArmatureView::is_debug_draw_visible_bone_name);
+
+	ClassDB::bind_method(D_METHOD("set_debug_draw_color_bone", "color"), &DragonBonesArmatureView::set_debug_draw_color_bone);
+	ClassDB::bind_method(D_METHOD("get_debug_draw_color_bone"), &DragonBonesArmatureView::get_debug_draw_color_bone);
+	ClassDB::bind_method(D_METHOD("set_debug_draw_color_ik_target", "color"), &DragonBonesArmatureView::set_debug_draw_color_ik_target);
+	ClassDB::bind_method(D_METHOD("get_debug_draw_color_ik_target"), &DragonBonesArmatureView::get_debug_draw_color_ik_target);
+	ClassDB::bind_method(D_METHOD("set_debug_draw_color_ik_bone_outline", "color"), &DragonBonesArmatureView::set_debug_draw_color_ik_bone_outline);
+	ClassDB::bind_method(D_METHOD("get_debug_draw_color_ik_bone_outline"), &DragonBonesArmatureView::get_debug_draw_color_ik_bone_outline);
+#endif // DEBUG_ENABLED
 
 	ClassDB::bind_method(D_METHOD("set_callback_mode_process", "mode"), &DragonBonesArmatureView::set_callback_mode_process);
 	ClassDB::bind_method(D_METHOD("get_callback_mode_process"), &DragonBonesArmatureView::get_callback_mode_process);
@@ -597,7 +625,24 @@ void DragonBonesArmatureView::_bind_methods() {
 
 	// This is how we set top level properties
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "active"), "set_active", "is_active");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug"), "set_debug", "is_debug");
+
+#ifdef DEBUG_ENABLED
+	// The prefix is spelled out in each property name; ADD_GROUP only records the
+	// section header, matching how the `Flip` group above is written.
+	ADD_GROUP("DebugDraw", "debug_draw_");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug_draw_enabled"), "set_debug_draw_enabled", "is_debug_draw_enabled");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "debug_draw_bone_pivot_radius", PROPERTY_HINT_RANGE, "0.5,64.0,0.5,or_greater"), "set_debug_draw_bone_pivot_radius", "get_debug_draw_bone_pivot_radius");
+
+	ADD_SUBGROUP("Visible", "debug_draw_visible_");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug_draw_visible_mesh"), "set_debug_draw_visible_mesh", "is_debug_draw_visible_mesh");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug_draw_visible_bone"), "set_debug_draw_visible_bone", "is_debug_draw_visible_bone");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug_draw_visible_bone_name"), "set_debug_draw_visible_bone_name", "is_debug_draw_visible_bone_name");
+
+	ADD_SUBGROUP("Color", "debug_draw_color_");
+	ADD_PROPERTY(PropertyInfo(Variant::COLOR, "debug_draw_color_bone"), "set_debug_draw_color_bone", "get_debug_draw_color_bone");
+	ADD_PROPERTY(PropertyInfo(Variant::COLOR, "debug_draw_color_ik_target"), "set_debug_draw_color_ik_target", "get_debug_draw_color_ik_target");
+	ADD_PROPERTY(PropertyInfo(Variant::COLOR, "debug_draw_color_ik_bone_outline"), "set_debug_draw_color_ik_bone_outline", "get_debug_draw_color_ik_bone_outline");
+#endif // DEBUG_ENABLED
 
 	ADD_GROUP("Animation Settings", "animation_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "animation_loop_count", PROPERTY_HINT_RANGE, "0,100,1,or_greater"), "set_animation_loop_count", "get_animation_loop_count");
@@ -703,7 +748,7 @@ void DragonBonesArmatureView::stop_all_animations(bool b_reset, bool p_recursive
 	armature->stop_all_animations(b_reset, p_recursively);
 }
 void DragonBonesArmatureView::fade_in(const String &p_animation_name, float p_time,
-		int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode) {
+									  int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode) {
 	ERR_FAIL_NULL(armature);
 	armature->fade_in(p_animation_name, p_time, p_loop_count, p_layer, p_group, p_fade_out_mode);
 }
@@ -718,7 +763,7 @@ Ref<DragonBonesSlot> DragonBonesArmatureView::get_slot(const StringName &p_slot_
 }
 SlotsDictionary DragonBonesArmatureView::get_slots() {
 	ERR_FAIL_NULL_V(armature, {});
-	return armature->get_slots();
+	return armature->get_slots_();
 }
 
 ConstraintsDictionary DragonBonesArmatureView::get_ik_constraints() {
@@ -736,7 +781,7 @@ void DragonBonesArmatureView::set_ik_constraint_bend_positive(const String &p_na
 
 BonesDictionary DragonBonesArmatureView::get_bones() {
 	ERR_FAIL_NULL_V(armature, {});
-	return armature->get_bones();
+	return armature->get_bones_();
 }
 Ref<DragonBonesBone> DragonBonesArmatureView::get_bone(const StringName &p_name) {
 	ERR_FAIL_NULL_V(armature, {});

@@ -36,6 +36,10 @@
 #include <godot_cpp/classes/node2d.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
 
+#ifdef DEBUG_ENABLED
+#include "debug_draw.h"
+#endif // DEBUG_ENABLED
+
 #include "armature.h"
 #include "factory.h"
 
@@ -64,11 +68,11 @@ private:
 	float time_scale{ 1.0f };
 	int animation_loop_count{ 0 };
 	bool active{ true };
-	bool debug{ false };
 
 	LocalVector<RID> draw_meshes;
 
 #ifdef DEBUG_ENABLED
+	DebugDraw debug_draw{ this };
 	RID debug_mesh;
 #endif // DEBUG_ENABLED
 
@@ -123,8 +127,24 @@ public:
 		}
 	}
 
-	void set_debug(bool p_debug);
-	bool is_debug() const;
+#ifdef DEBUG_ENABLED
+	void set_debug_draw_enabled(bool p_enabled);
+	bool is_debug_draw_enabled() const;
+	void set_debug_draw_bone_pivot_radius(float p_radius);
+	float get_debug_draw_bone_pivot_radius() const;
+	void set_debug_draw_visible_mesh(bool p_visible);
+	bool is_debug_draw_visible_mesh() const;
+	void set_debug_draw_visible_bone(bool p_visible);
+	bool is_debug_draw_visible_bone() const;
+	void set_debug_draw_visible_bone_name(bool p_visible);
+	bool is_debug_draw_visible_bone_name() const;
+	void set_debug_draw_color_bone(const Color &p_color);
+	Color get_debug_draw_color_bone() const;
+	void set_debug_draw_color_ik_target(const Color &p_color);
+	Color get_debug_draw_color_ik_target() const;
+	void set_debug_draw_color_ik_bone_outline(const Color &p_color);
+	Color get_debug_draw_color_ik_bone_outline() const;
+#endif // DEBUG_ENABLED
 
 	DragonBonesArmature *get_armature();
 

@@ -84,13 +84,13 @@ void DragonBonesArmature::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("has_slot", "slot_name"), &DragonBonesArmature::has_slot);
 	ClassDB::bind_method(D_METHOD("get_slot", "slot_name"), &DragonBonesArmature::get_slot);
-	ClassDB::bind_method(D_METHOD("get_slots"), &DragonBonesArmature::get_slots);
+	ClassDB::bind_method(D_METHOD("get_slots"), &DragonBonesArmature::get_slots_);
 
 	ClassDB::bind_method(D_METHOD("get_ik_constraints"), &DragonBonesArmature::get_ik_constraints);
 	ClassDB::bind_method(D_METHOD("set_ik_constraint", "constraint_name", "new_position"), &DragonBonesArmature::set_ik_constraint);
 	ClassDB::bind_method(D_METHOD("set_ik_constraint_bend_positive", "constraint_name", "bend_positive"), &DragonBonesArmature::set_ik_constraint_bend_positive);
 
-	ClassDB::bind_method(D_METHOD("get_bones"), &DragonBonesArmature::get_bones);
+	ClassDB::bind_method(D_METHOD("get_bones"), &DragonBonesArmature::get_bones_);
 	ClassDB::bind_method(D_METHOD("get_bone", "bone_name"), &DragonBonesArmature::get_bone);
 
 	ClassDB::bind_method(D_METHOD("advance", "delta", "recursively"), &DragonBonesArmature::advance, DEFVAL(false));
@@ -395,7 +395,7 @@ bool DragonBonesArmature::has_slot(const StringName &p_slot_name) const {
 	return getArmature()->getSlot(to_std_str(p_slot_name)) != nullptr;
 }
 
-SlotsDictionary DragonBonesArmature::get_slots() {
+SlotsDictionary DragonBonesArmature::get_slots_() {
 	SlotsDictionary ret{};
 
 	for (auto &slot : slots) {
@@ -488,7 +488,7 @@ void DragonBonesArmature::set_ik_constraint_bend_positive(const String &name, bo
 	}
 }
 
-BonesDictionary DragonBonesArmature::get_bones() {
+BonesDictionary DragonBonesArmature::get_bones_() {
 	BonesDictionary ret{};
 
 	for (auto &bone : bones) {
