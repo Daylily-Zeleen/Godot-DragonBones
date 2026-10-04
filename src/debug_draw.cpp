@@ -479,7 +479,6 @@ void draw_debug_bone_names(CanvasItem *p_owner, const LocalVector<DebugBone> &p_
 		return;
 	}
 
-	// 字号固定，不随节点缩放、2D 缩放或窗口拉伸补偿。
 	const int font_size = DEBUG_BONE_NAME_FONT_SIZE;
 	const float label_pad = p_props.get_bone_pivot_radius() * 2.0f + 2.0f;
 
@@ -491,6 +490,7 @@ void draw_debug_bone_names(CanvasItem *p_owner, const LocalVector<DebugBone> &p_
 				: p_props.color_bone;
 
 		p_owner->draw_string(font, pos, bone.name, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, name_color);
+		p_owner->draw_string_outline(font, pos, bone.name, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 1, rim_color(name_color));
 	}
 }
 
