@@ -39,20 +39,14 @@
 namespace godot {
 
 #ifdef DEBUG_ENABLED
-// Tunables for the debug overlay, exposed on DragonBonesArmatureView as
-// `debug_draw_*` properties.
 struct DebugDraw {
-	bool draw_mesh = true;
-	bool draw_bone = true;
-	bool draw_bone_name = true;
+	enum Flag : uint8_t {
+		DRAW_ENABLED = 1 << 0,
+		DRAW_MESH = 1 << 1,
+		DRAW_BONE = 1 << 2,
+		DRAW_BONE_NAME = 1 << 3,
+	};
 
-	// Radius of the pivot symbol drawn at every bone's start, in SCREEN pixels. The view
-	// converts it to world units by the current canvas scale, so the glyph keeps a
-	// constant apparent size instead of shrinking to nothing when the node is zoomed out
-	// (or swelling across the whole armature when it is zoomed in).
-	float bone_pivot_radius = 5.0f;
-
-	// Generic bone colour. IK targets and IK-driven bones override it.
 	Color color_bone{ 0.8f, 0.8f, 0.8f, 0.8f };
 	Color color_ik_target{ 1.0f, 0.55f, 0.2f, 0.9f };
 	Color color_ik_bone_outline{ 1.0f, 0.6f, 0.1f, 1.0f };
@@ -60,11 +54,30 @@ struct DebugDraw {
 	DebugDraw(CanvasItem *p_owner) : owner(p_owner) {}
 
 public:
+	_FORCE_INLINE_ void set_flag(Flag p_flag, bool p_enable) { p_enable ? (draw_flags |= p_flag) : (draw_flags &= ~p_flag); }
+	_FORCE_INLINE_ bool has_flag(Flag p_flag) const { return draw_flags & p_flag; }
+
+	_FORCE_INLINE_ void set_bone_pivot_radius(float p_radius) { bone_pivot_radius = Math::max(3.0f, p_radius); }
+	_FORCE_INLINE_ float get_bone_pivot_radius() const { return bone_pivot_radius; }
+
 	// 只能在 CanvasItem::_draw 阶段调用。
 	void draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data, const RID &p_debug_mesh);
 
+	// TODO: 是否会有在运行时替换嵌套的 Armature 的情况？有的话也需要调用清除
+	void clear_cache();
+
 private:
+	LocalVector<StringName> ik_targets;
+	LocalVector<StringName> ik_driven;
+
 	CanvasItem *owner;
+
+	float bone_pivot_radius = 5.0f;
+
+	uint8_t draw_flags{ DRAW_MESH | DRAW_BONE | DRAW_BONE_NAME };
+	bool cached = false;
+
+	void cache_ik_bones(DragonBonesArmature *p_armature);
 };
 
 #endif // DEBUG_ENABLED

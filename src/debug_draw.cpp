@@ -51,40 +51,33 @@ namespace godot {
 namespace {
 
 // ---------------------------------------------------------------------------
-// Pivot symbol
+// 枢轴符号
 //
-// The pivot is a circle of radius `r` at the bone's start. An IK target and an ordinary
-// bone differ in what sits on and around that circle, never in the circle's own size:
-// one property scales both.
+// 骨骼起点处半径 r 的圆。IK 目标骨与普通骨的差别只在于圆上和圆外画了什么，
+// 圆本身大小相同，由同一个属性控制。
+//
 // ---------------------------------------------------------------------------
 
-// Ordinary bone: the circle outline, and the spoke from the centre out to the ring that
-// shows the bone's rotation. The line is thinner than an IK target's ring, as specified.
-constexpr float PLAIN_RING_W = 0.20f; // ring thickness, in radii
-constexpr float PLAIN_SPOKE_W = 0.16f; // spoke thickness, in radii
+// 普通骨骼：圆环 + 圆心到圆上的连线（指示旋转）。线比 IK 目标的粗环细。
+constexpr float PLAIN_RING_W = 0.20f; // 环厚，单位：半径
+constexpr float PLAIN_SPOKE_W = 0.16f; // 连线粗细，单位：半径
 
-// IK target: a low-opacity dark disc, a high-opacity thick ring around it, and four
-// crosshair arms of the same thickness as that ring, one of which reaches the centre.
-constexpr float IK_DISC_ALPHA = 0.35f; // disc opacity, over the body colour
-constexpr float IK_RING_W = 0.34f; // ring thickness, in radii
-constexpr float IK_ARM_OUT = 1.30f; // arm reach outside the ring
-constexpr float IK_ARM_W = 0.34f; // arm thickness, equal to the ring by specification
+// IK 目标骨：低不透明度深色圆盘 + 高不透明度粗环 + 四条十字准星短线（与粗环同宽），
+// 其中一条延伸到圆心。
+constexpr float IK_DISC_ALPHA = 0.35f; // 圆盘不透明度（叠加在主体色上）
+constexpr float IK_RING_W = 0.34f; // 环厚，单位：半径
+constexpr float IK_ARM_OUT = 1.30f; // 短线伸出环外的长度
+constexpr float IK_ARM_W = 0.34f; // 短线粗细，按要求与环一致
 
 // ---------------------------------------------------------------------------
-// Kite
+// 筝形
 //
-// The kite's tip sits exactly at the bone's end: the distance from the pivot's centre to
-// that tip IS the bone's length, which is the whole point of the glyph. It is not scaled
-// down or inset - shortening it would throw away the one thing the kite communicates.
-// The wide end starts on the pivot circle so pivot and kite meet without a gap, but it is
-// much narrower than the circle. At the full diameter the kite is exactly as wide as the
-// ring it grows out of, which reads as a broad triangle rather than a kite.
-//
-// The tip is at the bone's end, and the truncated end there is half the wide end, so the
-// shape tapers all the way rather than vanishing to nothing.
-constexpr float KITE_WIDE_AT = 1.00f; // wide end, in radii
-constexpr float KITE_HALF_WIDTH = 0.45f; // half the wide end, in radii
-constexpr float KITE_TIP_HALF = 0.28f; // half the truncated end at the bone's end
+// 圆心到筝形小端的距离就是骨骼长度，不做缩放或内缩。
+// 大端在圆周上（与圆相接、无缝隙），但明显比圆窄；等宽会变成大三角而不是筝形。
+// 小端在骨骼末端截平，宽度取大端的一半，保证一路收窄而不是收成一点。
+constexpr float KITE_WIDE_AT = 1.00f; // 大端位置，单位：半径
+constexpr float KITE_HALF_WIDTH = 0.45f; // 大端半宽，单位：半径
+constexpr float KITE_TIP_HALF = 0.28f; // 骨骼末端截平边的半宽
 
 constexpr int DISC_SEGMENTS = 32;
 constexpr int CAP_SEGMENTS = 8;
@@ -93,53 +86,42 @@ constexpr int ARC_SEGMENTS = 32;
 constexpr float TAU_F = 6.28318531f;
 constexpr float HALF_TURN_F = 3.14159265f;
 
-// The border is grown on the CPU by this many SCREEN pixels, so it stays a hairline at
-// any zoom. `Geometry` works in local units, so the caller passes the converted value.
+// 描边在 CPU 上外扩的最小屏幕像素数，保证任何缩放下都看得见。
+// `Geometry` 用局部单位，调用方负责换算。
 constexpr float OUTLINE_MIN_PX = 0.75f;
 
-// Per-vertex custom value read by the feather shader: 0 on the grown outer edge, 1 on
-// the original outline. The two boundaries are exactly one outline-width apart in
-// screen space, so interpolating between them yields a linear screen distance, which
-// makes the feather exact rather than a guess.
+// 逐顶点自定义值（供描边柔化使用）：0 在外扩边缘，1 在原轮廓上。
+// 两条边界在屏幕空间正好相隔一个描边宽度，插值即得线性距离。
 constexpr float EDGE_OUTER = 0.0f;
 constexpr float EDGE_INNER = 1.0f;
 
-// Screen-pixel size of the bone name labels; see the view's draw call.
+// 骨骼名称标签的字号（屏幕像素）。
 constexpr int DEBUG_BONE_NAME_FONT_SIZE = 14;
 
-// Width of the bone outline, in screen pixels, as specified: fixed at one or two pixels
-// so it stays a hairline at any zoom. The view converts it to local units by the node's
-// own scale before handing it to the geometry builder.
+// 描边线宽（屏幕像素）：固定 1~2 像素，任何缩放都不变粗。
+// 视图按节点自身缩放换算成局部单位后再交给几何构建。
 static constexpr float DEBUG_OUTLINE_PX = 1.6f;
 
-// One bone, ready to be drawn. The start point and direction both come from the bone's
-// composed matrix (DragonBonesBone::get_global_transform), so parent rotations are
-// included.
+// 一根待绘制的骨骼。起点与朝向都取自合成矩阵（get_global_transform），已含父级旋转。
 struct DebugBone {
 	enum Kind {
-		KIND_PLAIN, // ordinary bone
-		KIND_IK_TARGET, // the `target` of an IK constraint
-		KIND_IK_DRIVEN, // the `bone` an IK constraint acts on
+		KIND_PLAIN, // 普通骨骼
+		KIND_IK_TARGET, // IK 约束的 target
+		KIND_IK_DRIVEN, // IK 约束作用的 bone
 	};
 
 	Vector2 start;
-	Vector2 dir{ 1.0f, 0.0f }; // unit, in view space
+	Vector2 dir{ 1.0f, 0.0f }; // 单位向量，视图空间
 	float length = 0.0f;
 	StringName name;
 	Kind kind = KIND_PLAIN;
 };
 
-// The geometry of one bone, split into two layers that become two mesh surfaces.
+// 一根骨骼的几何，分两层，最终成为两个网格表面：
 //
-// The border layer holds the outline ring of every shape, grown outwards by the outline
-// width; the body layer holds the filled shapes. Keeping them apart is what gives each
-// shape a clean edge of its own: the body is painted over its own border, and no shape
-// covers a neighbour's outline.
-//
-// `border_edges` / `body_edges` are per-vertex custom values: 0 on the grown outer edge,
-// 1 on the original outline. Interpolating between two boundaries exactly one
-// outline-width apart in screen space yields a linear screen distance, which is what
-// lets the feather shader compute an exact edge instead of guessing.
+//   border（描边）——各形状外扩后的轮廓；
+//   body（填充）——各形状本体。
+// 先描边后填充，填充盖住自己内侧的描边，每根骨骼只留外轮廓，也不会盖住相邻骨骼的描边。
 struct DebugDrawGeometry {
 	LocalVector<Vector2> border_vertices;
 	LocalVector<Color> border_colors;
@@ -158,17 +140,12 @@ Color faded(const Color &p_color, float p_factor) {
 	return Color(p_color.r, p_color.g, p_color.b, p_color.a * p_factor);
 }
 
-// The editor draws a near-black edge around each glyph. A blur is not available on a
-// plain triangle surface, so the border pass approximates it with a rim plus the
-// feather in the shader.
+// 描边颜色：黑色，不透明度跟随主体。
 Color rim_color(const Color &p_body) {
 	return Color(0.0f, 0.0f, 0.0f, p_body.a);
 }
 
-// Emits geometry into two independent layers: border rings and filled bodies. They
-// become two mesh surfaces, each with its own material, and the body is painted over
-// the border - so every shape has a clean edge of its own, and no border is applied as
-// a separate flat pass that would be overdrawn by its own fill.
+// 几何构建器：分别向 border / body 两层写顶点，详见 DebugDrawGeometry。
 class Geometry {
 public:
 	LocalVector<Vector2> border_vertices;
@@ -200,8 +177,8 @@ private:
 		body_indices.push_back(base + 2);
 	}
 
-	// A border quad: `p_in_a`/`p_in_b` lie on the shape (EDGE_INNER), `p_out_b`/`p_out_a`
-	// on the grown outline (EDGE_OUTER).
+	// 描边四边形：p_in_* 在形状上，p_out_* 在外扩后的轮廓上。
+	//
 	void border_raw(const Vector2 &p_in_a, const Vector2 &p_in_b, const Vector2 &p_out_b, const Vector2 &p_out_a,
 					const Color &p_color) {
 		const int32_t base = border_vertices.size();
@@ -249,9 +226,7 @@ public:
 	}
 
 	void body_annulus(const Vector2 &p_c, float p_outer, float p_inner, const Color &p_color) {
-		// A ring whose inner radius collapses must not be built: multiplying a direction by a
-		// negative radius mirrors the point through the centre, and the resulting quad spans
-		// the whole disc as a long spike. Clamping the inner radius keeps it a ring.
+		// 内半径塌缩时不能构造：负半径会把点镜像到对侧，四边形退化成贯穿整个圆的长刺。
 		if (p_inner <= 0.0f) {
 			body_disc(p_c, p_outer, p_color);
 			return;
@@ -329,13 +304,9 @@ public:
 		}
 	}
 
-	// One straight outline segment: a quad between the edge itself and the same edge grown
-	// outwards by the outline width.
-	//
-	// `p_outward` is the side of the line the shape's interior is NOT on. It has to be
-	// passed in rather than derived from the edge's direction: the silhouette is traced as a
-	// loop, so two edges of the same kite run in opposite directions and a fixed normal
-	// would grow one of them inwards, leaving that side with no outline at all.
+	// 一段直线描边：边本身与它外扩后的边之间的四边形。
+	// p_outward 是形状外侧方向，必须由调用方给出：轮廓是绕圈画的，
+	// 筝形两条边走向相反，用固定法线会让其中一条向内扩，那一侧就没有描边。
 	void border_edge(const Vector2 &p_a, const Vector2 &p_b, const Vector2 &p_outward, const Color &p_color) {
 		const Vector2 axis = p_b - p_a;
 		if (axis.length() <= 0.0f) {
@@ -344,9 +315,9 @@ public:
 		border_raw(p_a, p_b, p_b + p_outward * rim, p_a + p_outward * rim, p_color);
 	}
 
-	// The outline over an arc of the circle, from `p_from` round to `p_to` the short way
-	// the sweep describes. Used to trace the part of the ring the kite does not cover, so
-	// the ring and the kite are outlined as one continuous loop.
+	// 圆弧描边，从 p_from 扫到 p_to。用来画筝形没盖住的那段圆环，
+	// 使圆环与筝形的描边连成一条闭合轮廓。
+	//
 	void border_arc(const Vector2 &p_c, float p_r, float p_from, float p_to, const Color &p_color) {
 		float sweep = p_to - p_from;
 		if (sweep <= 0.0f) {
@@ -372,7 +343,7 @@ public:
 
 void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_props, float p_outline_px,
 								DebugDrawGeometry &r_geometry) {
-	const float radius = MAX(p_props.bone_pivot_radius, 0.5f);
+	const float radius = MAX(p_props.get_bone_pivot_radius(), 0.5f);
 	Geometry g(MAX(p_outline_px, OUTLINE_MIN_PX));
 
 	const Vector2 dir = p_bone.dir;
@@ -383,82 +354,78 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 	const bool is_ik_driven = p_bone.kind == DebugBone::KIND_IK_DRIVEN;
 
 	// ------------------------------------------------------------------
-	// The symbol is ONE silhouette: the pivot, plus the kite when the bone is long enough
-	// for one. Both are filled first and the outline is traced once around the result, so
-	// the joint between them is not cut by a line of its own.
+	// 符号是「起点圆 + 筝形」合一的一个轮廓：先填两者，再整体描一圈边。
+	// 分别描会在接缝处多出一条线，把一个符号切成两个。
+	//
 	// ------------------------------------------------------------------
 	const float diameter = radius * 2.0f;
 
-	// A kite only exists once the bone is longer than the pivot is wide. Below that there
-	// is no room for a glyph, and the symbol's own spoke is carried on to the bone's end
-	// instead - the same line reaching further, not a second line drawn over the first.
+	// 骨骼长于圆的直径才画筝形。否则用符号自身的连线延伸到骨骼末端来指示长度，
+	// 是同一根线画得更长，不是再叠一根。
+	//
 	const bool has_kite = p_bone.length > diameter;
 	const float spoke_to = MIN(MAX(p_bone.length, radius), radius * 3.0f);
 
 	const Color body_color = is_ik_target ? p_props.color_ik_target : p_props.color_bone;
-	// The outline takes the opacity of what it outlines, as specified: a bone drawn at 0.8
-	// gets a 0.8 outline, an IK target's 0.9 gets 0.9.
+	// 描边不透明度跟随主体：主体 0.8 描边就 0.8，IK 目标的 0.9 就 0.9。
+	//
 	const Color outline_color = rim_color(is_ik_driven ? p_props.color_ik_bone_outline : body_color);
 
 	// ------------------------------------------------------------------
-	// Kite: from the pivot circle out to the bone's end, tapering all the way. The far end
-	// sits exactly `p_bone.length` from the centre, so the glyph measures the bone; the only
-	// exception is a bone so short it barely clears the wide end, where the end is pushed
-	// just past it so the shape still tapers instead of ending square.
+	// 筝形：从圆周一路收窄到骨骼末端，末端距圆心正好 p_bone.length，用它来度量骨骼。
+	// 唯一例外是刚超过大端的短骨，小端被稍稍推后，保证仍能收窄而不是方头。
 	// ------------------------------------------------------------------
 	const float half = radius * KITE_HALF_WIDTH;
 	const float tip_half = radius * KITE_TIP_HALF;
 	const float wide_at = radius * KITE_WIDE_AT;
 	const float tip_at = MAX(p_bone.length, wide_at + radius * 0.25f);
 
-	// The far end is a short edge rather than a single point, so the taper is visible and
-	// the outline has something to close against.
+	// 小端是短边而不是一个点，收窄才看得出来，描边也有地方收口。
+	//
 	const Vector2 tip_a = center + dir * tip_at + perp * tip_half;
 	const Vector2 tip_b = center + dir * tip_at - perp * tip_half;
 
 	// ------------------------------------------------------------------
-	// Pivot: the ring at the bone's start, filled on the arc the kite does not cover, so
-	// the kite's own fill carries that stretch and the two read as one shape.
+	// 起点圆环：只在筝形没盖到的那段圆弧上填充，被筝形盖住的部分由筝形填充接管，
+	// 这样两者看起来是一个整体。
 	const float ring_w = radius * (is_ik_target ? IK_RING_W : PLAIN_RING_W);
 	const float ring_inner = radius - ring_w;
-	// The ring is filled and outlined over the whole circle except the stretch the kite
-	// actually covers: the wedge between its two springing corners. That wedge is narrow,
-	// so assuming a half turn left a visible gap in the ring on every bone with a kite.
-	// These are the two angles that bound it, taken from the corners themselves.
+	// 筝形只盖住两个起点角之间很窄的一段弧，所以圆环的填充和描边都要覆盖整圆减去这一段。
+	// 这里是该边界的两个角度（按半圈算会让每个有筝形的骨缺一大段）。
 	const Vector2 spring_a = center + dir * radius + perp * half;
 	const Vector2 spring_b = center + dir * radius - perp * half;
 	const float trail = Math::atan2((spring_b - center).y, (spring_b - center).x);
 	const float lead = Math::atan2((spring_a - center).y, (spring_a - center).x);
 
 	if (has_kite) {
-		// The kite's wide end sits on the circle, so its corners are on the ring's outer
-		// edge and it starts exactly where the ring's drawn arc ends. Convex, so a fan from
-		// the wide end covers it exactly.
+		// 筝形大端在圆周上，两角落在圆环外缘，与圆环所画圆弧正好衔接。
+		// 筝形是凸的，从大端扇形三角化即可填满。
+		//
 		g.body_tri(spring_a, tip_a, tip_b, body_color);
 		g.body_tri(spring_a, tip_b, spring_b, body_color);
 
-		// The ring, over the rest of the circle. The kite covers only the narrow wedge
-		// between its two corners, so this is most of the circle.
+		// 圆环：圆上除筝形所盖窄楔外的其余部分，也就是绝大部分。
+		//
 		g.body_arc(center, radius, ring_inner, lead, trail + TAU_F, body_color);
 	} else {
 		g.body_annulus(center, radius, ring_inner, body_color);
 	}
 
 	if (is_ik_target) {
-		// A dark, low-opacity disc inside the thick ring.
+		// 粗环内部的低不透明度深色圆盘。
 		g.body_disc(center, ring_inner, faded(body_color, IK_DISC_ALPHA));
 	}
 
 	// ------------------------------------------------------------------
-	// The spoke: the line from the centre out, showing the bone's rotation. Drawn once, at
-	// its final length, so a short bone is that same line reaching further.
+	// 连线：从圆心向外，指示骨骼旋转。只画一次、按最终长度画，短骨就是它伸得更长。
+	//
 	// ------------------------------------------------------------------
 	const float spoke_w = radius * (is_ik_target ? IK_ARM_W : PLAIN_SPOKE_W);
 	g.body_segment(center, center + dir * spoke_to, spoke_w, body_color);
 
 	if (is_ik_target) {
-		// The other three crosshair arms, at the ring's own thickness, stopping clear of the
-		// disc so that only the spoke reaches the centre.
+		// 其余三条十字准星短线，与环同宽，止于圆盘外，只有连线能到圆心。
+		//
 		const float arm_out = radius * IK_ARM_OUT;
 		const float arm_in = radius + spoke_w * 0.5f;
 		g.body_segment(center - perp * arm_out, center - perp * arm_in, spoke_w, body_color);
@@ -467,15 +434,11 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 	}
 
 	// ------------------------------------------------------------------
-	// The outline, traced in ONE pass around the combined silhouette: the kite's two sides
-	// out to its truncated end, that end, then the circle's arc from the kite's trailing
-	// corner all the way round to its leading corner. The stretch the kite covers is
-	// skipped - there the kite's own side is the silhouette, and the joint is interior.
+	// 描边：绕合一后的轮廓走一圈——筝形两条边到小端、小端、再从后角沿圆弧绕回前角。
+	// 筝形盖住的那段跳过，那里的轮廓由筝形自己的边充当，接缝属于内部。
 	// ------------------------------------------------------------------
 	if (has_kite) {
-		// Each side is grown away from the kite's interior, so the outline lands on the
-		// outside of the shape whichever way that side happens to run. The far end is grown
-		// straight out along the bone.
+		// 每条边都朝筝形外侧外扩，无论走向如何描边都落在形状外；小端沿骨骼方向外扩。
 		g.border_edge(spring_b, tip_b, -perp, outline_color);
 		g.border_edge(tip_b, tip_a, dir, outline_color);
 		g.border_edge(tip_a, spring_a, perp, outline_color);
@@ -484,12 +447,10 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 		g.border_arc(center, radius, 0.0f, TAU_F, outline_color);
 	}
 
-	// Appended, not assigned: the caller accumulates every bone into one geometry, so
-	// assigning here would leave only the last bone drawn.
+	// 这里是追加而不是赋值：调用方把所有骨骼累积进同一份几何，赋值只会留下最后一根。
+	// 索引相对 g 是局部的，要按「已存在的顶点数」（不是索引数）重新基准。
+	// LocalVector 没有 append_array，只能逐个扩容拷贝。
 	//
-	// The indices are local to `g`, so they are rebased by the number of vertices that
-	// already precede them - not by the number of indices, which is a different count.
-	// `LocalVector` has no `append_array`, so each list is grown and copied in turn.
 	auto append_all = [](auto &p_dst, const auto &p_src) {
 		const uint32_t base = p_dst.size();
 		p_dst.resize(base + p_src.size());
@@ -522,10 +483,10 @@ void draw_debug_bone_names(CanvasItem *p_owner, const LocalVector<DebugBone> &p_
 		return;
 	}
 
-	// Fixed font size: no scale compensation. The size is whatever `draw_string` is handed,
-	// whatever the node scale, the 2D zoom or the window stretch.
+	// 字号固定，不随节点缩放、2D 缩放或窗口拉伸补偿。
+	//
 	const int font_size = DEBUG_BONE_NAME_FONT_SIZE;
-	const float label_pad = p_props.bone_pivot_radius * 2.0f + 2.0f;
+	const float label_pad = p_props.get_bone_pivot_radius() * 2.0f + 2.0f;
 
 	for (const DebugBone &bone : p_bone_data) {
 		const Vector2 perp(-bone.dir.y, bone.dir.x);
@@ -548,35 +509,12 @@ PackedArray to_packed_array(const LocalVector<Elem> &p_points) {
 	return out;
 }
 
-void append_bone_debug_data(DragonBonesArmature *p_armature, LocalVector<DebugBone> &r_data, const Transform2D &p_base_transform = {}) {
+void append_bone_debug_data(
+		DragonBonesArmature *p_armature,
+		LocalVector<DebugBone> &r_data,
+		const LocalVector<StringName> &p_ik_targets, const LocalVector<StringName> &p_ik_driven,
+		const Transform2D &p_base_transform = {}) {
 	const Transform2D global_transform = p_base_transform * p_armature->transform;
-
-	// Classify the bones from the IK constraints. The JSON has no "bone type"
-	// field, but each constraint names the bone it targets and the chain of bones
-	// it drives.
-	//
-	// `chain` is already resolved when the skeleton is parsed: for a chain of N+1
-	// bones, `_parseIKConstraint` sets `root` to the topmost one and `bone` to the one
-	// below it (JSONDataParser.cpp), so both are driven and both get the
-	// constraint's outline. Marking only `bone` would leave the rest of the chain
-	// looking like ordinary bones, which defeats the point of an IK chain.
-	LocalVector<StringName> ik_targets;
-	LocalVector<StringName> ik_driven;
-	for (const dragonBones::Constraint *constraint : p_armature->getArmature()->_constraints) {
-		if (constraint == nullptr || constraint->_constraintData == nullptr) {
-			continue;
-		}
-		if (constraint->_constraintData->target != nullptr) {
-			ik_targets.push_back(StringName(to_gd_str(constraint->_constraintData->target->name)));
-		}
-		if (constraint->_constraintData->root != nullptr) {
-			ik_driven.push_back(StringName(to_gd_str(constraint->_constraintData->root->name)));
-		}
-		if (constraint->_constraintData->bone != nullptr) {
-			ik_driven.push_back(StringName(to_gd_str(constraint->_constraintData->bone->name)));
-		}
-	}
-
 	for (const auto &[name, bone] : p_armature->get_bones()) {
 		if (!bone.is_valid()) {
 			continue;
@@ -596,9 +534,9 @@ void append_bone_debug_data(DragonBonesArmature *p_armature, LocalVector<DebugBo
 
 		const StringName bone_name(name);
 		DebugBone::Kind kind = DebugBone::KIND_PLAIN;
-		if (ik_targets.has(bone_name)) {
+		if (p_ik_targets.has(bone_name)) {
 			kind = DebugBone::KIND_IK_TARGET;
-		} else if (ik_driven.has(bone_name)) {
+		} else if (p_ik_driven.has(bone_name)) {
 			kind = DebugBone::KIND_IK_DRIVEN;
 		}
 
@@ -611,26 +549,27 @@ void append_bone_debug_data(DragonBonesArmature *p_armature, LocalVector<DebugBo
 		});
 	}
 
-	// Recurse into nested armatures: `append_draw_data` reaches them through
-	// `Slot::getDisplay()`, which returns the child armature's display.
+	// 递归处理嵌套骨架：append_draw_data 通过 Slot::getDisplay() 拿到子骨架。
 	for (const dragonBones::Slot *raw_slot : p_armature->getArmature()->getSlots()) {
 		const Slot_GD *slot = static_cast<const Slot_GD *>(raw_slot);
 		if (auto display = slot->get_display()) {
 			if (auto *child_armature = dynamic_cast<DragonBonesArmature *>(display)) {
-				append_bone_debug_data(child_armature, r_data, global_transform);
+				append_bone_debug_data(child_armature, r_data, p_ik_targets, p_ik_driven, global_transform);
 			}
 		}
 	}
 }
 
 void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data, const RID &p_debug_mesh) {
+	ERR_FAIL_NULL(p_root_armature);
+
 	const auto RS = RenderingServer::get_singleton();
 	RS->mesh_clear(p_debug_mesh);
 
 	const Transform2D identity{};
 
-	// ---- Slot wireframe ----
-	if (draw_mesh) {
+	// ---- 插槽线框 ----
+	if (has_flag(DRAW_MESH)) {
 		PackedInt32Array debug_mesh_indices;
 		PackedVector2Array debug_vertices;
 		PackedColorArray debug_colors;
@@ -661,7 +600,7 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 			}
 		}
 
-		// Triangles to lines.
+		// 三角形拆成线段。
 		PackedInt32Array line_indices;
 		line_indices.resize(debug_mesh_indices.size() * 2);
 		for (int n = 0; n < debug_mesh_indices.size(); n += 3) {
@@ -684,18 +623,19 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 		}
 	}
 
-	// ---- Bones ----
-	// The border ring and the filled body go into a single surface, body last, so
-	// each shape covers its own outline without a second pass to flatten the stack.
-	if (draw_bone || draw_bone_name) {
+	// ---- 骨骼 ----
+	// 描边和填充放进同一个表面，填充在后，于是每个形状盖住自己的内侧描边。
+	if (draw_flags & (DRAW_BONE | DRAW_BONE_NAME)) {
+		if (!cached) {
+			cache_ik_bones(p_root_armature);
+		}
+
 		LocalVector<DebugBone> bone_data;
-		append_bone_debug_data(p_root_armature, bone_data, {});
-		if (draw_bone) {
+		append_bone_debug_data(p_root_armature, bone_data, ik_targets, ik_driven, {});
+		if (has_flag(DRAW_BONE)) {
 			if (!bone_data.is_empty()) {
 				DebugDrawGeometry geometry;
-				// The outline is a fixed number of screen pixels, as specified, so it stays a
-				// hairline at any zoom. It is converted to local units by the node's own
-				// scale, which is what the local-space geometry is measured in.
+				// 描边固定为若干屏幕像素，任何缩放都不变粗；按节点自身缩放换算成局部单位。
 				const float draw_scale = Math::abs(owner->get_global_transform_with_canvas().get_scale().y);
 				const float outline_px = draw_scale > 0.0f ? DEBUG_OUTLINE_PX / draw_scale : DEBUG_OUTLINE_PX;
 				for (const DebugBone &bone : bone_data) {
@@ -703,7 +643,7 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 				}
 
 				if (!geometry.body_indices.is_empty()) {
-					// Body indices are shifted past the border vertices that precede them.
+					// 填充索引整体后移，跳过前面所有描边顶点。
 					const int32_t base = static_cast<int32_t>(geometry.border_vertices.size());
 
 					PackedVector2Array vertices = to_packed_array<PackedVector2Array>(geometry.border_vertices);
@@ -730,18 +670,58 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 			}
 		}
 
-		if (draw_bone_name) {
+		if (has_flag(DRAW_BONE_NAME)) {
 			draw_debug_bone_names(owner, bone_data, *this);
 		}
 	}
 
-	// `canvas_item_add_mesh` submits every surface of the mesh, so it is called once,
-	// after all of them are in place.
-	if (draw_mesh || draw_bone || draw_bone_name) {
+	// canvas_item_add_mesh 会提交网格的全部表面，因此在所有表面就位后只调用一次。
+	if (draw_flags & ~(DRAW_ENABLED)) {
 		RS->canvas_item_add_mesh(owner->get_canvas_item(), p_debug_mesh, identity, owner->get_modulate());
 	}
 }
 
-#endif // DEBUG_ENABLED
+void DebugDraw::clear_cache() {
+	ik_targets.clear();
+	ik_driven.clear();
+}
 
+void cache_ik_bones_recursively(DragonBonesArmature *p_armature, LocalVector<StringName> &r_ik_targets, LocalVector<StringName> &r_ik_driven) {
+	// 用 IK 约束区分骨骼类型：JSON 里没有「骨骼类型」字段，
+	// 但约束会指明它作用的 target 和被驱动的骨链。
+	// 解析骨骼时链已展开：N+1 根骨的链，root 是最上面那根、bone 是它下面那根
+	// （JSONDataParser.cpp），两根都在被驱动。只标 bone 会让链的其余部分
+	// 看起来像普通骨骼。
+	for (const dragonBones::Constraint *constraint : p_armature->getArmature()->_constraints) {
+		if (constraint == nullptr || constraint->_constraintData == nullptr) {
+			continue;
+		}
+		if (constraint->_constraintData->target != nullptr) {
+			r_ik_targets.push_back(StringName(to_gd_str(constraint->_constraintData->target->name)));
+		}
+		if (constraint->_constraintData->root != nullptr) {
+			r_ik_driven.push_back(StringName(to_gd_str(constraint->_constraintData->root->name)));
+		}
+		if (constraint->_constraintData->bone != nullptr) {
+			r_ik_driven.push_back(StringName(to_gd_str(constraint->_constraintData->bone->name)));
+		}
+	}
+
+	// 递归处理嵌套骨架：append_draw_data 通过 Slot::getDisplay() 拿到子骨架。
+	for (const dragonBones::Slot *raw_slot : p_armature->getArmature()->getSlots()) {
+		const Slot_GD *slot = static_cast<const Slot_GD *>(raw_slot);
+		if (auto display = slot->get_display()) {
+			if (auto *child_armature = dynamic_cast<DragonBonesArmature *>(display)) {
+				cache_ik_bones_recursively(child_armature, r_ik_targets, r_ik_driven);
+			}
+		}
+	}
+}
+
+void DebugDraw::cache_ik_bones(DragonBonesArmature *p_armature) {
+	cache_ik_bones_recursively(p_armature, ik_targets, ik_driven);
+	cached = true;
+}
+
+#endif // DEBUG_ENABLED
 } //namespace godot

@@ -63,6 +63,9 @@ void DragonBonesArmatureView::rebuild_armature() {
 	if (armature) {
 		armature->release(); // 已经处理内存的释放
 		armature = nullptr;
+#ifdef DEBUG_ENABLED
+		debug_draw.clear_cache();
+#endif // DEBUG_ENABLED
 	}
 
 	if (factory.is_valid()) {
@@ -105,10 +108,11 @@ bool DragonBonesArmatureView::is_active() const {
 
 #ifdef DEBUG_ENABLED
 void DragonBonesArmatureView::set_debug_draw_enabled(bool p_enabled) {
-	if (debug_draw.draw_mesh == p_enabled && debug_mesh.is_valid() == p_enabled) {
-		queue_redraw();
+	if (debug_draw.has_flag(DebugDraw::DRAW_ENABLED) == p_enabled) {
 		return;
 	}
+
+	debug_draw.set_flag(DebugDraw::DRAW_ENABLED, p_enabled);
 	if (p_enabled) {
 		debug_mesh = RenderingServer::get_singleton()->mesh_create();
 	} else if (debug_mesh.is_valid()) {
@@ -119,43 +123,43 @@ void DragonBonesArmatureView::set_debug_draw_enabled(bool p_enabled) {
 }
 
 bool DragonBonesArmatureView::is_debug_draw_enabled() const {
-	return debug_mesh.is_valid();
+	return debug_draw.has_flag(DebugDraw::DRAW_ENABLED);
 }
 
 void DragonBonesArmatureView::set_debug_draw_bone_pivot_radius(float p_radius) {
-	debug_draw.bone_pivot_radius = MAX(p_radius, 0.5f);
+	debug_draw.set_bone_pivot_radius(p_radius);
 	queue_redraw();
 }
 
 float DragonBonesArmatureView::get_debug_draw_bone_pivot_radius() const {
-	return debug_draw.bone_pivot_radius;
+	return debug_draw.get_bone_pivot_radius();
 }
 
 void DragonBonesArmatureView::set_debug_draw_visible_mesh(bool p_visible) {
-	debug_draw.draw_mesh = p_visible;
+	debug_draw.set_flag(DebugDraw::DRAW_MESH, p_visible);
 	queue_redraw();
 }
 
 bool DragonBonesArmatureView::is_debug_draw_visible_mesh() const {
-	return debug_draw.draw_mesh;
+	return debug_draw.has_flag(DebugDraw::DRAW_MESH);
 }
 
 void DragonBonesArmatureView::set_debug_draw_visible_bone(bool p_visible) {
-	debug_draw.draw_bone = p_visible;
+	debug_draw.set_flag(DebugDraw::DRAW_BONE, p_visible);
 	queue_redraw();
 }
 
 bool DragonBonesArmatureView::is_debug_draw_visible_bone() const {
-	return debug_draw.draw_bone;
+	return debug_draw.has_flag(DebugDraw::DRAW_BONE);
 }
 
 void DragonBonesArmatureView::set_debug_draw_visible_bone_name(bool p_visible) {
-	debug_draw.draw_bone_name = p_visible;
+	debug_draw.set_flag(DebugDraw::DRAW_BONE_NAME, p_visible);
 	queue_redraw();
 }
 
 bool DragonBonesArmatureView::is_debug_draw_visible_bone_name() const {
-	return debug_draw.draw_bone_name;
+	return debug_draw.has_flag(DebugDraw::DRAW_BONE_NAME);
 }
 
 void DragonBonesArmatureView::set_debug_draw_color_bone(const Color &p_color) {
