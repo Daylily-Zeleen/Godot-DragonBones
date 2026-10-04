@@ -73,7 +73,6 @@ private:
 
 #ifdef DEBUG_ENABLED
 	DebugDraw debug_draw{ this };
-	RID debug_mesh;
 #endif // DEBUG_ENABLED
 
 protected:

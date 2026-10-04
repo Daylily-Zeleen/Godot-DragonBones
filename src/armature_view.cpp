@@ -108,22 +108,12 @@ bool DragonBonesArmatureView::is_active() const {
 
 #ifdef DEBUG_ENABLED
 void DragonBonesArmatureView::set_debug_draw_enabled(bool p_enabled) {
-	if (debug_draw.has_flag(DebugDraw::DRAW_ENABLED) == p_enabled) {
-		return;
-	}
-
-	debug_draw.set_flag(DebugDraw::DRAW_ENABLED, p_enabled);
-	if (p_enabled) {
-		debug_mesh = RenderingServer::get_singleton()->mesh_create();
-	} else if (debug_mesh.is_valid()) {
-		RenderingServer::get_singleton()->free_rid(debug_mesh);
-		debug_mesh = RID();
-	}
+	debug_draw.set_enabled(p_enabled);
 	queue_redraw();
 }
 
 bool DragonBonesArmatureView::is_debug_draw_enabled() const {
-	return debug_draw.has_flag(DebugDraw::DRAW_ENABLED);
+	return debug_draw.is_enabled();
 }
 
 void DragonBonesArmatureView::set_debug_draw_bone_pivot_radius(float p_radius) {
@@ -497,9 +487,8 @@ void DragonBonesArmatureView::_draw() {
 	}
 
 #ifdef DEBUG_ENABLED
-	if (debug_mesh.is_valid()) {
-		debug_draw.draw(armature, draw_data, debug_mesh);
-	}
+	if (debug_draw.is_enabled())
+		debug_draw.draw(armature, draw_data);
 #endif // DEBUG_ENABLED
 }
 
@@ -693,12 +682,6 @@ DragonBonesArmatureView::~DragonBonesArmatureView() {
 		RenderingServer::get_singleton()->free_rid(mesh);
 	}
 	draw_meshes.clear();
-
-#ifdef DEBUG_ENABLED
-	if (debug_mesh.is_valid()) {
-		RenderingServer::get_singleton()->free_rid(debug_mesh);
-	}
-#endif // DEBUG_ENABLED
 }
 
 // ---------

@@ -41,10 +41,9 @@ namespace godot {
 #ifdef DEBUG_ENABLED
 struct DebugDraw {
 	enum Flag : uint8_t {
-		DRAW_ENABLED = 1 << 0,
-		DRAW_MESH = 1 << 1,
-		DRAW_BONE = 1 << 2,
-		DRAW_BONE_NAME = 1 << 3,
+		DRAW_MESH = 1 << 0,
+		DRAW_BONE = 1 << 1,
+		DRAW_BONE_NAME = 1 << 2,
 	};
 
 	Color color_bone{ 0.8f, 0.8f, 0.8f, 0.8f };
@@ -52,8 +51,12 @@ struct DebugDraw {
 	Color color_ik_bone_outline{ 1.0f, 0.6f, 0.1f, 1.0f };
 
 	DebugDraw(CanvasItem *p_owner) : owner(p_owner) {}
+	~DebugDraw();
 
 public:
+	_FORCE_INLINE_ bool is_enabled() const { return debug_mesh.is_valid(); }
+	void set_enabled(bool p_enabled);
+
 	_FORCE_INLINE_ void set_flag(Flag p_flag, bool p_enable) { p_enable ? (draw_flags |= p_flag) : (draw_flags &= ~p_flag); }
 	_FORCE_INLINE_ bool has_flag(Flag p_flag) const { return draw_flags & p_flag; }
 
@@ -61,7 +64,7 @@ public:
 	_FORCE_INLINE_ float get_bone_pivot_radius() const { return bone_pivot_radius; }
 
 	// 只能在 CanvasItem::_draw 阶段调用。
-	void draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data, const RID &p_debug_mesh);
+	void draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data);
 
 	// TODO: 是否会有在运行时替换嵌套的 Armature 的情况？有的话也需要调用清除
 	void clear_cache();
@@ -71,6 +74,8 @@ private:
 	LocalVector<StringName> ik_driven;
 
 	CanvasItem *owner;
+
+	RID debug_mesh;
 
 	float bone_pivot_radius = 5.0f;
 

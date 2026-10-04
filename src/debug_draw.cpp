@@ -502,11 +502,29 @@ PackedArray to_packed_array(const LocalVector<Elem> &p_points) {
 	return out;
 }
 
-void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data, const RID &p_debug_mesh) {
+DebugDraw::~DebugDraw() {
+	const auto RS = RenderingServer::get_singleton();
+	if (debug_mesh.is_valid()) {
+		RS->free_rid(debug_mesh);
+		debug_mesh = RID();
+	}
+}
+
+void DebugDraw::set_enabled(bool p_enabled) {
+	if (p_enabled) {
+		if (!debug_mesh.is_valid())
+			debug_mesh = RenderingServer::get_singleton()->mesh_create();
+	} else {
+		if (debug_mesh.is_valid())
+			RenderingServer::get_singleton()->free_rid(debug_mesh);
+	}
+}
+
+void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data) {
 	ERR_FAIL_NULL(p_root_armature);
 
 	const auto RS = RenderingServer::get_singleton();
-	RS->mesh_clear(p_debug_mesh);
+	RS->mesh_clear(debug_mesh);
 
 	const Transform2D identity{};
 
@@ -561,7 +579,7 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 			arr[RenderingServer::ARRAY_INDEX] = line_indices;
 			arr[RenderingServer::ARRAY_VERTEX] = debug_vertices;
 			arr[RenderingServer::ARRAY_COLOR] = debug_colors;
-			RS->mesh_add_surface_from_arrays(p_debug_mesh, RenderingServer::PRIMITIVE_LINES, arr);
+			RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_LINES, arr);
 		}
 	}
 
@@ -641,7 +659,7 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 					arr[RenderingServer::ARRAY_INDEX] = indices;
 					arr[RenderingServer::ARRAY_VERTEX] = vertices;
 					arr[RenderingServer::ARRAY_COLOR] = colors;
-					RS->mesh_add_surface_from_arrays(p_debug_mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
+					RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
 				}
 			}
 		}
@@ -652,8 +670,8 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 	}
 
 	// canvas_item_add_mesh 会提交网格的全部表面，因此在所有表面就位后只调用一次。
-	if (draw_flags & ~(DRAW_ENABLED)) {
-		RS->canvas_item_add_mesh(owner->get_canvas_item(), p_debug_mesh, identity, owner->get_modulate());
+	if (is_enabled()) {
+		RS->canvas_item_add_mesh(debug_canvas, debug_mesh, identity, owner->get_modulate());
 	}
 }
 
