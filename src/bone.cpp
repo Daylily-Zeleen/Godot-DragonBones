@@ -33,24 +33,50 @@
 
 using namespace godot;
 
+/**
+ * @brief 骨骼变化的数据源
+ * dragonBones::TransformObject 同时提供 global(dragonBones::Transform) 和 globalTransformMatrix(dragonBones::Matrix)
+ *
+ * 虽然两者都是"相对于骨架坐标"，但是可靠性不同：
+ * _updateGlobalTransformMatrix(isCache) 调用时 global 只有在 isCache == true 时才会同步，否则指示标脏，等待 updateGlobalTransform() 同步。
+ *
+ * 因此我们以 globalTransformMatrix 的数据为准。
+ */
+
+/**
+ * NOTE: 任何修改都可能被下一帧的动画数据（offset/animationPose）所覆盖。如果在动画播放时修改，只能在同一帧内有效
+ */
+
+// columns[0] = (a, b)，columns[1] = (c, d)，origin = (tx, ty)。
+_FORCE_INLINE_ Transform2D to_gd_transform(const dragonBones::Matrix &p_m) {
+	return Transform2D{
+		Vector2(p_m.a, p_m.b),
+		Vector2(p_m.c, p_m.d),
+		Vector2(p_m.tx, p_m.ty)
+	};
+}
+
+_FORCE_INLINE_ dragonBones::Matrix to_db_matrix(const Transform2D &p_t) {
+	dragonBones::Matrix m;
+	const Vector2 x_axis = p_t.columns[0];
+	const Vector2 y_axis = p_t.columns[1];
+	const Vector2 origin = p_t.columns[2];
+	m.a = x_axis.x;
+	m.b = x_axis.y;
+	m.c = y_axis.x;
+	m.d = y_axis.y;
+	m.tx = origin.x;
+	m.ty = origin.y;
+	return m;
+}
+
 _FORCE_INLINE_ Transform2D to_gd_transform(const dragonBones::Transform &p_t) {
-	return {
+	return Transform2D{
 		p_t.rotation,
 		Vector2(p_t.scaleX, p_t.scaleY),
 		p_t.skew,
 		Vector2(p_t.x, p_t.y)
 	};
-}
-
-_FORCE_INLINE_ dragonBones::Transform to_db_transform(const Transform2D &p_t) {
-	dragonBones::Transform ret;
-	ret.x = p_t.get_origin().x;
-	ret.y = p_t.get_origin().y;
-	ret.rotation = p_t.get_rotation();
-	ret.scaleX = p_t.get_scale().x;
-	ret.scaleY = p_t.get_scale().y;
-	ret.skew = p_t.get_skew();
-	return ret;
 }
 
 void DragonBonesBone::_bind_methods() {
@@ -152,32 +178,23 @@ void DragonBonesBone::set_scale(Vector2 p_scale) {
 
 Transform2D DragonBonesBone::get_transform() const {
 	ERR_FAIL_NULL_V(boneData, {});
-	auto transform = to_gd_transform(boneData->global);
+
+	const Transform2D transform = to_gd_transform(boneData->globalTransformMatrix);
 	if (boneData->getParent()) {
-		auto parent_transform = boneData->getParent()->global;
-
-		return to_gd_transform(parent_transform).inverse() * transform;
+		return to_gd_transform(boneData->getParent()->globalTransformMatrix).inverse() * transform;
 	}
-
 	return transform;
 }
 
 void DragonBonesBone::set_transform(const Transform2D &p_transform) {
 	ERR_FAIL_NULL(boneData);
-	dragonBones::Matrix global;
-	to_db_transform(p_transform).toMatrix(global);
-
+	dragonBones::Matrix matrix = to_db_matrix(p_transform);
 	if (boneData->getParent()) {
-		dragonBones::Matrix parent_matrix;
-		boneData->getParent()->global.toMatrix(parent_matrix);
-
-		parent_matrix.concat(global);
-
-		boneData->global.fromMatrix(parent_matrix);
-	} else {
-		boneData->global.fromMatrix(global);
+		matrix.concat(boneData->getParent()->globalTransformMatrix);
 	}
-	boneData->global.toMatrix(boneData->globalTransformMatrix);
+
+	boneData->globalTransformMatrix = matrix;
+	boneData->global.fromMatrix(matrix);
 
 	boneData->invalidUpdate();
 }
@@ -215,13 +232,13 @@ void DragonBonesBone::set_global_scale(Vector2 p_scale) {
 
 Transform2D DragonBonesBone::get_global_transform() const {
 	ERR_FAIL_NULL_V(boneData, {});
-	return to_gd_transform(boneData->global);
+	return to_gd_transform(boneData->globalTransformMatrix);
 }
 
 void DragonBonesBone::set_global_transform(const Transform2D &p_global_transform) {
 	ERR_FAIL_NULL(boneData);
-	boneData->global = to_db_transform(p_global_transform);
-	boneData->global.toMatrix(boneData->globalTransformMatrix);
+	boneData->globalTransformMatrix = to_db_matrix(p_global_transform);
+	boneData->global.fromMatrix(boneData->globalTransformMatrix);
 }
 
 // Others
