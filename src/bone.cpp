@@ -121,7 +121,6 @@ void DragonBonesBone::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "global_scale"), "set_global_scale", "get_global_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM2D, "transform"), "set_transform", "get_transform");
 	ADD_PROPERTY(PropertyInfo(Variant::TRANSFORM2D, "global_transform"), "set_global_transform", "get_global_transform");
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "name"), "", "get_name");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "length"), "", "get_length");
 
 	// 枚举
