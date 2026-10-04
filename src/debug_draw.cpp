@@ -58,6 +58,52 @@ namespace {
 //
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// 骨骼材质：一份网格、一个材质、一次绘制。
+// 每个顶点在 UV 里携带「到形状中线的横向偏移, 该处半宽」，
+// 片元里 d = |UV.y| - |UV.x| 就是到轮廓的有符号距离（轮廓处 0，内侧为正），
+// 再用 fwidth(d) 换算成像素，落在描边宽度内就着描边色。
+// 顶点、三角形都不多加。
+// UV.y 的符号兼作标志位：负 = 该骨受 IK 约束，描边用橙色。
+// 线框顶点把 |UV.y| 设成极大 → d 极大 → 永远走填充分支，原样输出顶点色，不被染色。
+// ---------------------------------------------------------------------------
+static Ref<ShaderMaterial> &get_bone_material() {
+	static Ref<ShaderMaterial> material;
+	if (material.is_null()) {
+		Ref<Shader> shader;
+		shader.instantiate();
+		shader->set_code(R"(
+shader_type canvas_item;
+
+uniform vec4 outline_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform vec4 outline_color_ik : source_color = vec4(1.0, 0.6, 0.1, 1.0);
+uniform float outline_px = 1.0;
+// 筝形小端半宽（局部单位）。筝形小端是垂直于轴的平头，用 UV.y 到该值的差
+// 就能表示它到平头边的距离（与真实距离成正比，fwidth 归一化会消掉比例）。
+uniform float tip_half = 0.0;
+
+void fragment() {
+	// d1：到两侧斜边的距离（x=±y 处为 0）。
+	float d1 = abs(UV.y) - abs(UV.x);
+	// d2：到筝形小端平头边的距离。只有筝形区域的 |UV.y| 才 >= tip_half；
+	// 圆环/连线/端帽的 |UV.y| 都小于 tip_half，若直接相减会得到负值，
+	// 经 min 后会把整个图元误判成在轮廓上。故仅在 >= tip_half 时启用，否则置极大。
+	float d2 = abs(UV.y) >= tip_half ? (abs(UV.y) - tip_half) : 1e6;
+	float d = min(d1, d2);
+	float per_px = fwidth(d);
+	float dist_px = d / max(per_px, 1e-6);
+	float edge = max(fwidth(dist_px), 1e-3);
+	float m = smoothstep(outline_px - edge, outline_px + edge, dist_px);
+	vec4 oc = UV.y < 0.0 ? outline_color_ik : outline_color;
+	COLOR = mix(vec4(oc.rgb, oc.a * COLOR.a), COLOR, m);
+}
+)");
+		material.instantiate();
+		material->set_shader(shader);
+	}
+	return material;
+}
+
 // 普通骨骼：圆环 + 圆心到圆上的连线（指示旋转）。线比 IK 目标的粗环细。
 constexpr float PLAIN_RING_W = 0.20f; // 环厚，单位：半径
 constexpr float PLAIN_SPOKE_W = 0.16f; // 连线粗细，单位：半径
@@ -83,24 +129,15 @@ constexpr int DISC_SEGMENTS = 32;
 constexpr int CAP_SEGMENTS = 8;
 constexpr int ARC_SEGMENTS = 32;
 
-constexpr float TAU_F = 6.28318531f;
-constexpr float HALF_TURN_F = 3.14159265f;
+constexpr float TAU_F = Math::TAU;
+constexpr float PI_F = Math::PI;
 
-// 描边在 CPU 上外扩的最小屏幕像素数，保证任何缩放下都看得见。
-// `Geometry` 用局部单位，调用方负责换算。
-constexpr float OUTLINE_MIN_PX = 0.75f;
-
-// 逐顶点自定义值（供描边柔化使用）：0 在外扩边缘，1 在原轮廓上。
-// 两条边界在屏幕空间正好相隔一个描边宽度，插值即得线性距离。
-constexpr float EDGE_OUTER = 0.0f;
-constexpr float EDGE_INNER = 1.0f;
-
-// 骨骼名称标签的字号（屏幕像素）。
+// 骨骼名称标签的字号。
 constexpr int DEBUG_BONE_NAME_FONT_SIZE = 14;
 
 // 描边线宽（屏幕像素）：固定 1~2 像素，任何缩放都不变粗。
-// 视图按节点自身缩放换算成局部单位后再交给几何构建。
-static constexpr float DEBUG_OUTLINE_PX = 1.6f;
+// 直接作为 uniform 交给着色器，由 fwidth 换算，不经 CPU 几何。
+static constexpr float DEBUG_OUTLINE_PX = 1.2f;
 
 // 一根待绘制的骨骼。起点与朝向都取自合成矩阵（get_global_transform），已含父级旋转。
 struct DebugBone {
@@ -117,25 +154,6 @@ struct DebugBone {
 	Kind kind = KIND_PLAIN;
 };
 
-// 一根骨骼的几何，分两层，最终成为两个网格表面：
-//
-//   border（描边）——各形状外扩后的轮廓；
-//   body（填充）——各形状本体。
-// 先描边后填充，填充盖住自己内侧的描边，每根骨骼只留外轮廓，也不会盖住相邻骨骼的描边。
-struct DebugDrawGeometry {
-	LocalVector<Vector2> border_vertices;
-	LocalVector<Color> border_colors;
-	LocalVector<float> border_edges;
-	LocalVector<int32_t> border_indices;
-
-	LocalVector<Vector2> body_vertices;
-	LocalVector<Color> body_colors;
-	LocalVector<float> body_edges;
-	LocalVector<int32_t> body_indices;
-
-	_FORCE_INLINE_ bool is_empty() const { return body_indices.is_empty() && border_indices.is_empty(); }
-};
-
 Color faded(const Color &p_color, float p_factor) {
 	return Color(p_color.r, p_color.g, p_color.b, p_color.a * p_factor);
 }
@@ -145,111 +163,84 @@ Color rim_color(const Color &p_body) {
 	return Color(0.0f, 0.0f, 0.0f, p_body.a);
 }
 
-// 几何构建器：分别向 border / body 两层写顶点，详见 DebugDrawGeometry。
-class Geometry {
-public:
-	LocalVector<Vector2> border_vertices;
-	LocalVector<Color> border_colors;
-	LocalVector<float> border_edges;
-	LocalVector<int32_t> border_indices;
+// 骨骼字形几何：**只有填充三角形**，一个三角形都不多加。
+// 每个顶点带一个轮廓编码 UV=(x, y)，含义见 get_bone_material 的说明。
+struct DebugDrawGeometry {
+	// 顶点。
+	LocalVector<Vector2> vertices;
+	LocalVector<Color> colors;
+	LocalVector<int32_t> indices;
 
-	LocalVector<Vector2> body_vertices;
-	LocalVector<Color> body_colors;
-	LocalVector<float> body_edges;
-	LocalVector<int32_t> body_indices;
+	// 逐顶点轮廓编码，提交时写进 ARRAY_TEX_UV。
+	LocalVector<Vector2> vertex_uv;
 
-private:
-	float rim;
+	// UV.y 的符号：-1 表示该骨受 IK 约束，描边改用橙色。
+	float uv_sign = 1.0f;
 
-	_FORCE_INLINE_ void body_raw(const Vector2 &a, const Vector2 &b, const Vector2 &c, const Color &p_color) {
-		const int32_t base = body_vertices.size();
-		body_vertices.push_back(a);
-		body_vertices.push_back(b);
-		body_vertices.push_back(c);
-		body_colors.push_back(p_color);
-		body_colors.push_back(p_color);
-		body_colors.push_back(p_color);
-		body_edges.push_back(EDGE_INNER);
-		body_edges.push_back(EDGE_INNER);
-		body_edges.push_back(EDGE_INNER);
-		body_indices.push_back(base);
-		body_indices.push_back(base + 1);
-		body_indices.push_back(base + 2);
+	_FORCE_INLINE_ bool is_empty() const { return indices.is_empty(); }
+
+	// ---- 写入底座 ----
+
+	_FORCE_INLINE_ void body_tri(const Vector2 &a, const Vector2 &b, const Vector2 &c,
+								 const Vector2 &p_uv_a, const Vector2 &p_uv_b, const Vector2 &p_uv_c, const Color &p_color) {
+		const int32_t base = vertices.size();
+		// 统一绕序。
+		const bool flip = (b - a).cross(c - a) < 0.0f;
+		vertices.push_back(a);
+		vertex_uv.push_back(Vector2(p_uv_a.x, p_uv_a.y * uv_sign));
+		vertices.push_back(flip ? c : b);
+		vertex_uv.push_back(flip ? Vector2(p_uv_c.x, p_uv_c.y * uv_sign) : Vector2(p_uv_b.x, p_uv_b.y * uv_sign));
+		vertices.push_back(flip ? b : c);
+		vertex_uv.push_back(flip ? Vector2(p_uv_b.x, p_uv_b.y * uv_sign) : Vector2(p_uv_c.x, p_uv_c.y * uv_sign));
+		colors.push_back(p_color);
+		colors.push_back(p_color);
+		colors.push_back(p_color);
+		indices.push_back(base);
+		indices.push_back(base + 1);
+		indices.push_back(base + 2);
 	}
 
-	// 描边四边形：p_in_* 在形状上，p_out_* 在外扩后的轮廓上。
-	//
-	void border_raw(const Vector2 &p_in_a, const Vector2 &p_in_b, const Vector2 &p_out_b, const Vector2 &p_out_a,
-					const Color &p_color) {
-		const int32_t base = border_vertices.size();
-		border_vertices.push_back(p_out_a);
-		border_vertices.push_back(p_out_b);
-		border_vertices.push_back(p_in_b);
-		border_vertices.push_back(p_in_a);
-		border_colors.push_back(p_color);
-		border_colors.push_back(p_color);
-		border_colors.push_back(p_color);
-		border_colors.push_back(p_color);
-		border_edges.push_back(EDGE_OUTER);
-		border_edges.push_back(EDGE_OUTER);
-		border_edges.push_back(EDGE_INNER);
-		border_edges.push_back(EDGE_INNER);
-		border_indices.push_back(base);
-		border_indices.push_back(base + 1);
-		border_indices.push_back(base + 2);
-		border_indices.push_back(base);
-		border_indices.push_back(base + 2);
-		border_indices.push_back(base + 3);
+	_FORCE_INLINE_ void body_quad(const Vector2 &a, const Vector2 &b, const Vector2 &c, const Vector2 &d,
+								  const Vector2 &p_uv_a, const Vector2 &p_uv_b, const Vector2 &p_uv_c, const Vector2 &p_uv_d, const Color &p_color) {
+		body_tri(a, b, c, p_uv_a, p_uv_b, p_uv_c, p_color);
+		body_tri(a, c, d, p_uv_a, p_uv_c, p_uv_d, p_color);
 	}
 
 public:
-	explicit Geometry(float p_rim) :
-			rim(p_rim) {}
+	// ---- 填充 ----
 
-	_FORCE_INLINE_ float rim_width() const { return rim; }
-
-	_FORCE_INLINE_ void body_tri(const Vector2 &a, const Vector2 &b, const Vector2 &c, const Color &p_color) {
-		body_raw(a, b, c, p_color);
-	}
-
-	_FORCE_INLINE_ void body_quad(const Vector2 &a, const Vector2 &b, const Vector2 &c, const Vector2 &d, const Color &p_color) {
-		body_raw(a, b, c, p_color);
-		body_raw(a, c, d, p_color);
-	}
-
-	void body_disc(const Vector2 &p_c, float p_r, const Color &p_color) {
+	void body_circle(const Vector2 &p_c, float p_r, const Color &p_color) {
+		// 实心圆盘不自带描边：所有顶点 UV 相同 → d 恒定 → 片元判定为纯填充。
+		const Vector2 uv(0.0f, p_r);
 		for (int i = 0; i < DISC_SEGMENTS; ++i) {
 			const float a0 = TAU_F * float(i) / float(DISC_SEGMENTS);
 			const float a1 = TAU_F * float(i + 1) / float(DISC_SEGMENTS);
-			body_raw(p_c, p_c + Vector2(cos(a0), sin(a0)) * p_r, p_c + Vector2(cos(a1), sin(a1)) * p_r, p_color);
+			const Vector2 p0 = p_c + Vector2(cos(a0), sin(a0)) * p_r;
+			const Vector2 p1 = p_c + Vector2(cos(a1), sin(a1)) * p_r;
+			body_tri(p_c, p0, p1, uv, uv, uv, p_color);
 		}
 	}
 
 	void body_annulus(const Vector2 &p_c, float p_outer, float p_inner, const Color &p_color) {
 		// 内半径塌缩时不能构造：负半径会把点镜像到对侧，四边形退化成贯穿整个圆的长刺。
 		if (p_inner <= 0.0f) {
-			body_disc(p_c, p_outer, p_color);
+			body_circle(p_c, p_outer, p_color);
 			return;
 		}
-		if (p_inner >= p_outer) {
-			return;
-		}
+
+#ifdef DEV_ENABLED
+		CRASH_COND(p_inner >= p_outer);
+#endif
+
+		const float hw = (p_outer - p_inner) * 0.5f;
 		for (int i = 0; i < DISC_SEGMENTS; ++i) {
 			const float a0 = TAU_F * float(i) / float(DISC_SEGMENTS);
 			const float a1 = TAU_F * float(i + 1) / float(DISC_SEGMENTS);
 			const Vector2 d0(cos(a0), sin(a0));
 			const Vector2 d1(cos(a1), sin(a1));
-			body_quad(p_c + d0 * p_inner, p_c + d0 * p_outer, p_c + d1 * p_outer, p_c + d1 * p_inner, p_color);
-		}
-	}
-
-	void body_arc(const Vector2 &p_c, float p_outer, float p_inner, float p_from, float p_to, const Color &p_color) {
-		for (int i = 0; i < ARC_SEGMENTS; ++i) {
-			const float a0 = p_from + (p_to - p_from) * float(i) / float(ARC_SEGMENTS);
-			const float a1 = p_from + (p_to - p_from) * float(i + 1) / float(ARC_SEGMENTS);
-			const Vector2 d0(cos(a0), sin(a0));
-			const Vector2 d1(cos(a1), sin(a1));
-			body_quad(p_c + d0 * p_inner, p_c + d0 * p_outer, p_c + d1 * p_outer, p_c + d1 * p_inner, p_color);
+			// 只有外沿是轮廓：内沿顶点的 UV.x 取 0，使 d1 = hw - |UV.x| 在内沿远离 0，不描边。
+			body_quad(p_c + d0 * p_inner, p_c + d0 * p_outer, p_c + d1 * p_outer, p_c + d1 * p_inner,
+					  Vector2(0.0f, hw), Vector2(hw, hw), Vector2(hw, hw), Vector2(0.0f, hw), p_color);
 		}
 	}
 
@@ -264,213 +255,114 @@ public:
 		n.x = -dir.y;
 		n.y = dir.x;
 		n *= p_width * 0.5f;
-		body_quad(p_a + n, p_b + n, p_b - n, p_a - n, p_color);
-		body_cap(p_a, dir, n, p_color);
-		body_cap(p_b, dir, n, p_color);
+		const float hw = p_width * 0.5f;
+		// 连线整体不描边（与 HEAD 相同）：UV.x 取 0，d1 = hw 恒远离 0。
+		const Vector2 uv0(0.0f, hw);
+		body_quad(p_a + n, p_b + n, p_b - n, p_a - n,
+				  uv0, uv0, uv0, uv0, p_color);
+		body_cap(p_a, n, p_color);
+		body_cap(p_b, -n, p_color);
 	}
 
-private:
-	void body_cap(const Vector2 &p_end, const Vector2 &p_dir, const Vector2 &p_n, const Color &p_color) {
-		const float base = Math::atan2(p_n.y, p_n.x);
-		const float from = (p_dir.x * p_n.x + p_dir.y * p_n.y) > 0.0f ? base : base + HALF_TURN_F;
-		const float r = p_n.length() * 0.5f;
+	// 线段端, 以 p_end 为心、半径 = |n|、按 from 扫半圈。
+	void body_cap(const Vector2 &p_end, const Vector2 &p_n, const Color &p_color) {
+		constexpr float rad_per_seg = PI_F / float(CAP_SEGMENTS);
+
+		const float radius = p_n.length();
+		const float begin_angle = p_n.angle();
+
+		// TODO: UV 怎么计算？
+		const Vector2 uv_c(0.0f, radius);
+		const Vector2 uv_arc(0.0f, radius);
 		for (int i = 0; i < CAP_SEGMENTS; ++i) {
-			const float a0 = from - HALF_TURN_F * float(i) / float(CAP_SEGMENTS);
-			const float a1 = from - HALF_TURN_F * float(i + 1) / float(CAP_SEGMENTS);
-			body_raw(p_end, p_end + Vector2(cos(a0), sin(a0)) * r, p_end + Vector2(cos(a1), sin(a1)) * r, p_color);
+			const float a0 = begin_angle + rad_per_seg * i;
+			const float a1 = begin_angle + rad_per_seg * (i + 1);
+			body_tri(p_end, p_end + Vector2(cos(a0), sin(a0)) * radius, p_end + Vector2(cos(a1), sin(a1)) * radius,
+					 uv_c, uv_arc, uv_arc, p_color);
 		}
 	}
 
-public:
-	void border_disc(const Vector2 &p_c, float p_r, const Color &p_color) {
-		const float outer = p_r + rim;
-		for (int i = 0; i < DISC_SEGMENTS; ++i) {
-			const float a0 = TAU_F * float(i) / float(DISC_SEGMENTS);
-			const float a1 = TAU_F * float(i + 1) / float(DISC_SEGMENTS);
-			const Vector2 d0(cos(a0), sin(a0));
-			const Vector2 d1(cos(a1), sin(a1));
-			border_raw(p_c + d0 * p_r, p_c + d1 * p_r, p_c + d1 * outer, p_c + d0 * outer, p_color);
-		}
-	}
+	void body_kite(const Vector2 &p_head, const Vector2 &p_dir, const Vector2 &p_perp, const float p_length, const float p_wide_half, const float p_tip_half, const Color &p_color) {
+		const float spring_ofs = p_wide_half * 0.75f;
+		const Vector2 spring_pos = p_head + p_dir * spring_ofs;
+		const Vector2 tip_pos = p_head + p_dir * p_length;
 
-	void border_annulus(const Vector2 &p_c, float p_outer, float p_inner, const Color &p_color) {
-		const float grown = p_outer + rim;
-		for (int i = 0; i < DISC_SEGMENTS; ++i) {
-			const float a0 = TAU_F * float(i) / float(DISC_SEGMENTS);
-			const float a1 = TAU_F * float(i + 1) / float(DISC_SEGMENTS);
-			const Vector2 d0(cos(a0), sin(a0));
-			const Vector2 d1(cos(a1), sin(a1));
-			border_raw(p_c + d0 * p_inner, p_c + d1 * p_inner, p_c + d1 * grown, p_c + d0 * grown, p_color);
-		}
-	}
+		const Vector2 spring_a = spring_pos + p_perp * p_wide_half;
+		const Vector2 spring_b = spring_pos - p_perp * p_wide_half;
+		const Vector2 tip_a = tip_pos + p_perp * p_tip_half;
+		const Vector2 tip_b = tip_pos - p_perp * p_tip_half;
 
-	// 一段直线描边：边本身与它外扩后的边之间的四边形。
-	// p_outward 是形状外侧方向，必须由调用方给出：轮廓是绕圈画的，
-	// 筝形两条边走向相反，用固定法线会让其中一条向内扩，那一侧就没有描边。
-	void border_edge(const Vector2 &p_a, const Vector2 &p_b, const Vector2 &p_outward, const Color &p_color) {
-		const Vector2 axis = p_b - p_a;
-		if (axis.length() <= 0.0f) {
-			return;
-		}
-		border_raw(p_a, p_b, p_b + p_outward * rim, p_a + p_outward * rim, p_color);
-	}
+		// TODO: 怎么计算的UV?
+		const Vector2 uv_h(p_wide_half, p_wide_half);
+		const Vector2 uv_sa(p_wide_half, p_wide_half);
+		const Vector2 uv_sb(-p_wide_half, p_wide_half);
+		const Vector2 uv_ta(p_tip_half, p_tip_half);
+		const Vector2 uv_tb(-p_tip_half, p_tip_half);
 
-	// 圆弧描边，从 p_from 扫到 p_to。用来画筝形没盖住的那段圆环，
-	// 使圆环与筝形的描边连成一条闭合轮廓。
-	void border_arc(const Vector2 &p_c, float p_r, float p_from, float p_to, const Color &p_color) {
-		float sweep = p_to - p_from;
-		if (sweep <= 0.0f) {
-			return;
-		}
-		if (sweep >= TAU_F) {
-			sweep = TAU_F;
-		}
-		const float outer = p_r + rim;
-		const int steps = MAX(1, int(ceilf(sweep * float(DISC_SEGMENTS) / TAU_F)));
-		const float step = sweep / float(steps);
-		for (int i = 0; i < steps; ++i) {
-			const float a0 = p_from + step * float(i);
-			const float a1 = a0 + step;
-			const Vector2 d0(cos(a0), sin(a0));
-			const Vector2 d1(cos(a1), sin(a1));
-			border_raw(p_c + d0 * p_r, p_c + d1 * p_r, p_c + d1 * outer, p_c + d0 * outer, p_color);
-		}
+		body_tri(p_head, spring_a, spring_b, uv_h, uv_sa, uv_sb, p_color);
+		body_tri(spring_a, tip_a, tip_b, uv_sa, uv_ta, uv_tb, p_color);
+		body_tri(spring_a, tip_b, spring_b, uv_sa, uv_tb, uv_sb, p_color);
 	}
 };
 
 } //namespace
 
-void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_props, float p_outline_px,
+void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_props,
 								DebugDrawGeometry &r_geometry) {
 	const float radius = MAX(p_props.get_bone_pivot_radius(), 0.5f);
-	Geometry g(MAX(p_outline_px, OUTLINE_MIN_PX));
 
 	const Vector2 dir = p_bone.dir;
 	const Vector2 perp(-dir.y, dir.x);
 	const Vector2 &center = p_bone.start;
 
 	const bool is_ik_target = p_bone.kind == DebugBone::KIND_IK_TARGET;
-	const bool is_ik_driven = p_bone.kind == DebugBone::KIND_IK_DRIVEN;
+	// 受 IK 约束的骨骼描边用橙色：用 UV.y 的符号把标记传给着色器。
+	r_geometry.uv_sign = (p_bone.kind == DebugBone::KIND_IK_DRIVEN) ? -1.0f : 1.0f;
 
 	// ------------------------------------------------------------------
-	// 枢轴是「起点圆 + 筝形」合一的一个轮廓：先填两者，再整体描一圈边。
-	// 分别描会在接缝处多出一条线，把一个符号切成两个。
-	//
+	// 枢轴是「起点圆 + 筝形」合一的一个轮廓。
 	// ------------------------------------------------------------------
 	const float diameter = radius * 2.0f;
 
-	// 骨骼长于圆的直径才画筝形。否则用符号自身的连线延伸到骨骼末端来指示长度，
-	// 是同一根线画得更长，不是再叠一根。
-	//
 	const bool has_kite = p_bone.length > diameter;
-	const float spoke_to = MIN(MAX(p_bone.length, radius), radius * 3.0f);
-
 	const Color body_color = is_ik_target ? p_props.color_ik_target : p_props.color_bone;
-	// 描边色：受 IK 约束的骨骼用 color_ik_bone_outline 本身（含它自己的不透明度）；
-	// 其余骨骼用黑边，不透明度跟随主体（主体 0.8 描边就 0.8，IK 目标的 0.9 就 0.9）。
-	const Color outline_color = is_ik_driven ? p_props.color_ik_bone_outline : rim_color(body_color);
-
-	// ------------------------------------------------------------------
-	// 筝形：从圆周一路收窄到骨骼末端，末端距圆心正好 p_bone.length，用它来度量骨骼。
-	// 唯一例外是刚超过大端的短骨，小端被稍稍推后，保证仍能收窄而不是方头。
-	// ------------------------------------------------------------------
-	const float half = radius * KITE_HALF_WIDTH;
-	const float tip_half = radius * KITE_TIP_HALF;
-	const float wide_at = radius * KITE_WIDE_AT;
-	const float tip_at = MAX(p_bone.length, wide_at + radius * 0.25f);
-
-	// 小端是短边而不是一个点，收窄才看得出来，描边也有地方收口。
-	//
-	const Vector2 tip_a = center + dir * tip_at + perp * tip_half;
-	const Vector2 tip_b = center + dir * tip_at - perp * tip_half;
-
-	// ------------------------------------------------------------------
-	// 起点圆环：只在筝形没盖到的那段圆弧上填充，被筝形盖住的部分由筝形填充接管，
-	// 这样两者看起来是一个整体。
-	const float ring_w = radius * (is_ik_target ? IK_RING_W : PLAIN_RING_W);
-	const float ring_inner = radius - ring_w;
-	// 筝形只盖住两个起点角之间很窄的一段弧，所以圆环的填充和描边都要覆盖整圆减去这一段。
-	// 这里是该边界的两个角度（按半圈算会让每个有筝形的骨缺一大段）。
-	const Vector2 spring_a = center + dir * radius + perp * half;
-	const Vector2 spring_b = center + dir * radius - perp * half;
-	const float trail = Math::atan2((spring_b - center).y, (spring_b - center).x);
-	const float lead = Math::atan2((spring_a - center).y, (spring_a - center).x);
 
 	if (has_kite) {
-		// 筝形大端在圆周上，两角落在圆环外缘，与圆环所画圆弧正好衔接。
-		// 筝形是凸的，从大端扇形三角化即可填满。
-		//
-		g.body_tri(spring_a, tip_a, tip_b, body_color);
-		g.body_tri(spring_a, tip_b, spring_b, body_color);
-
-		// 圆环：圆上除筝形所盖窄楔外的其余部分，也就是绝大部分。
-		//
-		g.body_arc(center, radius, ring_inner, lead, trail + TAU_F, body_color);
-	} else {
-		g.body_annulus(center, radius, ring_inner, body_color);
+		const Vector2 head = center + dir * radius;
+		const float kite_length = p_bone.length - radius;
+		const float tip_half = radius * KITE_TIP_HALF;
+		r_geometry.body_kite(head, dir, perp, kite_length, radius, tip_half, body_color);
 	}
+
+	const float ring_w = radius * (is_ik_target ? IK_RING_W : PLAIN_RING_W);
+	const float ring_outer = radius + ring_w * 0.5;
+	const float ring_inner = radius - ring_w * 0.5;
+	r_geometry.body_annulus(center, ring_outer, ring_inner, body_color);
 
 	if (is_ik_target) {
 		// 粗环内部的低不透明度深色圆盘。
-		g.body_disc(center, ring_inner, faded(body_color, IK_DISC_ALPHA));
+		r_geometry.body_circle(center, ring_inner, faded(body_color, IK_DISC_ALPHA));
 	}
 
 	// ------------------------------------------------------------------
-	// 连线：从圆心向外，指示骨骼旋转。只画一次、按最终长度画，短骨就是它伸得更长。
-	//
+	// 连线：从圆心向外，指示骨骼旋转。
 	// ------------------------------------------------------------------
 	const float spoke_w = radius * (is_ik_target ? IK_ARM_W : PLAIN_SPOKE_W);
-	g.body_segment(center, center + dir * spoke_to, spoke_w, body_color);
 
 	if (is_ik_target) {
-		// 其余三条十字准星短线，与环同宽，止于圆盘外，只有连线能到圆心。
-		//
 		const float arm_out = radius * IK_ARM_OUT;
 		const float arm_in = radius + spoke_w * 0.5f;
-		g.body_segment(center - perp * arm_out, center - perp * arm_in, spoke_w, body_color);
-		g.body_segment(center + perp * arm_out, center + perp * arm_in, spoke_w, body_color);
-		g.body_segment(center - dir * arm_out, center - dir * arm_in, spoke_w, body_color);
-	}
 
-	// ------------------------------------------------------------------
-	// 描边：绕合一后的轮廓走一圈——筝形两条边到小端、小端、再从后角沿圆弧绕回前角。
-	// 筝形盖住的那段跳过，那里的轮廓由筝形自己的边充当，接缝属于内部。
-	// ------------------------------------------------------------------
-	if (has_kite) {
-		// 每条边都朝筝形外侧外扩，无论走向如何描边都落在形状外；小端沿骨骼方向外扩。
-		g.border_edge(spring_b, tip_b, -perp, outline_color);
-		g.border_edge(tip_b, tip_a, dir, outline_color);
-		g.border_edge(tip_a, spring_a, perp, outline_color);
-		g.border_arc(center, radius, lead, trail + TAU_F, outline_color);
+		const float spoke_to = has_kite ? (radius - spoke_w * 0.5f) : (MAX(p_bone.length, arm_out));
+		r_geometry.body_segment(center, center + dir * spoke_to, spoke_w, body_color);
+
+		r_geometry.body_segment(center - perp * arm_out, center - perp * arm_in, spoke_w, body_color);
+		r_geometry.body_segment(center + perp * arm_out, center + perp * arm_in, spoke_w, body_color);
+		r_geometry.body_segment(center - dir * arm_out, center - dir * arm_in, spoke_w, body_color);
 	} else {
-		g.border_arc(center, radius, 0.0f, TAU_F, outline_color);
+		const float spoke_to = has_kite ? (radius - spoke_w * 0.5f) : (MAX(p_bone.length, radius - spoke_w * 0.5f));
+		r_geometry.body_segment(center, center + dir * spoke_to, spoke_w, body_color);
 	}
-
-	// 这里是追加而不是赋值：调用方把所有骨骼累积进同一份几何，赋值只会留下最后一根。
-	// 索引相对 g 是局部的，要按「已存在的顶点数」（不是索引数）重新基准。
-	// LocalVector 没有 append_array，只能逐个扩容拷贝。
-	auto append_all = [](auto &p_dst, const auto &p_src) {
-		const uint32_t base = p_dst.size();
-		p_dst.resize(base + p_src.size());
-		using ElemTy = std::remove_pointer_t<decltype(p_src.ptr())>;
-		memcpy((uint8_t *)(p_dst.ptr() + base), (uint8_t *)p_src.ptr(), sizeof(ElemTy) * p_src.size());
-	};
-	auto append_indices = [](LocalVector<int32_t> &p_dst, const LocalVector<int32_t> &p_src, int32_t p_vertex_base) {
-		const uint32_t base = p_dst.size();
-		p_dst.resize(base + p_src.size());
-		for (uint32_t i = 0; i < p_src.size(); ++i) {
-			p_dst[base + i] = p_src[i] + p_vertex_base;
-		}
-	};
-	const int32_t border_vertex_base = static_cast<int32_t>(r_geometry.border_vertices.size());
-	append_all(r_geometry.border_vertices, g.border_vertices);
-	append_all(r_geometry.border_colors, g.border_colors);
-	append_indices(r_geometry.border_indices, g.border_indices, border_vertex_base);
-
-	const int32_t body_vertex_base = static_cast<int32_t>(r_geometry.body_vertices.size());
-	append_all(r_geometry.body_vertices, g.body_vertices);
-	append_all(r_geometry.body_colors, g.body_colors);
-	append_indices(r_geometry.body_indices, g.body_indices, body_vertex_base);
 }
 
 void draw_debug_bone_names(CanvasItem *p_owner, const LocalVector<DebugBone> &p_bone_data, const DebugDraw &p_props) {
@@ -505,8 +397,7 @@ PackedArray to_packed_array(const LocalVector<Elem> &p_points) {
 DebugDraw::~DebugDraw() {
 	const auto RS = RenderingServer::get_singleton();
 	if (debug_mesh.is_valid()) {
-		RS->free_rid(debug_mesh);
-		debug_mesh = RID();
+		RenderingServer::get_singleton()->free_rid(debug_mesh);
 	}
 }
 
@@ -515,8 +406,10 @@ void DebugDraw::set_enabled(bool p_enabled) {
 		if (!debug_mesh.is_valid())
 			debug_mesh = RenderingServer::get_singleton()->mesh_create();
 	} else {
-		if (debug_mesh.is_valid())
+		if (debug_mesh.is_valid()) {
 			RenderingServer::get_singleton()->free_rid(debug_mesh);
+			debug_mesh = {};
+		}
 	}
 }
 
@@ -527,6 +420,8 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 	RS->mesh_clear(debug_mesh);
 
 	const Transform2D identity{};
+
+	uint32_t surface_idx = -1;
 
 	// ---- 插槽线框 ----
 	if (has_flag(DRAW_MESH)) {
@@ -574,12 +469,21 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 		}
 
 		if (!line_indices.is_empty()) {
+			// 线框不打描边：UV.y 取极大 → d 极大 → 片元直接输出顶点色。
+			PackedVector2Array line_uv;
+			line_uv.resize(debug_vertices.size());
+			for (int i = 0; i < line_uv.size(); ++i) {
+				line_uv[i] = Vector2(0.0f, 1e6f);
+			}
+
 			Array arr;
 			arr.resize(RenderingServer::ARRAY_MAX);
 			arr[RenderingServer::ARRAY_INDEX] = line_indices;
 			arr[RenderingServer::ARRAY_VERTEX] = debug_vertices;
 			arr[RenderingServer::ARRAY_COLOR] = debug_colors;
+			arr[RenderingServer::ARRAY_TEX_UV] = line_uv;
 			RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_LINES, arr);
+			surface_idx++;
 		}
 	}
 
@@ -627,40 +531,22 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 		});
 
 		if (has_flag(DRAW_BONE)) {
-			if (!bone_data.is_empty()) {
-				DebugDrawGeometry geometry;
-				// 描边固定为若干屏幕像素，任何缩放都不变粗；按节点自身缩放换算成局部单位。
-				const float draw_scale = Math::abs(owner->get_global_transform_with_canvas().get_scale().y);
-				const float outline_px = draw_scale > 0.0f ? DEBUG_OUTLINE_PX / draw_scale : DEBUG_OUTLINE_PX;
-				for (const DebugBone &bone : bone_data) {
-					append_debug_bone_geometry(bone, *this, outline_px, geometry);
-				}
+			// 所有骨骼的填充几何收进同一个表面；描边由材质在片元里按 UV 距离算。
+			DebugDrawGeometry geometry;
+			for (const DebugBone &bone : bone_data) {
+				append_debug_bone_geometry(bone, *this, geometry);
+			}
 
-				if (!geometry.body_indices.is_empty()) {
-					// 填充索引整体后移，跳过前面所有描边顶点。
-					const int32_t base = static_cast<int32_t>(geometry.border_vertices.size());
-
-					PackedVector2Array vertices = to_packed_array<PackedVector2Array>(geometry.border_vertices);
-					vertices.append_array(to_packed_array<PackedVector2Array>(geometry.body_vertices));
-
-					PackedColorArray colors = to_packed_array<PackedColorArray>(geometry.border_colors);
-					colors.append_array(to_packed_array<PackedColorArray>(geometry.body_colors));
-
-					PackedInt32Array indices = to_packed_array<PackedInt32Array>(geometry.border_indices);
-					const PackedInt32Array body_indices = to_packed_array<PackedInt32Array>(geometry.body_indices);
-					const int32_t border_count = indices.size();
-					indices.resize(border_count + body_indices.size());
-					for (int32_t i = 0; i < body_indices.size(); ++i) {
-						indices[border_count + i] = body_indices[i] + base;
-					}
-
-					Array arr;
-					arr.resize(RenderingServer::ARRAY_MAX);
-					arr[RenderingServer::ARRAY_INDEX] = indices;
-					arr[RenderingServer::ARRAY_VERTEX] = vertices;
-					arr[RenderingServer::ARRAY_COLOR] = colors;
-					RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
-				}
+			if (!geometry.indices.is_empty()) {
+				Array arr;
+				arr.resize(RenderingServer::ARRAY_MAX);
+				arr[RenderingServer::ARRAY_INDEX] = to_packed_array<PackedInt32Array>(geometry.indices);
+				arr[RenderingServer::ARRAY_VERTEX] = to_packed_array<PackedVector2Array>(geometry.vertices);
+				arr[RenderingServer::ARRAY_COLOR] = to_packed_array<PackedColorArray>(geometry.colors);
+				arr[RenderingServer::ARRAY_TEX_UV] = to_packed_array<PackedVector2Array>(geometry.vertex_uv);
+				RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
+				surface_idx++;
+				RS->mesh_surface_set_material(debug_mesh, surface_idx, get_bone_material()->get_rid());
 			}
 		}
 
@@ -669,9 +555,13 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 		}
 	}
 
-	// canvas_item_add_mesh 会提交网格的全部表面，因此在所有表面就位后只调用一次。
+	// 线框 + 骨骼一次提交：同一份 debug_mesh、一个材质（材质挂在子画布上）。
 	if (is_enabled()) {
-		RS->canvas_item_add_mesh(debug_canvas, debug_mesh, identity, owner->get_modulate());
+		get_bone_material()->set_shader_parameter("outline_px", DEBUG_OUTLINE_PX);
+		get_bone_material()->set_shader_parameter("outline_color_ik", color_ik_bone_outline);
+		// 筝形小端半宽（局部单位），供着色器描小端平头。
+		get_bone_material()->set_shader_parameter("tip_half", MAX(get_bone_pivot_radius(), 0.5f) * KITE_TIP_HALF);
+		RS->canvas_item_add_mesh(owner->get_canvas_item(), debug_mesh, identity, Color(1, 1, 1, 1));
 	}
 }
 

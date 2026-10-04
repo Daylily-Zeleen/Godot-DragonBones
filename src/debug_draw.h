@@ -47,8 +47,8 @@ struct DebugDraw {
 	};
 
 	Color color_bone{ 0.8f, 0.8f, 0.8f, 0.8f };
-	Color color_ik_target{ 1.0f, 0.55f, 0.2f, 0.9f };
-	Color color_ik_bone_outline{ 1.0f, 0.6f, 0.1f, 1.0f };
+	Color color_ik_target{ 1.0f, 0.2f, 0.1f, 0.9f };
+	Color color_ik_bone_outline{ 1.0f, 0.6f, 0.1f, 0.8f };
 
 	DebugDraw(CanvasItem *p_owner) : owner(p_owner) {}
 	~DebugDraw();
@@ -75,6 +75,7 @@ private:
 
 	CanvasItem *owner;
 
+	// 线框 + 骨骼共用的网格。
 	RID debug_mesh;
 
 	float bone_pivot_radius = 5.0f;
