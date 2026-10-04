@@ -450,13 +450,11 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 	// 这里是追加而不是赋值：调用方把所有骨骼累积进同一份几何，赋值只会留下最后一根。
 	// 索引相对 g 是局部的，要按「已存在的顶点数」（不是索引数）重新基准。
 	// LocalVector 没有 append_array，只能逐个扩容拷贝。
-	//
 	auto append_all = [](auto &p_dst, const auto &p_src) {
 		const uint32_t base = p_dst.size();
 		p_dst.resize(base + p_src.size());
-		for (uint32_t i = 0; i < p_src.size(); ++i) {
-			p_dst[base + i] = p_src[i];
-		}
+		using ElemTy = std::remove_pointer_t<decltype(p_src.ptr())>;
+		memcpy((uint8_t *)(p_dst.ptr() + base), (uint8_t *)p_src.ptr(), sizeof(ElemTy) * p_src.size());
 	};
 	auto append_indices = [](LocalVector<int32_t> &p_dst, const LocalVector<int32_t> &p_src, int32_t p_vertex_base) {
 		const uint32_t base = p_dst.size();
@@ -465,7 +463,6 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 			p_dst[base + i] = p_src[i] + p_vertex_base;
 		}
 	};
-
 	const int32_t border_vertex_base = static_cast<int32_t>(r_geometry.border_vertices.size());
 	append_all(r_geometry.border_vertices, g.border_vertices);
 	append_all(r_geometry.border_colors, g.border_colors);
@@ -503,9 +500,7 @@ template <typename PackedArray, typename Elem, std::enable_if_t<std::is_same_v<s
 PackedArray to_packed_array(const LocalVector<Elem> &p_points) {
 	PackedArray out;
 	out.resize(p_points.size());
-	for (uint32_t i = 0; i < p_points.size(); ++i) {
-		out[i] = p_points[i];
-	}
+	memcpy((uint8_t *)out.ptrw(), (uint8_t *)p_points.ptr(), p_points.size() * sizeof(Elem));
 	return out;
 }
 
