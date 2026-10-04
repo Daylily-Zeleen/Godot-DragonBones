@@ -515,24 +515,20 @@ void append_bone_debug_data(
 		const LocalVector<StringName> &p_ik_targets, const LocalVector<StringName> &p_ik_driven,
 		const Transform2D &p_base_transform = {}) {
 	const Transform2D global_transform = p_base_transform * p_armature->transform;
-	for (const auto &[name, bone] : p_armature->get_bones()) {
+	for (const auto &[bone_name, bone] : p_armature->get_bones()) {
 		if (!bone.is_valid()) {
 			continue;
 		}
 
-		// 合成矩阵来自 `get_global_transform()`（内部读 `globalTransformMatrix`），
 		// 再叠加外层骨架的基准变换，使嵌套骨架的坐标也落到同一空间。
 		const Transform2D bone_transform = global_transform * bone->get_global_transform();
 		const Vector2 start = bone_transform.get_origin();
 		// 朝向取该变换的 X 轴。必须走同一个 `bone_transform`，否则嵌套骨架里
-		// 外层变换不会作用到朝向上，方向与起点会分处两个空间。
-		const Vector2 direction = bone_transform.columns[0].normalized();
+		const Vector2 direction = bone_transform[0].normalized();
 
-		// 长度取自骨架数据。零长骨骼只画起点符号——长度不做猜测，编造出来的长度
-		// 会和真实数据一样显示，无法区分。
+		// 长度取自骨架数据。
 		const float length = bone->get_length();
 
-		const StringName bone_name(name);
 		DebugBone::Kind kind = DebugBone::KIND_PLAIN;
 		if (p_ik_targets.has(bone_name)) {
 			kind = DebugBone::KIND_IK_TARGET;
@@ -544,7 +540,7 @@ void append_bone_debug_data(
 				start,
 				direction,
 				length,
-				name,
+				bone_name,
 				kind,
 		});
 	}
@@ -686,40 +682,24 @@ void DebugDraw::clear_cache() {
 	ik_driven.clear();
 }
 
-void cache_ik_bones_recursively(DragonBonesArmature *p_armature, LocalVector<StringName> &r_ik_targets, LocalVector<StringName> &r_ik_driven) {
-	// 用 IK 约束区分骨骼类型：JSON 里没有「骨骼类型」字段，
-	// 但约束会指明它作用的 target 和被驱动的骨链。
-	// 解析骨骼时链已展开：N+1 根骨的链，root 是最上面那根、bone 是它下面那根
-	// （JSONDataParser.cpp），两根都在被驱动。只标 bone 会让链的其余部分
-	// 看起来像普通骨骼。
-	for (const dragonBones::Constraint *constraint : p_armature->getArmature()->_constraints) {
-		if (constraint == nullptr || constraint->_constraintData == nullptr) {
-			continue;
-		}
-		if (constraint->_constraintData->target != nullptr) {
-			r_ik_targets.push_back(StringName(to_gd_str(constraint->_constraintData->target->name)));
-		}
-		if (constraint->_constraintData->root != nullptr) {
-			r_ik_driven.push_back(StringName(to_gd_str(constraint->_constraintData->root->name)));
-		}
-		if (constraint->_constraintData->bone != nullptr) {
-			r_ik_driven.push_back(StringName(to_gd_str(constraint->_constraintData->bone->name)));
-		}
-	}
-
-	// 递归处理嵌套骨架：append_draw_data 通过 Slot::getDisplay() 拿到子骨架。
-	for (const dragonBones::Slot *raw_slot : p_armature->getArmature()->getSlots()) {
-		const Slot_GD *slot = static_cast<const Slot_GD *>(raw_slot);
-		if (auto display = slot->get_display()) {
-			if (auto *child_armature = dynamic_cast<DragonBonesArmature *>(display)) {
-				cache_ik_bones_recursively(child_armature, r_ik_targets, r_ik_driven);
+void DebugDraw::cache_ik_bones(DragonBonesArmature *p_armature) {
+	p_armature->for_each_armature_recursively([this](DragonBonesArmature *p_a, int) {
+		for (const dragonBones::Constraint *constraint : p_a->getArmature()->_constraints) {
+			if (constraint == nullptr || constraint->_constraintData == nullptr) {
+				continue;
+			}
+			if (constraint->_constraintData->target != nullptr) {
+				ik_targets.push_back(StringName(to_gd_str(constraint->_constraintData->target->name)));
+			}
+			if (constraint->_constraintData->root != nullptr) {
+				ik_driven.push_back(StringName(to_gd_str(constraint->_constraintData->root->name)));
+			}
+			if (constraint->_constraintData->bone != nullptr) {
+				ik_driven.push_back(StringName(to_gd_str(constraint->_constraintData->bone->name)));
 			}
 		}
-	}
-}
+	});
 
-void DebugDraw::cache_ik_bones(DragonBonesArmature *p_armature) {
-	cache_ik_bones_recursively(p_armature, ik_targets, ik_driven);
 	cached = true;
 }
 

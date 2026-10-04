@@ -63,7 +63,7 @@ static void clean_static() {
 DragonBonesArmature::~DragonBonesArmature() {} // 不需要额外清理
 
 void DragonBonesArmature::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("for_each_armature", "action"), &DragonBonesArmature::for_each_armature_);
+	ClassDB::bind_method(D_METHOD("for_each_child_armature", "action"), &DragonBonesArmature::for_each_armature_);
 	ClassDB::bind_method(D_METHOD("for_each_armature_recursively", "action", "current_depth"), &DragonBonesArmature::for_each_armature_recursively_, DEFVAL(0));
 
 	ClassDB::bind_method(D_METHOD("has_animation", "animation_name"), &DragonBonesArmature::has_animation);
@@ -169,7 +169,7 @@ void DragonBonesArmature::dispatchDBEvent(const std::string &p_type, dragonBones
 }
 
 void DragonBonesArmature::for_each_armature_(const Callable &p_action) {
-	for_each_armature([&](auto p_child_armature) {
+	for_each_child_armature([&](auto p_child_armature) {
 		return p_action.call(p_child_armature).booleanize();
 	});
 }
@@ -239,7 +239,7 @@ void DragonBonesArmature::advance(float p_delta, bool p_recursively) {
 	}
 
 	if (p_recursively) {
-		for_each_armature([p_delta](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([p_delta](DragonBonesArmature *p_child_armature) {
 			p_child_armature->advance(p_delta, true);
 		});
 	}
@@ -351,7 +351,7 @@ void DragonBonesArmature::stop(const String &p_animation_name, bool b_reset, boo
 	}
 
 	if (p_recursively) {
-		for_each_armature([&p_animation_name, b_reset](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([&p_animation_name, b_reset](DragonBonesArmature *p_child_armature) {
 			p_child_armature->stop(p_animation_name, b_reset, true);
 		});
 	}
@@ -367,7 +367,7 @@ void DragonBonesArmature::stop_all_animations(bool b_reset, bool p_recursively) 
 	}
 
 	if (p_recursively) {
-		for_each_armature([b_reset](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([b_reset](DragonBonesArmature *p_child_armature) {
 			p_child_armature->stop_all_animations(b_reset, true);
 		});
 	}
@@ -385,7 +385,7 @@ void DragonBonesArmature::reset(bool p_recursively) {
 	}
 
 	if (p_recursively) {
-		for_each_armature([](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([](DragonBonesArmature *p_child_armature) {
 			p_child_armature->reset(true);
 		});
 	}
@@ -414,7 +414,7 @@ void DragonBonesArmature::set_flip_x(bool p_flip_x, bool p_recursively) {
 	getArmature()->setFlipX(p_flip_x);
 	getArmature()->advanceTime(0);
 	if (p_recursively) {
-		for_each_armature([p_flip_x](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([p_flip_x](DragonBonesArmature *p_child_armature) {
 			p_child_armature->set_flip_x(p_flip_x, true);
 		});
 	}
@@ -431,7 +431,7 @@ void DragonBonesArmature::set_flip_y(bool p_flip_y, bool p_recursively) {
 	getArmature()->setFlipY(p_flip_y);
 	getArmature()->advanceTime(0);
 	if (p_recursively) {
-		for_each_armature([p_flip_y](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([p_flip_y](DragonBonesArmature *p_child_armature) {
 			p_child_armature->set_flip_y(p_flip_y, true);
 		});
 	}

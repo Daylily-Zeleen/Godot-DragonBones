@@ -109,41 +109,62 @@ public:
 	dragonBones::Slot *getSlot(const String &p_name) const { return armature_instance->getSlot(to_std_str(p_name)); }
 
 	template <typename Func, typename std::enable_if<std::is_invocable_v<Func, DragonBonesArmature *>>::type *_dummy = nullptr>
-	void for_each_armature(Func &&p_action) {
-		for (auto slot : getArmature()->getSlots()) {
-			if (slot->getDisplayList().size() == 0) {
+	auto for_each_child_armature(Func &&p_action) {
+		const constexpr bool return_bool = std::is_invocable_r_v<bool, Func, DragonBonesArmature *>;
+		for (auto raw_slot : getArmature()->getSlots()) {
+			/**
+			 *  TODO:该项目使用 Slot_GD 来实现 dragonBones::Slot 这个抽象类。
+			 * 		Slot_GD *slot = static_cast<Slot_GD*>(raw_slot);
+			 *  	if (DragonBonesArmature * armature = dynamic_cast<DragonBonesArmature *>(slot->get_display())) {...} 性能会不会更好？
+			 */
+			if (raw_slot->getDisplayList().size() == 0) {
 				continue;
 			}
-			if (slot->getDisplayIndex() < 0) {
-				slot->setDisplayIndex(0);
+			if (raw_slot->getDisplayIndex() < 0) {
+				raw_slot->setDisplayIndex(0);
 			}
-			auto display = slot->getDisplayList()[slot->getDisplayIndex()];
-			if (display.second == dragonBones::DisplayType::Armature) {
-				dragonBones::Armature *armature_view = static_cast<dragonBones::Armature *>(display.first);
-				DragonBonesArmature *convertedDisplay = static_cast<DragonBonesArmature *>(armature_view->getDisplay());
-				if constexpr (std::is_invocable_r_v<bool, Func, DragonBonesArmature *>) {
-					if (p_action(convertedDisplay)) {
-						break;
+			auto raw_display = raw_slot->getDisplayList()[raw_slot->getDisplayIndex()];
+			if (raw_display.second == dragonBones::DisplayType::Armature) {
+				dragonBones::Armature *armature_view = static_cast<dragonBones::Armature *>(raw_display.first);
+				DragonBonesArmature *display = static_cast<DragonBonesArmature *>(armature_view->getDisplay());
+				if constexpr (return_bool) {
+					if (p_action(display)) {
+						return true;
 					}
 				} else {
-					p_action(convertedDisplay);
+					p_action(display);
 				}
 			}
 		}
+		if constexpr (return_bool) {
+			return false;
+		}
 	}
 
-	template <typename Func, typename std::enable_if<std::is_invocable_v<Func, DragonBonesArmature *, int>>::type *_dummy = nullptr>
-	void for_each_armature_recursively(Func &&p_action, int p_current_depth = 0) {
-		for_each_armature([&p_action, p_current_depth](auto p_child_armature) {
-			if constexpr (std::is_invocable_r_v<bool, Func, DragonBonesArmature *, int>) {
-				if (p_action(p_child_armature, p_current_depth)) {
-					return;
-				}
-			} else {
-				p_action(p_child_armature, p_current_depth);
+	template <typename Func, typename Ret = std::conditional_t<std::is_invocable_r_v<bool, Func, DragonBonesArmature *, int>, bool, void>, typename std::enable_if<std::is_invocable_v<Func, DragonBonesArmature *, int>>::type *_dummy = nullptr>
+	Ret for_each_armature_recursively(Func &&p_action, int p_current_depth = 0) {
+		const constexpr bool return_bool = std::is_same_v<Ret, bool>;
+		if constexpr (return_bool) {
+			if (p_action(this, p_current_depth)) {
+				return true;
 			}
-			p_child_armature->for_each_armature_recursively(std::forward<Func>(p_action), p_current_depth + 1);
-		});
+		} else {
+			p_action(this, p_current_depth);
+		}
+
+		const auto &&action = [&p_action, p_current_depth](auto p_child_armature) {
+			if constexpr (return_bool) {
+				return p_child_armature->for_each_armature_recursively(std::forward<Func>(p_action), p_current_depth + 1);
+			} else {
+				p_child_armature->for_each_armature_recursively(std::forward<Func>(p_action), p_current_depth + 1);
+			}
+		};
+
+		if constexpr (return_bool) {
+			return for_each_child_armature(std::move(action));
+		} else {
+			for_each_child_armature(std::move(action));
+		}
 	}
 
 	virtual void queue_redraw() const override;
