@@ -61,7 +61,6 @@ public:
 	String _to_string() const { return vformat("<%s#%s>", get_class_static(), get_instance_id()); }
 
 	bool is_valid() const;
-	String get_name() const;
 	float get_length() const;
 	Ref<DragonBonesBone> get_parent() const;
 

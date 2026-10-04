@@ -80,7 +80,6 @@ _FORCE_INLINE_ Transform2D to_gd_transform(const dragonBones::Transform &p_t) {
 }
 
 void DragonBonesBone::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("get_name"), &DragonBonesBone::get_name);
 	ClassDB::bind_method(D_METHOD("get_parent"), &DragonBonesBone::get_parent);
 	ClassDB::bind_method(D_METHOD("get_length"), &DragonBonesBone::get_length);
 	ClassDB::bind_method(D_METHOD("is_valid"), &DragonBonesBone::is_valid);
@@ -133,11 +132,6 @@ void DragonBonesBone::_bind_methods() {
 
 bool DragonBonesBone::is_valid() const {
 	return boneData && armature;
-}
-
-String DragonBonesBone::get_name() const {
-	ERR_FAIL_NULL_V(boneData, {});
-	return String::utf8(boneData->getName().c_str());
 }
 
 Ref<DragonBonesBone> DragonBonesBone::get_parent() const {
