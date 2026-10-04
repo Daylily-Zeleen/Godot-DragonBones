@@ -317,7 +317,6 @@ public:
 
 	// 圆弧描边，从 p_from 扫到 p_to。用来画筝形没盖住的那段圆环，
 	// 使圆环与筝形的描边连成一条闭合轮廓。
-	//
 	void border_arc(const Vector2 &p_c, float p_r, float p_from, float p_to, const Color &p_color) {
 		float sweep = p_to - p_from;
 		if (sweep <= 0.0f) {
@@ -367,9 +366,9 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 	const float spoke_to = MIN(MAX(p_bone.length, radius), radius * 3.0f);
 
 	const Color body_color = is_ik_target ? p_props.color_ik_target : p_props.color_bone;
-	// 描边不透明度跟随主体：主体 0.8 描边就 0.8，IK 目标的 0.9 就 0.9。
-	//
-	const Color outline_color = rim_color(is_ik_driven ? p_props.color_ik_bone_outline : body_color);
+	// 描边色：受 IK 约束的骨骼用 color_ik_bone_outline 本身（含它自己的不透明度）；
+	// 其余骨骼用黑边，不透明度跟随主体（主体 0.8 描边就 0.8，IK 目标的 0.9 就 0.9）。
+	const Color outline_color = is_ik_driven ? p_props.color_ik_bone_outline : rim_color(body_color);
 
 	// ------------------------------------------------------------------
 	// 筝形：从圆周一路收窄到骨骼末端，末端距圆心正好 p_bone.length，用它来度量骨骼。
@@ -481,7 +480,6 @@ void draw_debug_bone_names(CanvasItem *p_owner, const LocalVector<DebugBone> &p_
 	}
 
 	// 字号固定，不随节点缩放、2D 缩放或窗口拉伸补偿。
-	//
 	const int font_size = DEBUG_BONE_NAME_FONT_SIZE;
 	const float label_pad = p_props.get_bone_pivot_radius() * 2.0f + 2.0f;
 
