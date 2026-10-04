@@ -354,7 +354,7 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 	const bool is_ik_driven = p_bone.kind == DebugBone::KIND_IK_DRIVEN;
 
 	// ------------------------------------------------------------------
-	// 符号是「起点圆 + 筝形」合一的一个轮廓：先填两者，再整体描一圈边。
+	// 枢轴是「起点圆 + 筝形」合一的一个轮廓：先填两者，再整体描一圈边。
 	// 分别描会在接缝处多出一条线，把一个符号切成两个。
 	//
 	// ------------------------------------------------------------------
@@ -509,53 +509,6 @@ PackedArray to_packed_array(const LocalVector<Elem> &p_points) {
 	return out;
 }
 
-void append_bone_debug_data(
-		DragonBonesArmature *p_armature,
-		LocalVector<DebugBone> &r_data,
-		const LocalVector<StringName> &p_ik_targets, const LocalVector<StringName> &p_ik_driven,
-		const Transform2D &p_base_transform = {}) {
-	const Transform2D global_transform = p_base_transform * p_armature->transform;
-	for (const auto &[bone_name, bone] : p_armature->get_bones()) {
-		if (!bone.is_valid()) {
-			continue;
-		}
-
-		// 再叠加外层骨架的基准变换，使嵌套骨架的坐标也落到同一空间。
-		const Transform2D bone_transform = global_transform * bone->get_global_transform();
-		const Vector2 start = bone_transform.get_origin();
-		// 朝向取该变换的 X 轴。必须走同一个 `bone_transform`，否则嵌套骨架里
-		const Vector2 direction = bone_transform[0].normalized();
-
-		// 长度取自骨架数据。
-		const float length = bone->get_length();
-
-		DebugBone::Kind kind = DebugBone::KIND_PLAIN;
-		if (p_ik_targets.has(bone_name)) {
-			kind = DebugBone::KIND_IK_TARGET;
-		} else if (p_ik_driven.has(bone_name)) {
-			kind = DebugBone::KIND_IK_DRIVEN;
-		}
-
-		r_data.push_back({
-				start,
-				direction,
-				length,
-				bone_name,
-				kind,
-		});
-	}
-
-	// 递归处理嵌套骨架：append_draw_data 通过 Slot::getDisplay() 拿到子骨架。
-	for (const dragonBones::Slot *raw_slot : p_armature->getArmature()->getSlots()) {
-		const Slot_GD *slot = static_cast<const Slot_GD *>(raw_slot);
-		if (auto display = slot->get_display()) {
-			if (auto *child_armature = dynamic_cast<DragonBonesArmature *>(display)) {
-				append_bone_debug_data(child_armature, r_data, p_ik_targets, p_ik_driven, global_transform);
-			}
-		}
-	}
-}
-
 void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data, const RID &p_debug_mesh) {
 	ERR_FAIL_NULL(p_root_armature);
 
@@ -626,8 +579,42 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 			cache_ik_bones(p_root_armature);
 		}
 
-		LocalVector<DebugBone> bone_data;
-		append_bone_debug_data(p_root_armature, bone_data, ik_targets, ik_driven, {});
+		LocalVector<DebugBone> bone_data; // TODO: 是否作为成员变量进行缓存比较好？
+
+		Transform2D global_transform{};
+		p_root_armature->for_each_armature_recursively([&global_transform, &ik_targets = ik_targets, &ik_driven = ik_driven, &bone_data](DragonBonesArmature *p_armature, int) {
+			global_transform = global_transform * p_armature->transform;
+			for (const auto &[bone_name, bone] : p_armature->get_bones()) {
+				if (!bone.is_valid()) {
+					continue;
+				}
+
+				// 再叠加外层骨架的基准变换，使嵌套骨架的坐标也落到同一空间。
+				const Transform2D bone_transform = global_transform * bone->get_global_transform();
+				const Vector2 start = bone_transform.get_origin();
+				// 朝向取该变换的 X 轴。必须走同一个 `bone_transform`，否则嵌套骨架里
+				const Vector2 direction = bone_transform[0].normalized();
+
+				// 长度取自骨架数据。
+				const float length = bone->get_length();
+
+				DebugBone::Kind kind = DebugBone::KIND_PLAIN;
+				if (ik_targets.has(bone_name)) {
+					kind = DebugBone::KIND_IK_TARGET;
+				} else if (ik_driven.has(bone_name)) {
+					kind = DebugBone::KIND_IK_DRIVEN;
+				}
+
+				bone_data.push_back({
+						start,
+						direction,
+						length,
+						bone_name,
+						kind,
+				});
+			}
+		});
+
 		if (has_flag(DRAW_BONE)) {
 			if (!bone_data.is_empty()) {
 				DebugDrawGeometry geometry;
