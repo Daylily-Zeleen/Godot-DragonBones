@@ -152,8 +152,8 @@ public:
 			p_action(this, p_current_depth);
 		}
 
-		const auto &&action = [&p_action, p_current_depth](auto p_child_armature) {
-			if constexpr (return_bool) {
+		const auto &&action = [&p_action, p_current_depth](auto p_child_armature) -> Ret {
+			if constexpr (std::is_same_v<Ret, bool>) { // 不使用 return_bool 是因为 MSVC
 				return p_child_armature->for_each_armature_recursively(std::forward<Func>(p_action), p_current_depth + 1);
 			} else {
 				p_child_armature->for_each_armature_recursively(std::forward<Func>(p_action), p_current_depth + 1);
