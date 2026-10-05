@@ -25,6 +25,15 @@
 		"EditorPlugin",
 		"EditorExportPlugin",
 		"EditorImportPlugin",
-		"EditorPlugin"
+
+		"Material",
+		"TextServer",
+		"GlobalConstants",
+		"Font",
+		"ThemeDB",
+		"Viewport",
+		"Window",
+		"Shader",
+		"ShaderMaterial"
 	]
 }

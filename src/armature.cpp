@@ -63,7 +63,7 @@ static void clean_static() {
 DragonBonesArmature::~DragonBonesArmature() {} // 不需要额外清理
 
 void DragonBonesArmature::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("for_each_armature", "action"), &DragonBonesArmature::for_each_armature_);
+	ClassDB::bind_method(D_METHOD("for_each_child_armature", "action"), &DragonBonesArmature::for_each_armature_);
 	ClassDB::bind_method(D_METHOD("for_each_armature_recursively", "action", "current_depth"), &DragonBonesArmature::for_each_armature_recursively_, DEFVAL(0));
 
 	ClassDB::bind_method(D_METHOD("has_animation", "animation_name"), &DragonBonesArmature::has_animation);
@@ -84,13 +84,13 @@ void DragonBonesArmature::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("has_slot", "slot_name"), &DragonBonesArmature::has_slot);
 	ClassDB::bind_method(D_METHOD("get_slot", "slot_name"), &DragonBonesArmature::get_slot);
-	ClassDB::bind_method(D_METHOD("get_slots"), &DragonBonesArmature::get_slots);
+	ClassDB::bind_method(D_METHOD("get_slots"), &DragonBonesArmature::get_slots_);
 
 	ClassDB::bind_method(D_METHOD("get_ik_constraints"), &DragonBonesArmature::get_ik_constraints);
 	ClassDB::bind_method(D_METHOD("set_ik_constraint", "constraint_name", "new_position"), &DragonBonesArmature::set_ik_constraint);
 	ClassDB::bind_method(D_METHOD("set_ik_constraint_bend_positive", "constraint_name", "bend_positive"), &DragonBonesArmature::set_ik_constraint_bend_positive);
 
-	ClassDB::bind_method(D_METHOD("get_bones"), &DragonBonesArmature::get_bones);
+	ClassDB::bind_method(D_METHOD("get_bones"), &DragonBonesArmature::get_bones_);
 	ClassDB::bind_method(D_METHOD("get_bone", "bone_name"), &DragonBonesArmature::get_bone);
 
 	ClassDB::bind_method(D_METHOD("advance", "delta", "recursively"), &DragonBonesArmature::advance, DEFVAL(false));
@@ -169,7 +169,7 @@ void DragonBonesArmature::dispatchDBEvent(const std::string &p_type, dragonBones
 }
 
 void DragonBonesArmature::for_each_armature_(const Callable &p_action) {
-	for_each_armature([&](auto p_child_armature) {
+	for_each_child_armature([&](auto p_child_armature) {
 		return p_action.call(p_child_armature).booleanize();
 	});
 }
@@ -239,7 +239,7 @@ void DragonBonesArmature::advance(float p_delta, bool p_recursively) {
 	}
 
 	if (p_recursively) {
-		for_each_armature([p_delta](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([p_delta](DragonBonesArmature *p_child_armature) {
 			p_child_armature->advance(p_delta, true);
 		});
 	}
@@ -351,7 +351,7 @@ void DragonBonesArmature::stop(const String &p_animation_name, bool b_reset, boo
 	}
 
 	if (p_recursively) {
-		for_each_armature([&p_animation_name, b_reset](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([&p_animation_name, b_reset](DragonBonesArmature *p_child_armature) {
 			p_child_armature->stop(p_animation_name, b_reset, true);
 		});
 	}
@@ -367,7 +367,7 @@ void DragonBonesArmature::stop_all_animations(bool b_reset, bool p_recursively) 
 	}
 
 	if (p_recursively) {
-		for_each_armature([b_reset](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([b_reset](DragonBonesArmature *p_child_armature) {
 			p_child_armature->stop_all_animations(b_reset, true);
 		});
 	}
@@ -385,28 +385,28 @@ void DragonBonesArmature::reset(bool p_recursively) {
 	}
 
 	if (p_recursively) {
-		for_each_armature([](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([](DragonBonesArmature *p_child_armature) {
 			p_child_armature->reset(true);
 		});
 	}
 }
 
-bool DragonBonesArmature::has_slot(const String &p_slot_name) const {
+bool DragonBonesArmature::has_slot(const StringName &p_slot_name) const {
 	return getArmature()->getSlot(to_std_str(p_slot_name)) != nullptr;
 }
 
-SlotsDictionary DragonBonesArmature::get_slots() {
+SlotsDictionary DragonBonesArmature::get_slots_() {
 	SlotsDictionary ret{};
 
 	for (auto &slot : slots) {
-		ret[to_gd_str(slot.first)] = slot.second;
+		ret[slot.first] = slot.second;
 	}
 
 	return ret;
 }
 
-Ref<DragonBonesSlot> DragonBonesArmature::get_slot(const String &p_slot_name) {
-	auto it = slots.find(to_std_str(p_slot_name));
+Ref<DragonBonesSlot> DragonBonesArmature::get_slot(const StringName &p_slot_name) {
+	auto it = slots.find(p_slot_name);
 	return it == slots.end() ? Ref<DragonBonesSlot>{} : it->second;
 }
 
@@ -414,7 +414,7 @@ void DragonBonesArmature::set_flip_x(bool p_flip_x, bool p_recursively) {
 	getArmature()->setFlipX(p_flip_x);
 	getArmature()->advanceTime(0);
 	if (p_recursively) {
-		for_each_armature([p_flip_x](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([p_flip_x](DragonBonesArmature *p_child_armature) {
 			p_child_armature->set_flip_x(p_flip_x, true);
 		});
 	}
@@ -431,7 +431,7 @@ void DragonBonesArmature::set_flip_y(bool p_flip_y, bool p_recursively) {
 	getArmature()->setFlipY(p_flip_y);
 	getArmature()->advanceTime(0);
 	if (p_recursively) {
-		for_each_armature([p_flip_y](DragonBonesArmature *p_child_armature) {
+		for_each_child_armature([p_flip_y](DragonBonesArmature *p_child_armature) {
 			p_child_armature->set_flip_y(p_flip_y, true);
 		});
 	}
@@ -488,27 +488,27 @@ void DragonBonesArmature::set_ik_constraint_bend_positive(const String &name, bo
 	}
 }
 
-BonesDictionary DragonBonesArmature::get_bones() {
+BonesDictionary DragonBonesArmature::get_bones_() {
 	BonesDictionary ret{};
 
 	for (auto &bone : bones) {
-		ret[to_gd_str(bone.first)] = bone.second;
+		ret[bone.first] = bone.second;
 	}
 
 	return ret;
 }
 
-Ref<DragonBonesBone> DragonBonesArmature::get_bone(const String &p_name) {
-	auto it = bones.find(to_std_str(p_name));
+Ref<DragonBonesBone> DragonBonesArmature::get_bone(const StringName &p_name) {
+	auto it = bones.find(p_name);
 	return it == bones.end() ? Ref<DragonBonesBone>{} : it->second;
 }
 
-void DragonBonesArmature::add_bone(std::string p_name, const Ref<DragonBonesBone> &p_new_bone) {
-	bones.insert(std::make_pair(p_name, p_new_bone));
+void DragonBonesArmature::add_bone(StringName &&p_name, const Ref<DragonBonesBone> &p_new_bone) {
+	bones.emplace(p_name, p_new_bone);
 }
 
-void DragonBonesArmature::add_slot(std::string p_name, const Ref<DragonBonesSlot> &p_new_slot) {
-	slots.insert(std::make_pair(p_name, p_new_slot));
+void DragonBonesArmature::add_slot(StringName &&p_name, const Ref<DragonBonesSlot> &p_new_slot) {
+	slots.emplace(p_name, p_new_slot);
 }
 
 void DragonBonesArmature::dbInit(Armature *p_armature) {
@@ -647,9 +647,9 @@ void DragonBonesArmature::set_settings(const Dictionary &p_settings) {
 			auto slot_settings = sub_armatures_setting.values();
 
 			for (size_t j = 0; j < slot_names.size(); ++i) {
-				const String &slot_name = slot_names[i];
+				const StringName &slot_name = slot_names[i];
 				const Dictionary &armature_settings = slot_settings[i];
-				auto it = slots.find(to_std_str(slot_name));
+				auto it = slots.find(slot_name);
 				if (it == slots.end()) {
 					continue;
 				}
@@ -685,7 +685,7 @@ Dictionary DragonBonesArmature::get_settings() const {
 		}
 		auto sub_armature = slot->get_child_armature();
 		if (sub_armature) {
-			sub_armatures_setting[to_gd_str(slot_name)] = sub_armature->get_settings();
+			sub_armatures_setting[slot_name] = sub_armature->get_settings();
 		}
 	}
 

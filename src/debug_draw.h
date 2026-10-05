@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  bone.h                                                                */
+/*  debug_draw.h                                                          */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                           Godot-DragonBones                            */
@@ -32,71 +32,70 @@
 
 #include <godot_dragon_bones.h>
 
-#include <dragonBones/armature/Bone.h>
-#include <godot_cpp/classes/ref.hpp>
-#include <godot_cpp/classes/ref_counted.hpp>
+#include "armature.h"
+
+#include <godot_cpp/classes/canvas_item.hpp>
 
 namespace godot {
 
-class DragonBonesBone : public RefCounted {
-	GDCLASS(DragonBonesBone, RefCounted);
-
-protected:
-	dragonBones::Bone *boneData{ nullptr }; // 生命周期由 dragonBones::Armature 管理
-	class DragonBonesArmature *armature{ nullptr };
-
-public:
-	enum OffsetMode {
-		OFFSET_MODE_NONE,
-		OFFSET_MODE_ADDITIVE,
-		OFFSET_MODE_OVERRIDE,
+#ifdef DEBUG_ENABLED
+struct DebugDraw {
+	enum Flag : uint8_t {
+		DRAW_MESH = 1 << 0,
+		DRAW_BONE = 1 << 1,
+		DRAW_BONE_NAME = 1 << 2,
 	};
 
-	DragonBonesBone() = default;
-	DragonBonesBone(dragonBones::Bone *p_bone_data, DragonBonesArmature *p_armature) :
-			boneData(p_bone_data), armature(p_armature) {}
+	// 三种颜色和枢轴半径所有实例共用
+	inline static Color color_bone{ 0.8f, 0.8f, 0.8f, 0.8f };
+	inline static Color color_ik_target{ 1.0f, 0.2f, 0.1f, 0.9f };
+	static void set_color_ik_bone_outline(const Color &p_color);
+	static Color get_color_ik_bone_outline();
+	_FORCE_INLINE_ static void set_bone_pivot_radius(float p_radius) { bone_pivot_radius = Math::max(3.0f, p_radius); }
+	_FORCE_INLINE_ static float get_bone_pivot_radius() { return bone_pivot_radius; }
+
+	DebugDraw(CanvasItem *p_owner) : owner(p_owner) {}
+	~DebugDraw();
+
+private:
+	inline static float bone_pivot_radius = 5.0f;
 
 public:
-	static void _bind_methods();
-	String _to_string() const { return vformat("<%s#%s>", get_class_static(), get_instance_id()); }
+	_FORCE_INLINE_ bool is_enabled() const { return mesh_bones.is_valid(); }
+	void set_enabled(bool p_enabled);
 
-	bool is_valid() const;
-	float get_length() const;
-	Ref<DragonBonesBone> get_parent() const;
+	_FORCE_INLINE_ void set_flag(Flag p_flag, bool p_enable) { p_enable ? (draw_flags |= p_flag) : (draw_flags &= ~p_flag); }
+	_FORCE_INLINE_ bool has_flag(Flag p_flag) const { return draw_flags & p_flag; }
 
-	// Local
-	Vector2 get_position() const;
-	void set_position(Vector2 p_new_pos);
+	// 只能在 CanvasItem::_draw 阶段调用。
+	void draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data);
 
-	float get_rotation() const;
-	void set_rotation(float p_rotation);
+	// TODO: 是否会有在运行时替换嵌套的 Armature 的情况？有的话也需要调用清除
+	void clear_cache();
 
-	Vector2 get_scale() const;
-	void set_scale(Vector2 p_scale);
+private:
+	LocalVector<StringName> ik_targets;
+	LocalVector<StringName> ik_driven;
 
-	Transform2D get_transform() const;
-	void set_transform(const Transform2D &p_transform);
+	CanvasItem *owner;
 
-	// Global
-	void set_global_position(Vector2 p_new_pos);
-	Vector2 get_global_position() const;
+	// 线框专用网格：直接画在 owner 自身画布项上，不挂材质。
+	RID mesh_wireframe;
 
-	void set_global_rotation(float p_rotation);
-	float get_global_rotation() const;
+	// 仅调试层使用的画布项。2D 网格不读 surface 材质，材质只能挂在画布项上；
+	// owner 画布上还画着龙骨本体，直接挂材质会把本体一起染色，故必须单独一层。
+	// 延迟到 _draw() 里创建（属性设置阶段可能尚未入树）。
+	RID canvas_bones;
 
-	void set_global_scale(Vector2 p_scale);
-	Vector2 get_global_scale() const;
+	// 骨骼网格：画在 canvas_bones 上，由那里挂的材质做描边。
+	RID mesh_bones;
 
-	Transform2D get_global_transform() const;
-	void set_global_transform(const Transform2D &p_transform);
+	uint8_t draw_flags{ DRAW_MESH | DRAW_BONE | DRAW_BONE_NAME };
 
-	// Others
-	OffsetMode get_offset_mode() const;
-	Transform2D get_offset() const;
-	Transform2D get_animation_pose() const;
-	Transform2D get_origin() const;
+	bool cached = false;
+	void cache_ik_bones(DragonBonesArmature *p_armature);
 };
 
-} //namespace godot
+#endif // DEBUG_ENABLED
 
-VARIANT_ENUM_CAST(godot::DragonBonesBone::OffsetMode);
+} //namespace godot

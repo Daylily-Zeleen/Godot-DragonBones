@@ -36,6 +36,10 @@
 #include <godot_cpp/classes/node2d.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
 
+#ifdef DEBUG_ENABLED
+#include "debug_draw.h"
+#endif // DEBUG_ENABLED
+
 #include "armature.h"
 #include "factory.h"
 
@@ -64,12 +68,11 @@ private:
 	float time_scale{ 1.0f };
 	int animation_loop_count{ 0 };
 	bool active{ true };
-	bool debug{ false };
 
 	LocalVector<RID> draw_meshes;
 
 #ifdef DEBUG_ENABLED
-	RID debug_mesh;
+	DebugDraw debug_draw{ this };
 #endif // DEBUG_ENABLED
 
 protected:
@@ -123,8 +126,25 @@ public:
 		}
 	}
 
-	void set_debug(bool p_debug);
-	bool is_debug() const;
+#ifdef DEBUG_ENABLED
+	void set_debug_draw_enabled(bool p_enabled);
+	bool is_debug_draw_enabled() const;
+	void set_debug_draw_visible_mesh(bool p_visible);
+	bool is_debug_draw_visible_mesh() const;
+	void set_debug_draw_visible_bone(bool p_visible);
+	bool is_debug_draw_visible_bone() const;
+	void set_debug_draw_visible_bone_name(bool p_visible);
+	bool is_debug_draw_visible_bone_name() const;
+	// 以下调试绘制属性所有 Armature View 共用
+	void set_debug_draw_bone_pivot_radius(float p_radius);
+	float get_debug_draw_bone_pivot_radius() const;
+	void set_debug_draw_color_bone(const Color &p_color);
+	Color get_debug_draw_color_bone() const;
+	void set_debug_draw_color_ik_target(const Color &p_color);
+	Color get_debug_draw_color_ik_target() const;
+	void set_debug_draw_color_ik_bone_outline(const Color &p_color);
+	Color get_debug_draw_color_ik_bone_outline() const;
+#endif // DEBUG_ENABLED
 
 	DragonBonesArmature *get_armature();
 
@@ -151,8 +171,8 @@ public:
 	void fade_in(const String &p_animation_name, float p_time,
 				 int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode);
 
-	bool has_slot(const String &p_slot_name) const;
-	Ref<DragonBonesSlot> get_slot(const String &p_slot_name);
+	bool has_slot(const StringName &p_slot_name) const;
+	Ref<DragonBonesSlot> get_slot(const StringName &p_slot_name);
 	SlotsDictionary get_slots();
 
 	ConstraintsDictionary get_ik_constraints();
@@ -160,7 +180,7 @@ public:
 	void set_ik_constraint_bend_positive(const String &p_name, bool p_bend_positive);
 
 	BonesDictionary get_bones();
-	Ref<DragonBonesBone> get_bone(const String &p_name);
+	Ref<DragonBonesBone> get_bone(const StringName &p_name);
 
 	Rect2 get_rect() const;
 	Rect2 get_global_rect() const;

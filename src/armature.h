@@ -45,11 +45,11 @@
 using SlotsDictionary = godot::TypedDictionary<godot::String, godot::DragonBonesSlot>;
 using BonesDictionary = godot::TypedDictionary<godot::String, godot::DragonBonesBone>;
 using ConstraintsDictionary = godot::TypedDictionary<godot::String, godot::Vector2>;
-#else // GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
+#else
 using SlotsDictionary = godot::Dictionary;
 using BonesDictionary = godot::Dictionary;
 using ConstraintsDictionary = godot::Dictionary;
-#endif // GODOT_VERSION_MAJOR > 4 || (GODOT_VERSION_MAJOR == 4 && GODOT_VERSION_MINOR >= 4)
+#endif
 
 namespace godot {
 
@@ -68,8 +68,8 @@ private:
 protected:
 	dragonBones::Armature *armature_instance{ nullptr };
 
-	std::map<std::string, Ref<DragonBonesBone>> bones;
-	std::map<std::string, Ref<DragonBonesSlot>> slots;
+	std::map<StringName, Ref<DragonBonesBone>> bones;
+	std::map<StringName, Ref<DragonBonesSlot>> slots;
 
 public:
 	enum AnimFadeOutMode {
@@ -84,8 +84,8 @@ public:
 	DragonBonesArmature() = default;
 	virtual ~DragonBonesArmature() override;
 
-	void add_bone(std::string p_name, const Ref<DragonBonesBone> &p_new_bone);
-	void add_slot(std::string p_name, const Ref<DragonBonesSlot> &p_new_slot);
+	void add_bone(StringName &&p_name, const Ref<DragonBonesBone> &p_new_bone);
+	void add_slot(StringName &&p_name, const Ref<DragonBonesSlot> &p_new_slot);
 
 	virtual bool hasDBEventListener(const std::string &p_type) const override { return true; }
 	virtual void addDBEventListener(const std::string &p_type, const std::function<void(dragonBones::EventObject *)> &p_listener) override {}
@@ -109,45 +109,69 @@ public:
 	dragonBones::Slot *getSlot(const String &p_name) const { return armature_instance->getSlot(to_std_str(p_name)); }
 
 	template <typename Func, typename std::enable_if<std::is_invocable_v<Func, DragonBonesArmature *>>::type *_dummy = nullptr>
-	void for_each_armature(Func &&p_action) {
-		for (auto slot : getArmature()->getSlots()) {
-			if (slot->getDisplayList().size() == 0) {
+	auto for_each_child_armature(Func &&p_action) {
+		const constexpr bool return_bool = std::is_invocable_r_v<bool, Func, DragonBonesArmature *>;
+		for (auto raw_slot : getArmature()->getSlots()) {
+			/**
+			 *  TODO:该项目使用 Slot_GD 来实现 dragonBones::Slot 这个抽象类。
+			 * 		Slot_GD *slot = static_cast<Slot_GD*>(raw_slot);
+			 *  	if (DragonBonesArmature * armature = dynamic_cast<DragonBonesArmature *>(slot->get_display())) {...} 性能会不会更好？
+			 */
+			if (raw_slot->getDisplayList().size() == 0) {
 				continue;
 			}
-			if (slot->getDisplayIndex() < 0) {
-				slot->setDisplayIndex(0);
+			if (raw_slot->getDisplayIndex() < 0) {
+				raw_slot->setDisplayIndex(0);
 			}
-			auto display = slot->getDisplayList()[slot->getDisplayIndex()];
-			if (display.second == dragonBones::DisplayType::Armature) {
-				dragonBones::Armature *armature_view = static_cast<dragonBones::Armature *>(display.first);
-				DragonBonesArmature *convertedDisplay = static_cast<DragonBonesArmature *>(armature_view->getDisplay());
-				if constexpr (std::is_invocable_r_v<bool, Func, DragonBonesArmature *>) {
-					if (p_action(convertedDisplay)) {
-						break;
+			auto raw_display = raw_slot->getDisplayList()[raw_slot->getDisplayIndex()];
+			if (raw_display.second == dragonBones::DisplayType::Armature) {
+				dragonBones::Armature *armature_view = static_cast<dragonBones::Armature *>(raw_display.first);
+				DragonBonesArmature *display = static_cast<DragonBonesArmature *>(armature_view->getDisplay());
+				if constexpr (return_bool) {
+					if (p_action(display)) {
+						return true;
 					}
 				} else {
-					p_action(convertedDisplay);
+					p_action(display);
 				}
 			}
 		}
+		if constexpr (return_bool) {
+			return false;
+		}
 	}
 
-	template <typename Func, typename std::enable_if<std::is_invocable_v<Func, DragonBonesArmature *, int>>::type *_dummy = nullptr>
-	void for_each_armature_recursively(Func &&p_action, int p_current_depth = 0) {
-		for_each_armature([&p_action, p_current_depth](auto p_child_armature) {
-			if constexpr (std::is_invocable_r_v<bool, Func, DragonBonesArmature *, int>) {
-				if (p_action(p_child_armature, p_current_depth)) {
-					return;
-				}
-			} else {
-				p_action(p_child_armature, p_current_depth);
+	template <typename Func, typename Ret = std::conditional_t<std::is_invocable_r_v<bool, Func, DragonBonesArmature *, int>, bool, void>, typename std::enable_if<std::is_invocable_v<Func, DragonBonesArmature *, int>>::type *_dummy = nullptr>
+	Ret for_each_armature_recursively(Func &&p_action, int p_current_depth = 0) {
+		const constexpr bool return_bool = std::is_same_v<Ret, bool>;
+		if constexpr (return_bool) {
+			if (p_action(this, p_current_depth)) {
+				return true;
 			}
-			p_child_armature->for_each_armature_recursively(std::forward<Func>(p_action), p_current_depth + 1);
-		});
+		} else {
+			p_action(this, p_current_depth);
+		}
+
+		const auto &&action = [&p_action, p_current_depth](auto p_child_armature) -> Ret {
+			if constexpr (std::is_same_v<Ret, bool>) { // 不使用 return_bool 是因为 MSVC
+				return p_child_armature->for_each_armature_recursively(std::forward<Func>(p_action), p_current_depth + 1);
+			} else {
+				p_child_armature->for_each_armature_recursively(std::forward<Func>(p_action), p_current_depth + 1);
+			}
+		};
+
+		if constexpr (return_bool) {
+			return for_each_child_armature(std::move(action));
+		} else {
+			for_each_child_armature(std::move(action));
+		}
 	}
 
 	virtual void queue_redraw() const override;
 	virtual void append_draw_data(DrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const override;
+
+	_FORCE_INLINE_ const std::map<StringName, Ref<DragonBonesBone>> &get_bones() { return bones; };
+	_FORCE_INLINE_ const std::map<StringName, Ref<DragonBonesSlot>> &get_slots() { return slots; };
 
 public:
 	bool is_valid() const { return armature_instance && armature_view; }
@@ -176,20 +200,20 @@ public:
 	void stop(const String &p_animation_name, bool b_reset = false, bool p_recursively = false);
 	void stop_all_animations(bool b_reset = false, bool p_recursively = false);
 	void fade_in(const String &p_animation_name, float p_time,
-			int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode);
+				 int p_loop_count, int p_layer, const String &p_group, AnimFadeOutMode p_fade_out_mode);
 
 	void reset(bool p_recursively = false);
 
-	bool has_slot(const String &p_slot_name) const;
-	Ref<DragonBonesSlot> get_slot(const String &p_slot_name);
-	SlotsDictionary get_slots();
+	bool has_slot(const StringName &p_slot_name) const;
+	Ref<DragonBonesSlot> get_slot(const StringName &p_slot_name);
+	SlotsDictionary get_slots_();
 
 	ConstraintsDictionary get_ik_constraints();
 	void set_ik_constraint(const String &p_name, Vector2 p_position);
 	void set_ik_constraint_bend_positive(const String &p_name, bool p_bend_positive);
 
-	BonesDictionary get_bones();
-	Ref<DragonBonesBone> get_bone(const String &p_name);
+	BonesDictionary get_bones_();
+	Ref<DragonBonesBone> get_bone(const StringName &p_name);
 
 	Rect2 get_rect() const;
 	void advance(float p_delta, bool p_recursively = false);
