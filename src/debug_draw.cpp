@@ -121,9 +121,9 @@ constexpr float IK_ARM_W = 0.34f; // 短线粗细，按要求与环一致
 // 圆心到筝形小端的距离就是骨骼长度，不做缩放或内缩。
 // 大端在圆周上（与圆相接、无缝隙），但明显比圆窄；等宽会变成大三角而不是筝形。
 // 小端在骨骼末端截平，宽度取大端的一半，保证一路收窄而不是收成一点。
-constexpr float KITE_WIDE_AT = 1.00f; // 大端位置，单位：半径
-constexpr float KITE_HALF_WIDTH = 0.45f; // 大端半宽，单位：半径
-constexpr float KITE_TIP_HALF = 0.28f; // 骨骼末端截平边的半宽
+constexpr float KITE_HALF_WIDTH = 1.0f; // 大端半宽，单位：半径
+constexpr float KITE_SPRINT_AT = 0.75f; // 大端对角线距离大端顶点距离，单位：半宽
+constexpr float KITE_TIP_HALF = 0.1f; // 骨骼末端截平边的半宽
 
 constexpr int DISC_SEGMENTS = 32;
 constexpr int CAP_SEGMENTS = 8;
@@ -283,7 +283,7 @@ public:
 	}
 
 	void body_kite(const Vector2 &p_head, const Vector2 &p_dir, const Vector2 &p_perp, const float p_length, const float p_wide_half, const float p_tip_half, const Color &p_color) {
-		const float spring_ofs = p_wide_half * 0.75f;
+		const float spring_ofs = p_wide_half * KITE_SPRINT_AT;
 		const Vector2 spring_pos = p_head + p_dir * spring_ofs;
 		const Vector2 tip_pos = p_head + p_dir * p_length;
 
@@ -330,8 +330,9 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 	if (has_kite) {
 		const Vector2 head = center + dir * radius;
 		const float kite_length = p_bone.length - radius;
+		const float width_half = radius * KITE_HALF_WIDTH;
 		const float tip_half = radius * KITE_TIP_HALF;
-		r_geometry.body_kite(head, dir, perp, kite_length, radius, tip_half, body_color);
+		r_geometry.body_kite(head, dir, perp, kite_length, width_half, tip_half, body_color);
 	}
 
 	const float ring_w = radius * (is_ik_target ? IK_RING_W : PLAIN_RING_W);
@@ -351,7 +352,7 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 
 	if (is_ik_target) {
 		const float arm_out = radius * IK_ARM_OUT;
-		const float arm_in = radius + spoke_w * 0.5f;
+		const float arm_in = radius * 0.6f;
 
 		const float spoke_to = has_kite ? (radius - spoke_w * 0.5f) : (MAX(p_bone.length, arm_out));
 		r_geometry.body_segment(center, center + dir * spoke_to, spoke_w, body_color);
