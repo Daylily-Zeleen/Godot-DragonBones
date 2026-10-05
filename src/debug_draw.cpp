@@ -174,13 +174,26 @@ struct DebugDrawGeometry {
 
 	_FORCE_INLINE_ bool is_empty() const { return indices.is_empty(); }
 
-	// 清空但不释放容量：LocalVector::clear() 只置 size=0。
-	// 逐帧复用同一份几何时靠它保持零分配。
 	_FORCE_INLINE_ void clear() {
 		vertices.clear();
 		colors.clear();
 		indices.clear();
 		vertex_uv.clear();
+	}
+
+	_FORCE_INLINE_ void reset() {
+		vertices.reset();
+		colors.reset();
+		indices.reset();
+		vertex_uv.reset();
+	}
+
+	// 已分配的容量字节数
+	_FORCE_INLINE_ size_t get_capacity_bytes() const {
+		return vertices.get_capacity() * sizeof(Vector2) +
+				vertex_uv.get_capacity() * sizeof(Vector2) +
+				colors.get_capacity() * sizeof(Color) +
+				indices.get_capacity() * sizeof(int32_t);
 	}
 
 	// ---- 写入底座 ----
@@ -350,6 +363,29 @@ static thread_local struct {
 		ik_targets.clear();
 		ik_driven.clear();
 	}
+	// 全部 scratch 缓冲当前占用的容量字节数（含骨骼清单与 IK 名字表）。
+	_FORCE_INLINE_ size_t get_capacity_bytes() {
+		return bones.get_capacity() * sizeof(DebugBone) +
+				ik_targets.get_capacity() * sizeof(StringName) +
+				ik_driven.get_capacity() * sizeof(StringName) +
+				geometry.get_capacity_bytes();
+	}
+
+	void try_reset() {
+		// 缓冲总容量超过此值才考虑释放：8 * 2^17 == 1 MiB（1048576 B）。
+		// 实测单根骨骼几何约 9482 B，故 1 MiB ≈ 110 根骨骼；低于此值的骨架永不被回收，
+		// 避免正常项目反复分配。阈值按「全部缓冲容量之和」计，不假定骨架复杂度。
+		constexpr size_t RELEASE_THRESHOLD_BYTES = 8u << 17;
+
+		if (get_capacity_bytes() <= RELEASE_THRESHOLD_BYTES) {
+			return;
+		}
+
+		bones.reset();
+		geometry.reset();
+		ik_targets.reset();
+		ik_driven.reset();
+	}
 } bone_scratch;
 
 // 就地收集某个 armature 自己作用域内的 IK 约束，写入 r_targets / r_driven。
@@ -471,6 +507,12 @@ Color DebugDraw::get_color_ik_bone_outline() {
 }
 
 DebugDraw::~DebugDraw() {
+	// 调试开着却被直接析构（view 出树/销毁）也要尝试回收：此时不会再有人复用 scratch。
+	// 内部按阈值门控，未超阈值则保留（其它 view 可能仍在用同一份 thread_local）。
+	if (is_enabled()) {
+		bone_scratch.try_reset();
+	}
+
 	const auto RS = RenderingServer::get_singleton();
 	if (canvas_bones.is_valid()) {
 		RS->free_rid(canvas_bones);
@@ -493,6 +535,8 @@ void DebugDraw::set_enabled(bool p_enabled) {
 			mesh_bones = RS->mesh_create();
 		}
 	} else {
+		bone_scratch.try_reset();
+
 		// 画布项也一并释放：重新启用时会在 draw() 里按当前画布重建。
 		if (canvas_bones.is_valid()) {
 			RS->free_rid(canvas_bones);
