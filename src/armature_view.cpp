@@ -70,24 +70,60 @@ struct DrawScratch {
 	// 逐帧复用：数组缓冲跨帧保留，故用量用 n_* 计数器表示 —— 不能用 size()，
 	// 因为 Packed*Array 缩到 0 会释放缓冲。数组只增不减（按需 resize 变大，
 	// 帧末截到 n_* 仍在容量内，不退到 0）。
-	struct SurfaceData {
+	class SurfaceData {
 		PackedInt32Array indices;
 		PackedVector2Array vertices;
 		PackedColorArray colors;
 		PackedVector2Array vertices_uv;
-
-		RID texture;
-		CanvasItemMaterial::BlendMode blend_mode;
 
 		int64_t n_indices = 0;
 		int64_t n_vertices = 0;
 		int64_t n_colors = 0;
 		int64_t n_uv = 0;
 
+	public:
+		RID texture;
+		CanvasItemMaterial::BlendMode blend_mode;
+
 		SurfaceData() :
 				blend_mode(CanvasItemMaterial::BLEND_MODE_MIX) {}
 		SurfaceData(RID p_texture, CanvasItemMaterial::BlendMode p_blend_mode) :
 				texture(p_texture), blend_mode(p_blend_mode) {}
+
+		_FORCE_INLINE_ const PackedInt32Array &get_indices() const {
+			if (n_indices)
+				return indices;
+
+			const static PackedInt32Array zero_arr;
+			return zero_arr;
+		}
+
+		_FORCE_INLINE_ const PackedVector2Array &get_vertices() const {
+			if (n_vertices)
+				return vertices;
+
+			const static PackedVector2Array zero_arr;
+			return zero_arr;
+		}
+
+		_FORCE_INLINE_ const PackedColorArray &get_colors() const {
+			if (n_colors)
+				return colors;
+
+			const static PackedColorArray zero_arr;
+			return zero_arr;
+		}
+
+		_FORCE_INLINE_ const PackedVector2Array &get_vertices_uv() const {
+			if (n_uv)
+				return vertices_uv;
+
+			const static PackedVector2Array zero_arr;
+			return zero_arr;
+		}
+
+	private:
+		friend class DrawScratch;
 
 		_FORCE_INLINE_ void begin() {
 			n_indices = 0;
@@ -96,7 +132,7 @@ struct DrawScratch {
 			n_uv = 0;
 		}
 
-		void add_vertices(const Transform2D &p_xform, const PackedVector2Array &p_src) {
+		void append_vertices(const Transform2D &p_xform, const PackedVector2Array &p_src) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -113,7 +149,7 @@ struct DrawScratch {
 			n_vertices = need;
 		}
 
-		void add_colors(const PackedColorArray &p_src) {
+		void append_colors(const PackedColorArray &p_src) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -122,15 +158,12 @@ struct DrawScratch {
 			if (colors.size() < need) {
 				colors.resize(need);
 			}
-			Color *dst = colors.ptrw() + n_colors;
-			const Color *src = p_src.ptr();
-			for (int64_t i = 0; i < cnt; ++i) {
-				dst[i] = src[i];
-			}
+			const Color *dst = colors.ptrw() + n_colors;
+			memcpy((uint8_t *)dst, (uint8_t *)p_src.ptr(), sizeof(Color) * cnt);
 			n_colors = need;
 		}
 
-		void add_uv(const PackedVector2Array &p_src) {
+		void append_uv(const PackedVector2Array &p_src) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -139,15 +172,12 @@ struct DrawScratch {
 			if (vertices_uv.size() < need) {
 				vertices_uv.resize(need);
 			}
-			Vector2 *dst = vertices_uv.ptrw() + n_uv;
-			const Vector2 *src = p_src.ptr();
-			for (int64_t i = 0; i < cnt; ++i) {
-				dst[i] = src[i];
-			}
+			const Vector2 *dst = vertices_uv.ptrw() + n_uv;
+			memcpy((uint8_t *)dst, (uint8_t *)p_src.ptr(), sizeof(Vector2) * cnt);
 			n_uv = need;
 		}
 
-		void add_indices(const PackedInt32Array &p_src, int64_t p_base_vertex) {
+		void append_indices(const PackedInt32Array &p_src, int64_t p_base_vertex) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -166,10 +196,21 @@ struct DrawScratch {
 
 		// 帧末把数组截到逻辑用量（仍在容量内，不释放缓冲）。
 		_FORCE_INLINE_ void finish() {
-			indices.resize(n_indices);
-			vertices.resize(n_vertices);
-			colors.resize(n_colors);
-			vertices_uv.resize(n_uv);
+			if (n_indices > 0)
+				indices.resize(n_indices);
+			if (n_vertices)
+				vertices.resize(n_vertices);
+			if (n_colors)
+				colors.resize(n_colors);
+			if (n_uv)
+				vertices_uv.resize(n_uv);
+		}
+
+		size_t get_capacity_bytes() const {
+			return indices.size() * sizeof(int32_t) +
+					vertices.size() * sizeof(Vector2) +
+					colors.size() * sizeof(Color) +
+					vertices_uv.size() * sizeof(Vector2);
 		}
 	};
 
@@ -184,20 +225,21 @@ struct DrawScratch {
 	// 本帧使用的分组数（mesh_surfaces 的容量跨帧保留，故不能只看 size）。
 	uint32_t used_meshes = 0;
 
-	// 全部缓冲的容量字节数（含 draw_data 内部与各表面数组）。
-	size_t get_capacity_bytes() const {
-		size_t n = 0;
-		for (const SurfaceData &s : surface_pool) {
-			n += s.indices.size() + s.vertices.size() + s.colors.size() + s.vertices_uv.size();
-		}
-		return n;
-	}
-
 	// 超阈值时释放全部缓冲，否则保留以便复用。
 	// 只在「确认长期不再需要绘制」的时机调用（该 view 的调试/绘制缓冲不再使用）。
 	void try_reset() {
+		// 全部缓冲的容量字节数（含 draw_data 内部与各表面数组）。
 		constexpr size_t RELEASE_THRESHOLD_BYTES = 8u << 17; // 1 MiB
-		if (get_capacity_bytes() <= RELEASE_THRESHOLD_BYTES) {
+
+		const size_t cur_capacity_bytes = [this] {
+			size_t n = 0;
+			for (const SurfaceData &s : surface_pool) {
+				n += s.get_capacity_bytes();
+			}
+			return n;
+		}();
+
+		if (cur_capacity_bytes <= RELEASE_THRESHOLD_BYTES) {
 			return;
 		}
 		surface_pool.reset();
@@ -207,6 +249,9 @@ struct DrawScratch {
 	}
 
 	void build_surfaces() {
+		if (draw_data.is_empty())
+			return;
+
 		// draw_scratch.surface_pool 只增不减；本帧用到的条目通过 draw_scratch.mesh_surfaces 的分组引用。
 		// 分组的判据与旧逻辑一致：纹理变化 -> 换到下一个 mesh；同 mesh 内混合模式变化
 		// -> 换到下一个 surface。区别只是就地覆写缓冲而非每帧新建容器。
@@ -262,10 +307,10 @@ struct DrawScratch {
 
 				DrawScratch::SurfaceData &sd = surface_pool[cur_pool_index];
 				const int64_t base_vertex = sd.n_vertices;
-				sd.add_indices(data.indices, base_vertex);
-				sd.add_vertices(data.transform, data.vertices);
-				sd.add_colors(data.colors);
-				sd.add_uv(data.vertices_uv);
+				sd.append_indices(data.indices, base_vertex);
+				sd.append_vertices(data.transform, data.vertices);
+				sd.append_colors(data.colors);
+				sd.append_uv(data.vertices_uv);
 			}
 		}
 
@@ -636,10 +681,10 @@ void DragonBonesArmatureView::_draw() {
 
 			Array arr;
 			arr.resize(RenderingServer::ARRAY_MAX);
-			arr[RenderingServer::ARRAY_INDEX] = surface_data.indices;
-			arr[RenderingServer::ARRAY_VERTEX] = surface_data.vertices;
-			arr[RenderingServer::ARRAY_COLOR] = surface_data.colors;
-			arr[RenderingServer::ARRAY_TEX_UV] = surface_data.vertices_uv;
+			arr[RenderingServer::ARRAY_INDEX] = surface_data.get_indices();
+			arr[RenderingServer::ARRAY_VERTEX] = surface_data.get_vertices();
+			arr[RenderingServer::ARRAY_COLOR] = surface_data.get_colors();
+			arr[RenderingServer::ARRAY_TEX_UV] = surface_data.get_vertices_uv();
 
 			RS->mesh_add_surface_from_arrays(mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
 			auto mat = get_blend_material(surface_data.blend_mode);
