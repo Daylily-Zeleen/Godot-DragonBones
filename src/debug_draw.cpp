@@ -51,15 +51,15 @@ namespace godot {
 namespace {
 
 // 普通骨骼：圆环 + 圆心到圆上的连线（指示旋转）。线比 IK 目标的粗环细。
-constexpr float PLAIN_RING_W = 0.20f; // 环厚，单位：半径
-constexpr float PLAIN_SPOKE_W = 0.16f; // 连线粗细，单位：半径
+constexpr float PLAIN_RING_W = 0.3f; // 环厚，单位：半径
+constexpr float PLAIN_SPOKE_W = 0.28f; // 连线粗细，单位：半径
 
 // IK 目标骨：低不透明度深色圆盘 + 高不透明度粗环 + 四条十字准星短线（与粗环同宽），
 // 其中一条延伸到圆心。
-constexpr float IK_DISC_ALPHA = 0.35f; // 圆盘不透明度（叠加在主体色上）
+constexpr float IK_DISC_ALPHA = 0.4f; // 圆盘不透明度（叠加在主体色上）
 constexpr float IK_RING_W = 0.34f; // 环厚，单位：半径
 constexpr float IK_ARM_OUT = 1.30f; // 短线伸出环外的长度
-constexpr float IK_ARM_W = 0.34f; // 短线粗细，按要求与环一致
+constexpr float IK_ARM_W = IK_RING_W; // 短线粗细
 
 // ---------------------------------------------------------------------------
 // 筝形
@@ -70,6 +70,7 @@ constexpr float IK_ARM_W = 0.34f; // 短线粗细，按要求与环一致
 constexpr float KITE_HALF_WIDTH = 1.0f; // 大端半宽，单位：半径
 constexpr float KITE_SPRINT_AT = 0.75f; // 大端对角线距离大端顶点距离，单位：半宽
 constexpr float KITE_TIP_HALF = 0.1f; // 骨骼末端截平边的半宽
+constexpr float PREFER_KITE_LENGTH_RATIO = 2.5f; // 使用筝形的最小骨长比例，单位：半径
 
 constexpr int DISC_SEGMENTS = 32;
 constexpr int CAP_SEGMENTS = 8;
@@ -83,7 +84,7 @@ constexpr int DEBUG_BONE_NAME_FONT_SIZE = 14;
 
 // 描边线宽（屏幕像素）：固定 1~2 像素，任何缩放都不变粗。
 // 直接作为 uniform 交给着色器，由 fwidth 换算，不经 CPU 几何。
-static constexpr float DEBUG_OUTLINE_PX = 3.0f;
+static constexpr float DEBUG_OUTLINE_PX = 2.0f;
 
 // ---------------------------------------------------------------------------
 // 骨骼材质：一张网格、一个材质、一次绘制。
@@ -326,9 +327,7 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 	// ------------------------------------------------------------------
 	// 枢轴是「起点圆 + 筝形」合一的一个轮廓。
 	// ------------------------------------------------------------------
-	const float diameter = radius * 2.0f;
-
-	const bool has_kite = p_bone.length > diameter;
+	const bool has_kite = p_bone.length > PREFER_KITE_LENGTH_RATIO * radius;
 	const Color body_color = is_ik_target ? p_props.color_ik_target : p_props.color_bone;
 
 	if (has_kite) {
