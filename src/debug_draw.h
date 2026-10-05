@@ -81,7 +81,7 @@ private:
 	// 延迟到 _draw() 里创建（属性设置阶段可能尚未入树）。
 	RID canvas_bones;
 
-	// 骨骼网格：画在 canvas_bones 上，由那里挂的材质做描边。
+	// 骨骼网格：单次提交、画在 canvas_bones 上，由那里挂的材质做描边与填充。
 	RID mesh_bones;
 
 	uint8_t draw_flags{ DRAW_MESH | DRAW_BONE | DRAW_BONE_NAME };
