@@ -117,12 +117,12 @@ bool DragonBonesArmatureView::is_debug_draw_enabled() const {
 }
 
 void DragonBonesArmatureView::set_debug_draw_bone_pivot_radius(float p_radius) {
-	debug_draw.set_bone_pivot_radius(p_radius);
+	DebugDraw::set_bone_pivot_radius(p_radius);
 	queue_redraw();
 }
 
 float DragonBonesArmatureView::get_debug_draw_bone_pivot_radius() const {
-	return debug_draw.get_bone_pivot_radius();
+	return DebugDraw::get_bone_pivot_radius();
 }
 
 void DragonBonesArmatureView::set_debug_draw_visible_mesh(bool p_visible) {
@@ -153,30 +153,30 @@ bool DragonBonesArmatureView::is_debug_draw_visible_bone_name() const {
 }
 
 void DragonBonesArmatureView::set_debug_draw_color_bone(const Color &p_color) {
-	debug_draw.color_bone = p_color;
+	DebugDraw::color_bone = p_color;
 	queue_redraw();
 }
 
 Color DragonBonesArmatureView::get_debug_draw_color_bone() const {
-	return debug_draw.color_bone;
+	return DebugDraw::color_bone;
 }
 
 void DragonBonesArmatureView::set_debug_draw_color_ik_target(const Color &p_color) {
-	debug_draw.color_ik_target = p_color;
+	DebugDraw::color_ik_target = p_color;
 	queue_redraw();
 }
 
 Color DragonBonesArmatureView::get_debug_draw_color_ik_target() const {
-	return debug_draw.color_ik_target;
+	return DebugDraw::color_ik_target;
 }
 
 void DragonBonesArmatureView::set_debug_draw_color_ik_bone_outline(const Color &p_color) {
-	debug_draw.set_color_ik_bone_outline(p_color);
+	DebugDraw::set_color_ik_bone_outline(p_color);
 	queue_redraw();
 }
 
 Color DragonBonesArmatureView::get_debug_draw_color_ik_bone_outline() const {
-	return debug_draw.get_color_ik_bone_outline();
+	return DebugDraw::get_color_ik_bone_outline();
 }
 #endif // DEBUG_ENABLED
 

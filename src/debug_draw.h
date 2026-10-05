@@ -46,14 +46,19 @@ struct DebugDraw {
 		DRAW_BONE_NAME = 1 << 2,
 	};
 
-	// 三种颜色所有实例共用
+	// 三种颜色和枢轴半径所有实例共用
 	inline static Color color_bone{ 0.8f, 0.8f, 0.8f, 0.8f };
 	inline static Color color_ik_target{ 1.0f, 0.2f, 0.1f, 0.9f };
 	static void set_color_ik_bone_outline(const Color &p_color);
 	static Color get_color_ik_bone_outline();
+	_FORCE_INLINE_ static void set_bone_pivot_radius(float p_radius) { bone_pivot_radius = Math::max(3.0f, p_radius); }
+	_FORCE_INLINE_ static float get_bone_pivot_radius() { return bone_pivot_radius; }
 
 	DebugDraw(CanvasItem *p_owner) : owner(p_owner) {}
 	~DebugDraw();
+
+private:
+	inline static float bone_pivot_radius = 5.0f;
 
 public:
 	_FORCE_INLINE_ bool is_enabled() const { return mesh_bones.is_valid(); }
@@ -61,9 +66,6 @@ public:
 
 	_FORCE_INLINE_ void set_flag(Flag p_flag, bool p_enable) { p_enable ? (draw_flags |= p_flag) : (draw_flags &= ~p_flag); }
 	_FORCE_INLINE_ bool has_flag(Flag p_flag) const { return draw_flags & p_flag; }
-
-	_FORCE_INLINE_ void set_bone_pivot_radius(float p_radius) { bone_pivot_radius = Math::max(3.0f, p_radius); }
-	_FORCE_INLINE_ float get_bone_pivot_radius() const { return bone_pivot_radius; }
 
 	// 只能在 CanvasItem::_draw 阶段调用。
 	void draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data);
@@ -87,8 +89,6 @@ private:
 
 	// 骨骼网格：画在 canvas_bones 上，由那里挂的材质做描边。
 	RID mesh_bones;
-
-	float bone_pivot_radius = 5.0f;
 
 	uint8_t draw_flags{ DRAW_MESH | DRAW_BONE | DRAW_BONE_NAME };
 

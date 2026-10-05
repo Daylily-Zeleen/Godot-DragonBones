@@ -129,15 +129,15 @@ public:
 #ifdef DEBUG_ENABLED
 	void set_debug_draw_enabled(bool p_enabled);
 	bool is_debug_draw_enabled() const;
-	void set_debug_draw_bone_pivot_radius(float p_radius);
-	float get_debug_draw_bone_pivot_radius() const;
 	void set_debug_draw_visible_mesh(bool p_visible);
 	bool is_debug_draw_visible_mesh() const;
 	void set_debug_draw_visible_bone(bool p_visible);
 	bool is_debug_draw_visible_bone() const;
 	void set_debug_draw_visible_bone_name(bool p_visible);
 	bool is_debug_draw_visible_bone_name() const;
-	// 以下三种颜色所有 Armature View 共用
+	// 以下调试绘制属性所有 Armature View 共用
+	void set_debug_draw_bone_pivot_radius(float p_radius);
+	float get_debug_draw_bone_pivot_radius() const;
 	void set_debug_draw_color_bone(const Color &p_color);
 	Color get_debug_draw_color_bone() const;
 	void set_debug_draw_color_ik_target(const Color &p_color);
