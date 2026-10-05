@@ -420,7 +420,7 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 	const auto RS = RenderingServer::get_singleton();
 	RS->mesh_clear(debug_mesh);
 
-	const Transform2D identity{};
+	constexpr Transform2D identity{};
 
 	uint32_t surface_idx = -1;
 

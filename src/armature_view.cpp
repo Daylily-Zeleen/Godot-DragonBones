@@ -463,7 +463,7 @@ void DragonBonesArmatureView::_draw() {
 	}
 
 	// Add rendering commands.
-	const Transform2D identity{};
+	constexpr Transform2D identity{};
 	for (decltype(meshes.size()) mesh_idx = 0; mesh_idx < meshes.size(); ++mesh_idx) {
 		const RID mesh = get_draw_mesh(mesh_idx);
 		const Surfaces &surfaces = meshes.at(mesh_idx);
