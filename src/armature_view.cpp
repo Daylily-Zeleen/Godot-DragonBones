@@ -63,9 +63,6 @@ void DragonBonesArmatureView::rebuild_armature() {
 	if (armature) {
 		armature->release(); // 已经处理内存的释放
 		armature = nullptr;
-#ifdef DEBUG_ENABLED
-		debug_draw.clear_cache();
-#endif // DEBUG_ENABLED
 	}
 
 	if (factory.is_valid()) {

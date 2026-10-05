@@ -70,12 +70,18 @@ public:
 	// 只能在 CanvasItem::_draw 阶段调用。
 	void draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data);
 
-	// TODO: 是否会有在运行时替换嵌套的 Armature 的情况？有的话也需要调用清除
-	void clear_cache();
-
 private:
-	LocalVector<StringName> ik_targets;
-	LocalVector<StringName> ik_driven;
+	// IK 归属的逐帧 scratch：只反映「当前正在遍历的那个 armature」的约束，
+	// 每进入一个 armature 即清空重填，遍历结束即失效。
+	// 不是跨帧缓存（无跨帧有效性、不查询历史），所以没有失效逻辑要维护。
+	struct {
+		LocalVector<StringName> targets; // 约束的 target 骨名
+		LocalVector<StringName> driven; // 被约束作用的 root / bone 骨名
+		_FORCE_INLINE_ void clear() {
+			targets.clear();
+			driven.clear();
+		}
+	} ik_scratch;
 
 	CanvasItem *owner;
 
@@ -92,8 +98,9 @@ private:
 
 	uint8_t draw_flags{ DRAW_MESH | DRAW_BONE | DRAW_BONE_NAME };
 
-	bool cached = false;
-	void cache_ik_bones(DragonBonesArmature *p_armature);
+	// 就地收集某个 armature 自己的 IK 约束，填入 ik_scratch。
+	// 必须在遍历该 armature 的骨骼之前调用，且只反映该 armature 的约束。
+	void collect_ik_of_armature(DragonBonesArmature *p_armature);
 };
 
 #endif // DEBUG_ENABLED
