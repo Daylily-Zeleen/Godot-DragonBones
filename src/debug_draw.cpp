@@ -239,16 +239,27 @@ struct DebugDrawGeometry {
 	}
 
 public:
+	// 圆环 / 圆盘用的单位圆采样点（DISC_SEGMENTS + 1 个，末点即首点，省去取模）。
+	// 这些角度只取决于段号、与骨骼数据无关，故整表只算一次。
+	// 用与原先逐帧调用时完全相同的表达式计算，保证顶点值与优化前逐 bit 一致。
+	const inline static struct DiscUnitCircle {
+		Vector2 pts[DISC_SEGMENTS + 1];
+		DiscUnitCircle() {
+			for (int i = 0; i <= DISC_SEGMENTS; ++i) {
+				const float a = TAU_F * float(i) / float(DISC_SEGMENTS);
+				pts[i] = Vector2(cos(a), sin(a));
+			}
+		}
+	} disc_unit_circle;
+
 	// ---- 填充 ----
 
 	void body_circle(const Vector2 &p_c, float p_r, uint32_t p_rgba8_color) {
 		// 实心圆盘不自带描边：所有顶点 UV 相同 → d 恒定 → 片元判定为纯填充。
 		const Vector2 uv(0.0f, p_r);
 		for (int i = 0; i < DISC_SEGMENTS; ++i) {
-			const float a0 = TAU_F * float(i) / float(DISC_SEGMENTS);
-			const float a1 = TAU_F * float(i + 1) / float(DISC_SEGMENTS);
-			const Vector2 p0 = p_c + Vector2(cos(a0), sin(a0)) * p_r;
-			const Vector2 p1 = p_c + Vector2(cos(a1), sin(a1)) * p_r;
+			const Vector2 p0 = p_c + disc_unit_circle.pts[i] * p_r;
+			const Vector2 p1 = p_c + disc_unit_circle.pts[i + 1] * p_r;
 			body_tri(p_c, p0, p1, uv, uv, uv, p_rgba8_color);
 		}
 	}
@@ -268,10 +279,8 @@ public:
 		const Vector2 uv_outer(hw, hw);
 		const Vector2 uv_inner(-hw, hw);
 		for (int i = 0; i < DISC_SEGMENTS; ++i) {
-			const float a0 = TAU_F * float(i) / float(DISC_SEGMENTS);
-			const float a1 = TAU_F * float(i + 1) / float(DISC_SEGMENTS);
-			const Vector2 d0(cos(a0), sin(a0));
-			const Vector2 d1(cos(a1), sin(a1));
+			const Vector2 d0 = disc_unit_circle.pts[i];
+			const Vector2 d1 = disc_unit_circle.pts[i + 1];
 			// UV.x = 到中线的偏移：外沿 +hw、内沿 -hw，两侧 |offset| 都等于 hw，
 			// 于是 d = hw - |offset| = 0，外沿与内沿同时被描边。
 			body_quad(p_c + d0 * p_inner, p_c + d0 * p_outer, p_c + d1 * p_outer, p_c + d1 * p_inner,
@@ -313,11 +322,15 @@ public:
 
 		const Vector2 uv_c(0.0f, radius);
 		const Vector2 uv_arc(radius, radius);
+		// a1(i) 与 a0(i+1) 是同一个角度表达式，故逐段的终点可直接作为下一段的起点复用，
+		// 每段只需 1 次 (cos, sin)，而不是 2 次；数值与逐个重算完全相同。
+		Vector2 cur = Vector2(cos(begin_angle), sin(begin_angle));
 		for (int i = 0; i < CAP_SEGMENTS; ++i) {
-			const float a0 = begin_angle + rad_per_seg * i;
 			const float a1 = begin_angle + rad_per_seg * (i + 1);
-			body_tri(p_end, p_end + Vector2(cos(a0), sin(a0)) * radius, p_end + Vector2(cos(a1), sin(a1)) * radius,
+			const Vector2 next(cos(a1), sin(a1));
+			body_tri(p_end, p_end + cur * radius, p_end + next * radius,
 					 uv_c, uv_arc, uv_arc, p_rgba8_color);
+			cur = next;
 		}
 	}
 
