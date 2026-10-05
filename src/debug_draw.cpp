@@ -50,60 +50,6 @@ namespace godot {
 
 namespace {
 
-// ---------------------------------------------------------------------------
-// 枢轴符号
-//
-// 骨骼起点处半径 r 的圆。IK 目标骨与普通骨的差别只在于圆上和圆外画了什么，
-// 圆本身大小相同，由同一个属性控制。
-//
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// 骨骼材质：一份网格、一个材质、一次绘制。
-// 每个顶点在 UV 里携带「到形状中线的横向偏移, 该处半宽」，
-// 片元里 d = |UV.y| - |UV.x| 就是到轮廓的有符号距离（轮廓处 0，内侧为正），
-// 再用 fwidth(d) 换算成像素，落在描边宽度内就着描边色。
-// 顶点、三角形都不多加。
-// UV.y 的符号兼作标志位：负 = 该骨受 IK 约束，描边用橙色。
-// 线框顶点把 |UV.y| 设成极大 → d 极大 → 永远走填充分支，原样输出顶点色，不被染色。
-// ---------------------------------------------------------------------------
-static Ref<ShaderMaterial> &get_bone_material() {
-	static Ref<ShaderMaterial> material;
-	if (material.is_null()) {
-		Ref<Shader> shader;
-		shader.instantiate();
-		shader->set_code(R"(
-shader_type canvas_item;
-
-uniform vec4 outline_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
-uniform vec4 outline_color_ik : source_color = vec4(1.0, 0.6, 0.1, 1.0);
-uniform float outline_px = 1.0;
-// 筝形小端半宽（局部单位）。筝形小端是垂直于轴的平头，用 UV.y 到该值的差
-// 就能表示它到平头边的距离（与真实距离成正比，fwidth 归一化会消掉比例）。
-uniform float tip_half = 0.0;
-
-void fragment() {
-	// d1：到两侧斜边的距离（x=±y 处为 0）。
-	float d1 = abs(UV.y) - abs(UV.x);
-	// d2：到筝形小端平头边的距离。只有筝形区域的 |UV.y| 才 >= tip_half；
-	// 圆环/连线/端帽的 |UV.y| 都小于 tip_half，若直接相减会得到负值，
-	// 经 min 后会把整个图元误判成在轮廓上。故仅在 >= tip_half 时启用，否则置极大。
-	float d2 = abs(UV.y) >= tip_half ? (abs(UV.y) - tip_half) : 1e6;
-	float d = min(d1, d2);
-	float per_px = fwidth(d);
-	float dist_px = d / max(per_px, 1e-6);
-	float edge = max(fwidth(dist_px), 1e-3);
-	float m = smoothstep(outline_px - edge, outline_px + edge, dist_px);
-	vec4 oc = UV.y < 0.0 ? outline_color_ik : outline_color;
-	COLOR = mix(vec4(oc.rgb, oc.a * COLOR.a), COLOR, m);
-}
-)");
-		material.instantiate();
-		material->set_shader(shader);
-	}
-	return material;
-}
-
 // 普通骨骼：圆环 + 圆心到圆上的连线（指示旋转）。线比 IK 目标的粗环细。
 constexpr float PLAIN_RING_W = 0.20f; // 环厚，单位：半径
 constexpr float PLAIN_SPOKE_W = 0.16f; // 连线粗细，单位：半径
@@ -137,7 +83,51 @@ constexpr int DEBUG_BONE_NAME_FONT_SIZE = 14;
 
 // 描边线宽（屏幕像素）：固定 1~2 像素，任何缩放都不变粗。
 // 直接作为 uniform 交给着色器，由 fwidth 换算，不经 CPU 几何。
-static constexpr float DEBUG_OUTLINE_PX = 1.2f;
+static constexpr float DEBUG_OUTLINE_PX = 3.0f;
+
+// ---------------------------------------------------------------------------
+// 骨骼材质：一张网格、一个材质、一次绘制。
+// 每个顶点的 UV = (到形状中线的横向偏移, ±该处半宽)，
+// 片元里 d = |UV.y| - |UV.x| 就是到轮廓的有符号距离：轮廓处 0，内侧为正。
+// 再用 fwidth(d) 换算成像素，落在描边宽度内就着描边色。
+// 顶点、三角形都不多加：所有形状的顶点数与三角化都与 HEAD 完全一致，只改 UV 取值。
+// UV.y 的符号兼作标志位：负 = 该骨受 IK 约束，描边改用橙色。
+// 线框直接画在 owner 画布项上，不经过本着色器。
+// ---------------------------------------------------------------------------
+static Ref<ShaderMaterial> &get_bone_material() {
+	static Ref<ShaderMaterial> material = [] {
+		const String shader_text = vformat(R"(
+shader_type canvas_item;
+
+uniform vec4 outline_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform vec4 outline_color_ik : source_color = vec4(1.0, 0.6, 0.1, 0.8);
+
+const float outline_px = %.2f;
+
+void fragment() {
+	// UV = (横向偏移, 半宽)，故 d = |半宽| - |偏移|：轮廓处 0，内侧为正。
+	float d = abs(UV.y) - abs(UV.x);        
+	float per_px = fwidth(d);                                          
+	float dist_px = d / max(per_px, 1e-6);
+	float edge = max(fwidth(dist_px), 1e-3);
+	float m = smoothstep(outline_px - edge, outline_px + edge, dist_px);
+	vec4 oc = UV.y < 0.0 ? outline_color_ik : outline_color;      
+	COLOR = mix(vec4(oc.rgb, oc.a * COLOR.a), COLOR, m);
+})",
+										   DEBUG_OUTLINE_PX);
+
+		Ref<Shader> shader;
+		shader.instantiate();
+		shader->set_code(shader_text);
+
+		Ref<ShaderMaterial> ret;
+		ret.instantiate();
+		ret->set_shader(shader);
+		return ret;
+	}();
+
+	return material;
+}
 
 // 一根待绘制的骨骼。起点与朝向都取自合成矩阵（get_global_transform），已含父级旋转。
 struct DebugBone {
@@ -233,14 +223,17 @@ public:
 #endif
 
 		const float hw = (p_outer - p_inner) * 0.5f;
+		const Vector2 uv_outer(hw, hw);
+		const Vector2 uv_inner(-hw, hw);
 		for (int i = 0; i < DISC_SEGMENTS; ++i) {
 			const float a0 = TAU_F * float(i) / float(DISC_SEGMENTS);
 			const float a1 = TAU_F * float(i + 1) / float(DISC_SEGMENTS);
 			const Vector2 d0(cos(a0), sin(a0));
 			const Vector2 d1(cos(a1), sin(a1));
-			// 只有外沿是轮廓：内沿顶点的 UV.x 取 0，使 d1 = hw - |UV.x| 在内沿远离 0，不描边。
+			// UV.x = 到中线的偏移：外沿 +hw、内沿 -hw，两侧 |offset| 都等于 hw，
+			// 于是 d = hw - |offset| = 0，外沿与内沿同时被描边。
 			body_quad(p_c + d0 * p_inner, p_c + d0 * p_outer, p_c + d1 * p_outer, p_c + d1 * p_inner,
-					  Vector2(0.0f, hw), Vector2(hw, hw), Vector2(hw, hw), Vector2(0.0f, hw), p_color);
+					  uv_inner, uv_outer, uv_outer, uv_inner, p_color);
 		}
 	}
 
@@ -256,24 +249,28 @@ public:
 		n.y = dir.x;
 		n *= p_width * 0.5f;
 		const float hw = p_width * 0.5f;
-		// 连线整体不描边（与 HEAD 相同）：UV.x 取 0，d1 = hw 恒远离 0。
-		const Vector2 uv0(0.0f, hw);
+		// UV.x = 到中线的偏移：两侧长边分别为 +hw、-hw，|offset| = hw -> d = 0，两条长边同时描边。
+		// 一个四边形（2 个三角形）即可，无需按中线切开：|UV.x| 的折返不在任何内部对角线上。
+		const Vector2 uv_side_a(hw, hw);
+		const Vector2 uv_side_b(-hw, hw);
 		body_quad(p_a + n, p_b + n, p_b - n, p_a - n,
-				  uv0, uv0, uv0, uv0, p_color);
+				  uv_side_a, uv_side_a, uv_side_b, uv_side_b, p_color);
+		// 两端半圆帽。
 		body_cap(p_a, n, p_color);
 		body_cap(p_b, -n, p_color);
 	}
 
-	// 线段端, 以 p_end 为心、半径 = |n|、按 from 扫半圈。
+	// 线段端, 以 p_end 为心、半径 = |n|、按 p_n 指向扫半圈。
+	// UV.x 也取 radius：沿半径方向 |offset| 从 0（圆心）变到 radius（弧），
+	// 弧上 d = radius - radius = 0 被描边；圆心处 d = radius ≠ 0，只填充。
 	void body_cap(const Vector2 &p_end, const Vector2 &p_n, const Color &p_color) {
 		constexpr float rad_per_seg = PI_F / float(CAP_SEGMENTS);
 
 		const float radius = p_n.length();
 		const float begin_angle = p_n.angle();
 
-		// TODO: UV 怎么计算？
 		const Vector2 uv_c(0.0f, radius);
-		const Vector2 uv_arc(0.0f, radius);
+		const Vector2 uv_arc(radius, radius);
 		for (int i = 0; i < CAP_SEGMENTS; ++i) {
 			const float a0 = begin_angle + rad_per_seg * i;
 			const float a1 = begin_angle + rad_per_seg * (i + 1);
@@ -292,11 +289,18 @@ public:
 		const Vector2 tip_a = tip_pos + p_perp * p_tip_half;
 		const Vector2 tip_b = tip_pos - p_perp * p_tip_half;
 
-		// TODO: 怎么计算的UV?
-		const Vector2 uv_h(p_wide_half, p_wide_half);
+		// UV = (到中轴的横向偏移, 半宽)。d = |UV.y| - |UV.x| 在 |UV.x| = UV.y 处为 0，
+		// 一个三角形里这是过 (0,0) 的 V 形两条边。据此分配：
+		//   T1(head,sa,sb)：V 顶点设在 head(0,0) -> 零集正好是两条肩 head-sa、head-sb。
+		//   T2(sa,ta,tb)：V 顶点设在 ta(0,0)  -> 零集是腰 sa-ta 与小端 ta-tb。
+		//   T3(sa,tb,sb)：零集落在腰 tb-sb。
+		// 关键：ta 必须取 (0,0) 而不是 (tip,tip)。取 (tip,tip) 时小端 ta-tb 上 UV 线性插值
+		// 会让 |UV.x| 在中点回落到 0，d 在中点不为 0，那条短线就描不出来。
+		// 内部对角线（sa-sb、sa-tb）两侧都不为零集，不会产生伪描边。
+		const Vector2 uv_h(0.0f, 0.0f);
 		const Vector2 uv_sa(p_wide_half, p_wide_half);
 		const Vector2 uv_sb(-p_wide_half, p_wide_half);
-		const Vector2 uv_ta(p_tip_half, p_tip_half);
+		const Vector2 uv_ta(0.0f, 0.0f);
 		const Vector2 uv_tb(-p_tip_half, p_tip_half);
 
 		body_tri(p_head, spring_a, spring_b, uv_h, uv_sa, uv_sb, p_color);
@@ -395,21 +399,48 @@ PackedArray to_packed_array(const LocalVector<Elem> &p_points) {
 	return out;
 }
 
+void DebugDraw::set_color_ik_bone_outline(const Color &p_color) {
+	get_bone_material()->set_shader_parameter("outline_color_ik", p_color);
+}
+Color DebugDraw::get_color_ik_bone_outline() {
+	return get_bone_material()->get_shader_parameter("outline_color_ik");
+}
+
 DebugDraw::~DebugDraw() {
 	const auto RS = RenderingServer::get_singleton();
-	if (debug_mesh.is_valid()) {
-		RenderingServer::get_singleton()->free_rid(debug_mesh);
+	if (canvas_bones.is_valid()) {
+		RS->free_rid(canvas_bones);
+	}
+	if (mesh_wireframe.is_valid()) {
+		RS->free_rid(mesh_wireframe);
+	}
+	if (mesh_bones.is_valid()) {
+		RS->free_rid(mesh_bones);
 	}
 }
 
 void DebugDraw::set_enabled(bool p_enabled) {
+	const auto RS = RenderingServer::get_singleton();
 	if (p_enabled) {
-		if (!debug_mesh.is_valid())
-			debug_mesh = RenderingServer::get_singleton()->mesh_create();
+		if (!mesh_wireframe.is_valid()) {
+			mesh_wireframe = RS->mesh_create();
+		}
+		if (!mesh_bones.is_valid()) {
+			mesh_bones = RS->mesh_create();
+		}
 	} else {
-		if (debug_mesh.is_valid()) {
-			RenderingServer::get_singleton()->free_rid(debug_mesh);
-			debug_mesh = {};
+		// 画布项也一并释放：重新启用时会在 draw() 里按当前画布重建。
+		if (canvas_bones.is_valid()) {
+			RS->free_rid(canvas_bones);
+			canvas_bones = {};
+		}
+		if (mesh_wireframe.is_valid()) {
+			RS->free_rid(mesh_wireframe);
+			mesh_wireframe = {};
+		}
+		if (mesh_bones.is_valid()) {
+			RS->free_rid(mesh_bones);
+			mesh_bones = {};
 		}
 	}
 }
@@ -418,11 +449,11 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 	ERR_FAIL_NULL(p_root_armature);
 
 	const auto RS = RenderingServer::get_singleton();
-	RS->mesh_clear(debug_mesh);
+
+	RS->mesh_clear(mesh_wireframe);
+	RS->mesh_clear(mesh_bones);
 
 	constexpr Transform2D identity{};
-
-	uint32_t surface_idx = -1;
 
 	// ---- 插槽线框 ----
 	if (has_flag(DRAW_MESH)) {
@@ -470,21 +501,15 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 		}
 
 		if (!line_indices.is_empty()) {
-			// 线框不打描边：UV.y 取极大 → d 极大 → 片元直接输出顶点色。
-			PackedVector2Array line_uv;
-			line_uv.resize(debug_vertices.size());
-			for (int i = 0; i < line_uv.size(); ++i) {
-				line_uv[i] = Vector2(0.0f, 1e6f);
-			}
-
+			// 线框不打描边，也**不挂材质**：直接画在 owner 自身的画布项上，
+			// 顶点色原样输出，不经过骨骼着色器，故不需要任何 UV 约定。
 			Array arr;
 			arr.resize(RenderingServer::ARRAY_MAX);
 			arr[RenderingServer::ARRAY_INDEX] = line_indices;
 			arr[RenderingServer::ARRAY_VERTEX] = debug_vertices;
 			arr[RenderingServer::ARRAY_COLOR] = debug_colors;
-			arr[RenderingServer::ARRAY_TEX_UV] = line_uv;
-			RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_LINES, arr);
-			surface_idx++;
+			RS->mesh_add_surface_from_arrays(mesh_wireframe, RenderingServer::PRIMITIVE_LINES, arr);
+			RS->canvas_item_add_mesh(owner->get_canvas_item(), mesh_wireframe, identity, Color(1, 1, 1, 1));
 		}
 	}
 
@@ -545,24 +570,31 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 				arr[RenderingServer::ARRAY_VERTEX] = to_packed_array<PackedVector2Array>(geometry.vertices);
 				arr[RenderingServer::ARRAY_COLOR] = to_packed_array<PackedColorArray>(geometry.colors);
 				arr[RenderingServer::ARRAY_TEX_UV] = to_packed_array<PackedVector2Array>(geometry.vertex_uv);
-				RS->mesh_add_surface_from_arrays(debug_mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
-				surface_idx++;
-				RS->mesh_surface_set_material(debug_mesh, surface_idx, get_bone_material()->get_rid());
+				RS->mesh_add_surface_from_arrays(mesh_bones, RenderingServer::PRIMITIVE_TRIANGLES, arr);
+			}
+
+			// set_enabled() 可能在节点入树前被属性设置器调用，那时拿不到有效的 canvas item，
+			if (!canvas_bones.is_valid()) {
+#ifdef DEV_ENABLED
+				CRASH_COND_MSG(!owner->get_canvas_item().is_valid(), "Can't call DebugDraw::draw() when the owner's canvas item is invalid (not inside tree?).");
+#endif // DEV_ENABLED
+				canvas_bones = RS->canvas_item_create();
+				RS->canvas_item_set_parent(canvas_bones, owner->get_canvas_item());
+				RS->canvas_item_set_material(canvas_bones, get_bone_material()->get_rid());
+			}
+
+			RS->canvas_item_clear(canvas_bones);
+			// 骨骼单独提交到 debug_canvas：2D 网格不读 surface 材质，材质只能挂在画布项上，
+			// 而 owner 画布上还画着龙骨本体，直接挂材质会把本体一起染色。
+			// 线框已在上面直接画到 owner 画布项，不经过这里。
+			if (RS->mesh_get_surface_count(mesh_bones) > 0) {
+				RS->canvas_item_add_mesh(canvas_bones, mesh_bones, identity, Color(1, 1, 1, 1));
 			}
 		}
 
 		if (has_flag(DRAW_BONE_NAME)) {
 			draw_debug_bone_names(owner, bone_data, *this);
 		}
-	}
-
-	// 线框 + 骨骼一次提交：同一份 debug_mesh、一个材质（材质挂在子画布上）。
-	if (is_enabled()) {
-		get_bone_material()->set_shader_parameter("outline_px", DEBUG_OUTLINE_PX);
-		get_bone_material()->set_shader_parameter("outline_color_ik", color_ik_bone_outline);
-		// 筝形小端半宽（局部单位），供着色器描小端平头。
-		get_bone_material()->set_shader_parameter("tip_half", MAX(get_bone_pivot_radius(), 0.5f) * KITE_TIP_HALF);
-		RS->canvas_item_add_mesh(owner->get_canvas_item(), debug_mesh, identity, Color(1, 1, 1, 1));
 	}
 }
 

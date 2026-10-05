@@ -171,12 +171,12 @@ Color DragonBonesArmatureView::get_debug_draw_color_ik_target() const {
 }
 
 void DragonBonesArmatureView::set_debug_draw_color_ik_bone_outline(const Color &p_color) {
-	debug_draw.color_ik_bone_outline = p_color;
+	debug_draw.set_color_ik_bone_outline(p_color);
 	queue_redraw();
 }
 
 Color DragonBonesArmatureView::get_debug_draw_color_ik_bone_outline() const {
-	return debug_draw.color_ik_bone_outline;
+	return debug_draw.get_color_ik_bone_outline();
 }
 #endif // DEBUG_ENABLED
 

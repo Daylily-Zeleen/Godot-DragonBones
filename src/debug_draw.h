@@ -46,15 +46,17 @@ struct DebugDraw {
 		DRAW_BONE_NAME = 1 << 2,
 	};
 
-	Color color_bone{ 0.8f, 0.8f, 0.8f, 0.8f };
-	Color color_ik_target{ 1.0f, 0.2f, 0.1f, 0.9f };
-	Color color_ik_bone_outline{ 1.0f, 0.6f, 0.1f, 0.8f };
+	// 三种颜色所有实例共用
+	inline static Color color_bone{ 0.8f, 0.8f, 0.8f, 0.8f };
+	inline static Color color_ik_target{ 1.0f, 0.2f, 0.1f, 0.9f };
+	static void set_color_ik_bone_outline(const Color &p_color);
+	static Color get_color_ik_bone_outline();
 
 	DebugDraw(CanvasItem *p_owner) : owner(p_owner) {}
 	~DebugDraw();
 
 public:
-	_FORCE_INLINE_ bool is_enabled() const { return debug_mesh.is_valid(); }
+	_FORCE_INLINE_ bool is_enabled() const { return mesh_bones.is_valid(); }
 	void set_enabled(bool p_enabled);
 
 	_FORCE_INLINE_ void set_flag(Flag p_flag, bool p_enable) { p_enable ? (draw_flags |= p_flag) : (draw_flags &= ~p_flag); }
@@ -75,14 +77,22 @@ private:
 
 	CanvasItem *owner;
 
-	// 线框 + 骨骼共用的网格。
-	RID debug_mesh;
+	// 线框专用网格：直接画在 owner 自身画布项上，不挂材质。
+	RID mesh_wireframe;
+
+	// 仅调试层使用的画布项。2D 网格不读 surface 材质，材质只能挂在画布项上；
+	// owner 画布上还画着龙骨本体，直接挂材质会把本体一起染色，故必须单独一层。
+	// 延迟到 _draw() 里创建（属性设置阶段可能尚未入树）。
+	RID canvas_bones;
+
+	// 骨骼网格：画在 canvas_bones 上，由那里挂的材质做描边。
+	RID mesh_bones;
 
 	float bone_pivot_radius = 5.0f;
 
 	uint8_t draw_flags{ DRAW_MESH | DRAW_BONE | DRAW_BONE_NAME };
-	bool cached = false;
 
+	bool cached = false;
 	void cache_ik_bones(DragonBonesArmature *p_armature);
 };
 

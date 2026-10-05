@@ -137,6 +137,7 @@ public:
 	bool is_debug_draw_visible_bone() const;
 	void set_debug_draw_visible_bone_name(bool p_visible);
 	bool is_debug_draw_visible_bone_name() const;
+	// 以下三种颜色所有 Armature View 共用
 	void set_debug_draw_color_bone(const Color &p_color);
 	Color get_debug_draw_color_bone() const;
 	void set_debug_draw_color_ik_target(const Color &p_color);
