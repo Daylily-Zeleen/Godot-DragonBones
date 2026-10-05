@@ -84,7 +84,7 @@ constexpr int DEBUG_BONE_NAME_FONT_SIZE = 14;
 
 // 描边线宽（屏幕像素）：固定 1~2 像素，任何缩放都不变粗。
 // 直接作为 uniform 交给着色器，由 fwidth 换算，不经 CPU 几何。
-static constexpr float DEBUG_OUTLINE_PX = 2.0f;
+static constexpr float DEBUG_OUTLINE_PX = 1.25f;
 
 // ---------------------------------------------------------------------------
 // 骨骼材质：一张网格、一个材质、一次绘制。
@@ -100,7 +100,7 @@ static Ref<ShaderMaterial> &get_bone_material() {
 		const String shader_text = vformat(R"(
 shader_type canvas_item;
 
-uniform vec4 outline_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform vec4 outline_color_plain : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform vec4 outline_color_ik : source_color = vec4(1.0, 0.6, 0.1, 0.8);
 
 const float outline_px = %.2f;
@@ -112,7 +112,7 @@ void fragment() {
 	float dist_px = d / max(per_px, 1e-6);
 	float edge = max(fwidth(dist_px), 1e-3);
 	float m = smoothstep(outline_px - edge, outline_px + edge, dist_px);
-	vec4 oc = UV.y < 0.0 ? outline_color_ik : outline_color;      
+	vec4 oc = UV.y < 0.0 ? outline_color_ik : outline_color_plain;      
 	COLOR = mix(vec4(oc.rgb, oc.a * COLOR.a), COLOR, m);
 })",
 										   DEBUG_OUTLINE_PX);
@@ -124,6 +124,10 @@ void fragment() {
 		Ref<ShaderMaterial> ret;
 		ret.instantiate();
 		ret->set_shader(shader);
+
+		// 设置初始这
+		ret->set_shader_parameter("outline_color_ik", Color(1.0, 0.6, 0.1, 0.8));
+
 		return ret;
 	}();
 
