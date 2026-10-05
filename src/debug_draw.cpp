@@ -174,6 +174,15 @@ struct DebugDrawGeometry {
 
 	_FORCE_INLINE_ bool is_empty() const { return indices.is_empty(); }
 
+	// 清空但不释放容量：LocalVector::clear() 只置 size=0。
+	// 逐帧复用同一份几何时靠它保持零分配。
+	_FORCE_INLINE_ void clear() {
+		vertices.clear();
+		colors.clear();
+		indices.clear();
+		vertex_uv.clear();
+	}
+
 	// ---- 写入底座 ----
 
 	_FORCE_INLINE_ void body_tri(const Vector2 &a, const Vector2 &b, const Vector2 &c,
@@ -313,6 +322,58 @@ public:
 		body_tri(spring_a, tip_b, spring_b, uv_sa, uv_tb, uv_sb, p_color);
 	}
 };
+
+// ---------------------------------------------------------------------------
+// 逐帧复用的 scratch 缓冲。
+//
+// 之所以是 static thread_local 而不是 DebugDraw 的成员：绘制由 CanvasItem::_draw()
+// 驱动，同一线程内串行执行，一份缓冲足够；作为成员会让每个 DragonBonesArmatureView
+// 各持一份同样大小的缓冲，纯属浪费。
+// 用 thread_local 而非裸 static：万一某平台在不同线程触发 _draw，也不会串数据。
+//
+// clear() 只置 size=0、保留已分配容量，故稳态下零分配。
+// ---------------------------------------------------------------------------
+static thread_local struct {
+	LocalVector<DebugBone> bones;
+	DebugDrawGeometry geometry;
+
+	// IK 归属：只反映「当前正在遍历的那个 armature」的约束，每进入一个 armature
+	// 即清空重填，遍历结束即失效。
+	LocalVector<StringName> ik_targets;
+	LocalVector<StringName> ik_driven;
+
+	_FORCE_INLINE_ void clear_bones() {
+		bones.clear();
+		geometry.clear();
+	}
+	_FORCE_INLINE_ void clear_ik() {
+		ik_targets.clear();
+		ik_driven.clear();
+	}
+} bone_scratch;
+
+// 就地收集某个 armature 自己作用域内的 IK 约束，写入 r_targets / r_driven。
+// 必须在遍历该 armature 的骨骼之前调用，且只反映该 armature 的约束。
+// _constraints 里的 _target/_root/_bone 已是本 armature 内解析好的 Bone*，
+// 取它们的 name 即为本 armature 的骨骼名，天然限定在正确的作用域内。
+void collect_ik_of_armature(DragonBonesArmature *p_armature,
+							LocalVector<StringName> &r_targets,
+							LocalVector<StringName> &r_driven) {
+	for (const dragonBones::Constraint *constraint : p_armature->getArmature()->_constraints) {
+		if (constraint == nullptr || constraint->_constraintData == nullptr) {
+			continue;
+		}
+		if (constraint->_constraintData->target != nullptr) {
+			r_targets.push_back(StringName(to_gd_str(constraint->_constraintData->target->name)));
+		}
+		if (constraint->_constraintData->root != nullptr) {
+			r_driven.push_back(StringName(to_gd_str(constraint->_constraintData->root->name)));
+		}
+		if (constraint->_constraintData->bone != nullptr) {
+			r_driven.push_back(StringName(to_gd_str(constraint->_constraintData->bone->name)));
+		}
+	}
+}
 
 } //namespace
 
@@ -519,15 +580,17 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 	// ---- 骨骼 ----
 	// 描边和填充放进同一个表面，填充在后，于是每个形状盖住自己的内侧描边。
 	if (draw_flags & (DRAW_BONE | DRAW_BONE_NAME)) {
-		LocalVector<DebugBone> bone_data; // TODO: 是否作为成员变量进行缓存比较好？
+		// 复用 thread_local scratch：clear 只置 size=0、保留容量，稳态零分配。
+		bone_scratch.clear_bones();
+		LocalVector<DebugBone> &bone_data = bone_scratch.bones;
 
 		Transform2D global_transform{};
-		p_root_armature->for_each_armature_recursively([&global_transform, &ik_scratch = ik_scratch, this, &bone_data](DragonBonesArmature *p_armature, int) {
+		p_root_armature->for_each_armature_recursively([&global_transform, &bone_data](DragonBonesArmature *p_armature, int) {
 			// IK 归属必须是「该骨骼所属 armature」作用域内的判定：不同嵌套 armature 的骨骼
 			// 可以重名，若把全部 armature 的约束汇总成一份名字表，A 里的 IK 骨会误标 B 里的
 			// 同名普通骨。故每进入一个 armature 就重新收集它自己的约束（复用同一份容量）。
-			ik_scratch.clear();
-			collect_ik_of_armature(p_armature);
+			bone_scratch.clear_ik();
+			collect_ik_of_armature(p_armature, bone_scratch.ik_targets, bone_scratch.ik_driven);
 
 			global_transform = global_transform * p_armature->transform;
 			for (const auto &[bone_name, bone] : p_armature->get_bones()) {
@@ -545,9 +608,9 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 				const float length = bone->get_length();
 
 				DebugBone::Kind kind = DebugBone::KIND_PLAIN;
-				if (ik_scratch.targets.has(bone_name)) {
+				if (bone_scratch.ik_targets.has(bone_name)) {
 					kind = DebugBone::KIND_IK_TARGET;
-				} else if (ik_scratch.driven.has(bone_name)) {
+				} else if (bone_scratch.ik_driven.has(bone_name)) {
 					kind = DebugBone::KIND_IK_DRIVEN;
 				}
 
@@ -563,7 +626,7 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 
 		if (has_flag(DRAW_BONE)) {
 			// 所有骨骼的填充几何收进同一个表面；描边由材质在片元里按 UV 距离算。
-			DebugDrawGeometry geometry;
+			DebugDrawGeometry &geometry = bone_scratch.geometry;
 			for (const DebugBone &bone : bone_data) {
 				append_debug_bone_geometry(bone, *this, geometry);
 			}
@@ -599,25 +662,6 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 
 		if (has_flag(DRAW_BONE_NAME)) {
 			draw_debug_bone_names(owner, bone_data, *this);
-		}
-	}
-}
-
-void DebugDraw::collect_ik_of_armature(DragonBonesArmature *p_armature) {
-	// _constraints 里的 _target/_root/_bone 已是本 armature 内解析好的 Bone*，
-	// 取它们的 name 即为本 armature 的骨骼名，天然限定在正确的作用域内。
-	for (const dragonBones::Constraint *constraint : p_armature->getArmature()->_constraints) {
-		if (constraint == nullptr || constraint->_constraintData == nullptr) {
-			continue;
-		}
-		if (constraint->_constraintData->target != nullptr) {
-			ik_scratch.targets.push_back(StringName(to_gd_str(constraint->_constraintData->target->name)));
-		}
-		if (constraint->_constraintData->root != nullptr) {
-			ik_scratch.driven.push_back(StringName(to_gd_str(constraint->_constraintData->root->name)));
-		}
-		if (constraint->_constraintData->bone != nullptr) {
-			ik_scratch.driven.push_back(StringName(to_gd_str(constraint->_constraintData->bone->name)));
 		}
 	}
 }

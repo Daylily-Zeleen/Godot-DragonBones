@@ -71,18 +71,6 @@ public:
 	void draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data);
 
 private:
-	// IK 归属的逐帧 scratch：只反映「当前正在遍历的那个 armature」的约束，
-	// 每进入一个 armature 即清空重填，遍历结束即失效。
-	// 不是跨帧缓存（无跨帧有效性、不查询历史），所以没有失效逻辑要维护。
-	struct {
-		LocalVector<StringName> targets; // 约束的 target 骨名
-		LocalVector<StringName> driven; // 被约束作用的 root / bone 骨名
-		_FORCE_INLINE_ void clear() {
-			targets.clear();
-			driven.clear();
-		}
-	} ik_scratch;
-
 	CanvasItem *owner;
 
 	// 线框专用网格：直接画在 owner 自身画布项上，不挂材质。
@@ -97,10 +85,6 @@ private:
 	RID mesh_bones;
 
 	uint8_t draw_flags{ DRAW_MESH | DRAW_BONE | DRAW_BONE_NAME };
-
-	// 就地收集某个 armature 自己的 IK 约束，填入 ik_scratch。
-	// 必须在遍历该 armature 的骨骼之前调用，且只反映该 armature 的约束。
-	void collect_ik_of_armature(DragonBonesArmature *p_armature);
 };
 
 #endif // DEBUG_ENABLED

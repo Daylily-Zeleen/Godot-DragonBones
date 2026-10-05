@@ -130,3 +130,99 @@ IkScratch ik_scratch;
 
 **fixture 位置**：`.agent_tmp/r2test/`（`nested_ske.json` + `nested.dbfactory`）。
 不在 `demo/` 内，需要复现时拷入 demo 工程再跑。
+
+### R1（已完成）— bone_data / geometry 复用（thread_local scratch）
+
+**方案演进**：初版把 `bone_data` / `geometry` 提升为 `DebugDraw` 成员，后被否决——
+绘制由 `CanvasItem::_draw()` 驱动，同线程串行，一份缓冲即可；成员方案会让每个
+`DragonBonesArmatureView` 各持一份同规模缓冲，纯属浪费。改为 **cpp 内
+`static thread_local`**（用 `thread_local` 而非裸 `static`，防某平台跨线程触发 `_draw`
+时串数据）。
+
+**改动**：
+
+- `src/debug_draw.h`：净删 16 行。移除 `ik_scratch` 成员与 `collect_ik_of_armature`
+  声明。头文件不再需要 `LocalVector` / `StringName`，`DebugDraw` 只剩
+  `owner`、`mesh_wireframe`、`canvas_bones`、`mesh_bones`、`draw_flags`。
+- `src/debug_draw.cpp`（匿名命名空间内，`DebugDrawGeometry` 之后）新增：
+  ```cpp
+  struct BoneScratch {
+      LocalVector<DebugBone> bones;
+      DebugDrawGeometry geometry;
+      LocalVector<StringName> ik_targets; // 约束的 target 骨名
+      LocalVector<StringName> ik_driven;  // 被约束作用的 root / bone 骨名
+      _FORCE_INLINE_ void clear_bones() { bones.clear(); geometry.clear(); }
+      _FORCE_INLINE_ void clear_ik() { ik_targets.clear(); ik_driven.clear(); }
+  };
+  static thread_local BoneScratch bone_scratch;
+  ```
+- `DebugDrawGeometry` 新增 `clear()`（四个 `LocalVector` 各自 `clear()`，只置 size=0、
+  保留容量）。
+- `collect_ik_of_armature` 由成员函数改为匿名命名空间内的文件局部函数，签名加两个
+  出参：`void collect_ik_of_armature(DragonBonesArmature *, LocalVector<StringName> &r_targets, LocalVector<StringName> &r_driven)`。
+- `draw()` 骨骼段：`bone_scratch.clear_bones()` → `LocalVector<DebugBone> &bone_data =
+  bone_scratch.bones`；回调内 `bone_scratch.clear_ik()` + `collect_ik_of_armature(p_armature,
+  bone_scratch.ik_targets, bone_scratch.ik_driven)`；几何改为 `DebugDrawGeometry &geometry =
+  bone_scratch.geometry`。删除旧的 `// TODO: 是否作为成员变量进行缓存比较好？`。
+
+**等价性验证**（同进程 A/B）：同一帧内，用复用 `bone_scratch` 与「每帧全新局部对象」
+各建一份骨骼清单 + 几何，逐元素比较 name / kind / start / dir / length 及
+vertices / vertex_uv / indices / colors。真实 demo（`龙`，60 根骨）：
+
+```
+PROBE R1 frame=N ok=1 bones=60 v=15744   （201 帧全部 ok=1，0 帧 ok=0）
+```
+
+**性能**（同进程 A/B，取 401 帧最小值，跳过前 20 帧预热）：
+
+| 路径 | 耗时 |
+|---|---|
+| 复用 thread_local scratch | **95.6 µs** |
+| 每帧全新局部对象 | 145.0 µs |
+
+即 **−34%**（纯采集 + 几何段）。与改造前成员的实测（126.8 → 90.1 µs，−29%）量级一致。
+
+`template_debug` / `template_release` 均构建通过；探针已移除，冒烟运行无 PROBE 输出、
+无新增错误/断言。
+
+> 注：`template_release` 用 `-j3` 仍偶发 MSVC `C1060 编译器堆空间不足`，
+> 降为 `-j1` 可过，与改动无关。
+
+### R3（已完成）— _draw 的每帧分配消除
+
+**核心约束**（实测自 godot-cpp 源码）：
+
+- `LocalVector::clear()` → `resize(0)`：**只置 size=0、保留缓冲**，但会析构元素。
+- `LocalVector<Layer>::clear()` 会析构 `Layer`，连同其 `data` 的容量一起丢弃。
+- `Packed*Array::resize(0)` 走 `CowData::_unref()`：**直接释放缓冲**（与非零缩小不同，
+  非零缩小会走 `smaller_capacity` 保留大部分容量）。
+
+因此"池化 Layer/Data"不能靠 `clear()`，必须**保留对象本体 + 帧内写入游标**。
+
+**改动**：
+
+1. `src/mesh_display.h` / `DrawData`：
+   - `Layer` 增加 `used` 游标；`begin_frame()` 只复位游标，不析构任何元素；
+   - `operator[]` 变为 `add_data(...)`：在 `used` 位置就地覆写已有 `Data`（复用其
+     `Packed*Array` 缓冲），仅当本帧条目多于上帧时才 `push_back`；
+   - `end_frame()` 把各层 `data.resize(used)` 截到实际用量、丢弃空层。
+2. `src/mesh_display.cpp`：`append_draw_data` 改用 `add_data`。
+3. `src/armature_view.h` / `SurfaceData`：改为成员缓冲池 + `n_*` 计数器。
+   `Packed*Array` 缩到 0 会释放缓冲，故用量绝不能由 `size()` 表示；数组只增不减，
+   帧末 `finish()` 截到 `n_*`（仍在容量内）。`add_vertices/add_colors/add_uv/add_indices`
+   就地写 `ptrw()`。
+4. `src/armature_view.{h,cpp}`：`DrawData` 提升为成员 `draw_data_cache`；
+   表面组装抽为 `build_surfaces()`，用 `surface_pool`（只增不减）+ `mesh_surfaces`
+   （每 mesh 的 surface 下标分组）替代原先每帧新建的
+   `std::vector<SurfaceData>` / `std::vector<Surfaces>`。
+
+**等价性验证**（同进程 A/B，跨进程比对因环境噪声不可用）：
+
+- 真实 demo（`Dragon/Dragon_ske`，多 slot）：`PROBE3 reusematch=SAME v=435 i=1455`，
+  逐元素比较顶点/索引/颜色/UV/纹理/混合模式，跨帧稳定。
+- 合成场景覆盖**换 mesh 与换 surface 分支**（3 个纹理、MIX/ADD 交替）：
+  `PROBE4 meshes=3 reusematch=SAME`，分组与内容均与旧逻辑一致
+  （`m0` 三个表面、`m1` 两个、`m2` 一个）。
+- 探针与临时 include 均已移除。
+
+`template_debug` / `template_release` 均构建通过。
