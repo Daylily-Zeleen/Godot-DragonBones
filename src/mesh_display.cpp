@@ -70,7 +70,7 @@ void DragonBonesMeshDisplay::queue_redraw() const {
 	get_armature()->queue_redraw();
 }
 
-void DragonBonesMeshDisplay::append_draw_data(DrawData &r_data, const Transform2D &p_base_transfrom, const Color &p_modulate) const {
+void DragonBonesMeshDisplay::append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom, const Color &p_modulate) const {
 	if (!slot->getVisible()) {
 		return;
 	}
@@ -85,19 +85,14 @@ void DragonBonesMeshDisplay::append_draw_data(DrawData &r_data, const Transform2
 		texture = slot->get_texture()->get_rid();
 	}
 
-	r_data[slot->_zOrder].push_back({
-			p_base_transfrom * transform,
-			vertices,
-			indices,
-			colors,
-			vertices_uv,
-			texture,
-			slot->blend_mode,
-			slot->_zOrder,
+	r_data.add_data(slot->_zOrder, p_base_transfrom * transform,
+					vertices, indices, colors, vertices_uv,
+					texture, slot->blend_mode
 #ifdef DEBUG_ENABLED
-			debug_color,
+					,
+					debug_color
 #endif // DEBUG_ENABLED
-	});
+	);
 }
 
 void DragonBonesMeshDisplay::release() {

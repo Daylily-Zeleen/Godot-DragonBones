@@ -37,71 +37,9 @@
 #include <godot_cpp/classes/texture2d.hpp>
 #include <godot_cpp/templates/local_vector.hpp>
 
+#include "armature_draw_data.h"
+
 namespace godot {
-
-// Draw commands for one frame, bucketed by z-order and kept sorted by it.
-class DrawData {
-public:
-	// A single draw command: a mesh plus the transform and material to draw it with.
-	struct Data {
-		Transform2D transform;
-		PackedVector2Array vertices;
-		PackedInt32Array indices;
-		PackedColorArray colors;
-		PackedVector2Array vertices_uv;
-		RID texture;
-		CanvasItemMaterial::BlendMode blend_mode;
-		int z_order = 0;
-#ifdef DEBUG_ENABLED
-		Color debug_color;
-#endif // DEBUG_ENABLED
-	};
-
-	// Every draw command sharing one z-order.
-	struct Layer {
-		int z_order = 0;
-		LocalVector<Data> data;
-	};
-
-private:
-	LocalVector<Layer> layers;
-
-	_FORCE_INLINE_ uint32_t lower_bound(int p_z_order) const {
-		uint32_t lo = 0, hi = layers.size();
-		while (lo < hi) {
-			const uint32_t mid = lo + ((hi - lo) >> 1);
-			if (layers[mid].z_order < p_z_order) {
-				lo = mid + 1;
-			} else {
-				hi = mid;
-			}
-		}
-		return lo;
-	}
-
-public:
-	DrawData() = default;
-	DrawData(const DrawData &) = delete;
-	DrawData &operator=(const DrawData &) = delete;
-
-	// Get the layer for `p_z_order`, inserting it in sorted position if absent.
-	// Equivalent to `map::operator[]`: repeated calls with the same z-order append to
-	// the same layer, and a layer is never split into two.
-	LocalVector<Data> &operator[](int p_z_order) {
-		const uint32_t at = lower_bound(p_z_order);
-		if (at < layers.size() && layers[at].z_order == p_z_order) {
-			return layers[at].data;
-		}
-		layers.insert(at, Layer{ p_z_order, LocalVector<Data>() });
-		return layers[at].data;
-	}
-
-	_FORCE_INLINE_ bool is_empty() const { return layers.is_empty(); }
-	_FORCE_INLINE_ const Layer &operator[](uint32_t p_index) const { return layers[p_index]; }
-
-	_FORCE_INLINE_ const Layer *begin() const { return layers.ptr(); }
-	_FORCE_INLINE_ const Layer *end() const { return layers.ptr() + layers.size(); }
-};
 
 class Display {
 protected:
@@ -112,7 +50,7 @@ public:
 	Transform2D transform{};
 
 	virtual void queue_redraw() const = 0;
-	virtual void append_draw_data(DrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const = 0;
+	virtual void append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const = 0;
 
 	virtual void release(); // NOTE: 子类要在此出处理自身的内存管理 （多继承的情况下必须用指在开头的指针才能 memdelete）
 };
@@ -140,7 +78,7 @@ public:
 	class DragonBonesArmature *get_armature() const;
 
 	virtual void queue_redraw() const override;
-	virtual void append_draw_data(DrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const override;
+	virtual void append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const override;
 
 	virtual void release() override;
 

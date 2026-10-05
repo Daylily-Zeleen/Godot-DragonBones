@@ -592,7 +592,7 @@ void DebugDraw::set_enabled(bool p_enabled) {
 	}
 }
 
-void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data) {
+void DebugDraw::draw(DragonBonesArmature *p_root_armature, const ArmatureDrawData &p_draw_data) {
 	ERR_FAIL_NULL(p_root_armature);
 
 	const auto RS = RenderingServer::get_singleton();
@@ -608,7 +608,7 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 		PackedVector2Array debug_vertices;
 		PackedColorArray debug_colors;
 
-		for (const DrawData::Layer &layer : p_draw_data) {
+		for (const ArmatureDrawData::Layer &layer : p_draw_data) {
 			for (const auto &data : layer.data) {
 				auto base_index = debug_vertices.size();
 				auto insert_begin_index = debug_mesh_indices.size();

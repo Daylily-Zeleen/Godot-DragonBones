@@ -68,7 +68,7 @@ public:
 	_FORCE_INLINE_ bool has_flag(Flag p_flag) const { return draw_flags & p_flag; }
 
 	// 只能在 CanvasItem::_draw 阶段调用。
-	void draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data);
+	void draw(DragonBonesArmature *p_root_armature, const ArmatureDrawData &p_draw_data);
 
 private:
 	CanvasItem *owner;
