@@ -338,3 +338,21 @@ INDEX）分别提交 435 顶点与 **43 顶点（1/10）**：
 `ArmatureDrawData` 指明其语义为「一个 armature 的绘制命令集」。
 
 `template_debug` / `template_release` 均构建通过；冒烟无回归。
+
+---
+
+## 完成情况（归档前核对）
+
+三条需求全部完成，代码已提交（`8fb4397` … `5da7af3`）：
+
+- **R2**（`8fb4397`）：IK 骨骼归属改按 armature 作用域就地收集（`collect_ik_of_armature`），
+  删除扁平的裸名字匹配与 `cached` 机制；嵌套重名场景验证归属正确。
+- **R1**（`8db667a`、`74ab00a`）：`DebugDraw` 骨骼/几何缓冲改 cpp 内 `static thread_local BoneScratch`
+  跨帧复用，超阈值（1 MiB）时释放；同进程 A/B 实测 −34%。
+- **R3**（`6c62113` 起，后续多次迭代）：`DrawData`/`SurfaceData` 缓冲跨帧复用、
+  thread_local 化、顶点色 RGBA8（ARRAY_CUSTOM0）、几何缓冲改 `LocalVector` 等；
+  同进程 A/B 实测 `_draw` 约 −14~18%（后期进一步下降）。
+
+验收标准逐条满足：R1 书面结论见本文件「R1」节；R2 有嵌套重名场景 fixture 与判定表；
+R3 等价性经同进程 A/B 逐元素比对（后续以 bit 等价/截图 md5 一致复核）；
+双模板构建通过。剩余未提交内容仅 `demo/`（用户既有改动，按约定不提交）。
