@@ -38,7 +38,7 @@ func _ready() -> void:
 	%FlipYCheck.button_pressed = false
 
 	# Debug
-	%DebugCheck.toggled.connect(func(toggled: bool): armature.debug = toggled)
+	%DebugCheck.toggled.connect(func(toggled: bool): armature.debug_draw_enabled = toggled)
 	%DebugCheck.button_pressed = false
 
 	# Active
@@ -69,4 +69,3 @@ func _on_advance_btn_pressed() -> void:
 	assert(armature.animation_callback_mode_process == DragonBonesArmatureView.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL)
 	var delta :float = %AdvanceTime.value
 	armature.advance(delta)
-	
