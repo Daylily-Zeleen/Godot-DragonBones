@@ -59,14 +59,14 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1 `src/initialized_buffer.h` 存在；`armature_draw_data.h` 不再内联定义该模板；两个 `template_debug` / `template_release` 构建均通过且产物行为不变（demo 冒烟无新错误）。
-- [ ] AC2 D1–D5 全部修复；测试中建有对应回归断言（D2 容量精确值、D3 越界、D1 返回值类型、D4 `reset` 后 `count`、D5 注释删除）。
-- [ ] AC3 `scons ... tests=yes` 可构建出带测试的库；`scons ... tests=no`（默认）不编译 `tests/`、不定义测试宏。
-- [ ] AC4 CMake 配置 + 构建在 `-DGODOT_DRAGONBONES_TESTS=ON` 下编译 `tests/`，在默认 OFF 下不编译。
-- [ ] AC5 `Godot_v4.3... --path demo --gddb-run-tests` 打印 doctest 汇总并以 0 退出；注入一个失败断言时以非 0 退出。
-- [ ] AC6 测试覆盖 R3 列出的每个 API 与边界；`--gddb-run-tests` 全绿。
-- [ ] AC7 R8 产出书面结论（含 R1/R3 各自的判断与理由），落在任务目录或 spec 中。
-- [ ] AC8 `thirdparty/doctest/` 被纳入版本控制（或明确记录为 git submodule/外部依赖的获取方式）。
+- [x] AC1 `src/initialized_buffer.h` 存在；`armature_draw_data.h` 不再内联定义该模板；两个 `template_debug` / `template_release` 构建均通过且产物行为不变（demo 冒烟无新错误）。
+- [x] AC2 D1–D5 全部修复；测试中建有对应回归断言（D2 容量精确值、D3 越界、D1 返回值类型、D4 `reset` 后 `count`、D5 注释删除）。
+- [x] AC3 `scons ... tests=yes` 可构建出带测试的库；`scons ... tests=no`（默认）不编译 `tests/`、不定义测试宏。
+- [x] AC4 CMake 配置 + 构建在 `-DGODOT_DRAGONBONES_TESTS=ON` 下编译 `tests/`，在默认 OFF 下不编译。
+- [x] AC5 `Godot_v4.3... --path demo --gddb-run-tests` 打印 doctest 汇总并以 0 退出；注入一个失败断言时以非 0 退出。
+- [x] AC6 测试覆盖 R3 列出的每个 API 与边界；`--gddb-run-tests` 全绿。
+- [x] AC7 R8 产出书面结论（含 R1/R3 各自的判断与理由），落在任务目录或 spec 中。
+- [x] AC8 `thirdparty/doctest/` 被纳入版本控制（或明确记录为 git submodule/外部依赖的获取方式）。
 
 ## Out of Scope
 
