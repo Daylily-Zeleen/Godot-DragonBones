@@ -373,7 +373,7 @@ CI (`.github/workflows/build.yml` job `tests`) runs the suite on a **fresh check
 
 ### Death tests
 
-`CRASH_BAD_INDEX` / `ERR_FAIL` are unrecoverable in-process, so cases that must trap run in a **child process** and the parent asserts on its exit code. `tests/test_death.h` provides this generically:
+`CRASH_BAD_INDEX` / `ERR_FAIL` are unrecoverable in-process, so cases that must trap run in a **child process**. `tests/test_death.h` provides this generically:
 
 ```cpp
 // in any test TU, at namespace scope:
@@ -381,6 +381,12 @@ GDDB_DEATH_CASE("my-case") { /* code that must trap */ }
 ```
 
 The generic entry point (`tests/test_runner.h`'s `try_run`) knows **nothing** about individual cases: it dispatches `--gddb-death=<name>` by looking the name up in the registry. Adding a case therefore touches only the test TU that declares it — never `try_run`. (`try_run` is `register_types`' only hook and stays a fixed two-branch shell: dispatch a death case, or run doctest.)
+
+> **Gotcha (why the parent must judge on output markers, not exit codes)**: on POSIX, `OS::execute` with an output array takes the **`popen`** path, and that path does `*r_exitcode = WEXITSTATUS(rv)` **without** the `WIFEXITED` guard used by the fork path (`drivers/unix/os_unix.cpp:878` vs `:909`). For a signal-terminated child the two disagree, so the exit code alone cannot distinguish "trapped correctly" from "returned normally". The parent therefore asserts on the child's **stdout markers** — `[gddb] death case: <name>` present, `[gddb] death case did NOT trap: <name>` absent.
+
+> **Gotcha (must `fflush` before trapping)**: a trap kills the process immediately, so any **unflushed** stdio buffer is discarded. Without an explicit flush, the child's "entering" marker never reaches the parent's pipe and the death test fails with a missing-marker error that has nothing to do with the code under test. Reproduced on Linux: unflushed stdout yielded only `Illegal instruction`, flushed stdout yielded the marker. `try_run_death_case` calls `godot::_err_flush_stdout()` (`fflush(stdout)`) after each marker print.
+
+> **Gotcha (static-init safety)**: the registry is an intrusive POD linked list, not a Godot container — a namespace-scope constructor allocating via Godot's allocator runs during `DllMain` and makes the whole library fail to load (`Error 1114`). See the earlier gotcha above.
 
 ## Checklist
 

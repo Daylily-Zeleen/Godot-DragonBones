@@ -105,8 +105,7 @@ namespace tests {
 inline constexpr char DEATH_CASE_ARG_PREFIX[] = "--gddb-death=";
 
 // 子进程侧的派发：命令行里出现 `--gddb-death=<name>` 时执行对应执行体。
-// 返回 true 表示「本次进程就是被当作子进程启动的」（调用方不应再继续走正常测试流程）；
-// 若执行体意外返回（未 trap，即用例失败），打印标记并以 0 退出，交由父进程判定失败。
+// 返回 true 表示「本次进程就是被当作子进程启动的」（调用方不应再继续走正常测试流程）。
 inline bool try_run_death_case() {
 	for (const godot::String &arg : godot::OS::get_singleton()->get_cmdline_args()) {
 		if (!arg.begins_with(DEATH_CASE_ARG_PREFIX)) {
@@ -116,22 +115,28 @@ inline bool try_run_death_case() {
 
 		for (const DeathCase *c = death_case_head(); c != nullptr; c = c->next) {
 			if (name == c->name) {
-				// 先打标记：父进程据此确认「确实进入了该子进程用例」。
+				// 进入标记必须**立即 flush**：执行体会 trap（SIGILL/SIGTRAP）终止进程，
+				// 而未 flush 的 stdio 缓冲会随之丢失，父进程将收不到任何输出。
+				// 父进程以「有进入标记、且无未-trap 标记」判定用例通过。
 				godot::UtilityFunctions::print("[gddb] death case: ", name);
-				c->body();
+				godot::_err_flush_stdout();
+
+				c->body(); // 正常路径下不返回
+
 				godot::UtilityFunctions::print("[gddb] death case did NOT trap: ", name);
-				std::exit(0); // 未 trap —— 父进程会据此判定失败
+				godot::_err_flush_stdout();
+				std::exit(EXIT_SUCCESS);
 			}
 		}
 
 		godot::UtilityFunctions::print("[gddb] unknown death case: ", name);
-		std::exit(0);
+		godot::_err_flush_stdout();
+		std::exit(EXIT_SUCCESS);
 	}
 	return false;
 }
 
-// 父进程侧：以 `<name>` 启动自身子进程，返回退出码。
-// 输出（stdout，p_read_stderr=true 时含 stderr）可选地写入 r_output。
+// 父进程侧：以 `<name>` 启动自身子进程，输出写入 r_output。
 inline int32_t spawn_death_case(const char *p_name, godot::Array *r_output = nullptr) {
 	const godot::String exe = godot::OS::get_singleton()->get_executable_path();
 	if (exe.is_empty()) {
@@ -150,6 +155,11 @@ inline int32_t spawn_death_case(const char *p_name, godot::Array *r_output = nul
 		*r_output = output;
 	}
 	return rc;
+}
+
+// 子进程的完整 stdout 合并为一个字符串（OS::execute 的行为：整个管道内容作为单个元素）。
+inline godot::String death_case_output(const godot::Array &p_output) {
+	return p_output.size() > 0 ? (godot::String)p_output[0] : godot::String();
 }
 
 } //namespace tests

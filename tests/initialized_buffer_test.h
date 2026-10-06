@@ -288,7 +288,15 @@ GDDB_DEATH_CASE("index-out-of-bounds") {
 
 namespace {
 
-// 断言某个死亡用例确实在子进程里 trap 了（退出码非 0，且带回越界诊断）。
+// 断言某个死亡用例确实在子进程里 trap 了。
+//
+// 判据必须**基于子进程的输出标记**，而不是退出码：不同平台/不同 OS::execute 实现
+// 对「被信号终止」的退出码处理不一致（POSIX 的 popen 路径只取 WEXITSTATUS，
+// 对信号终止的进程该值为 0），无法可靠区分「正确 trap」与「未 trap 正常退出」。
+//
+// 子进程（见 test_death.h）在进入执行体时先打 `[gddb] death case: <name>` 并 flush；
+// 若执行体意外返回（未 trap）则再打 `[gddb] death case did NOT trap: <name>`。
+// 因此：**有进入标记 且 没有未-trap 标记** == 确实 trap 了。
 void check_death_case_traps(const char *p_name) {
 	if (godot::OS::get_singleton() == nullptr) {
 		WARN("OS singleton unavailable; skipping subprocess death test");
@@ -297,17 +305,17 @@ void check_death_case_traps(const char *p_name) {
 	godot::Array output;
 	const int32_t rc = gddb::tests::spawn_death_case(p_name, &output);
 	// `-1` 是 OS::execute 的启动失败码（见 spawn_death_case 的空 exe 分支）。
-	// 注意：trap 在 Windows 上的退出码是 0x80000003（STATUS_BREAKPOINT，即
-	// -2147483645），POSIX 上是 SIGTRAP —— 都是负数，因此**不能**用 `rc < 0`
-	// 判断“无法拉起”。
 	if (rc == -1) {
 		WARN("could not spawn subprocess; skipping death test");
 		return;
 	}
-	// OS::execute 把 stdout（p_read_stderr=true 时含 stderr）并入 output 的**一个** String。
-	CHECK(rc != 0);
-	const bool has_diag = output.size() > 0 && ((godot::String)output[0]).contains("out of bounds");
-	CHECK_MESSAGE(has_diag, "expected an 'out of bounds' diagnostic from CRASH_BAD_INDEX");
+
+	const godot::String out = gddb::tests::death_case_output(output);
+	const godot::String entered = godot::String("[gddb] death case: ") + p_name;
+	const godot::String did_not_trap = godot::String("[gddb] death case did NOT trap: ") + p_name;
+
+	CHECK_MESSAGE(out.contains(entered), "child did not run the death case (output missing entry marker)");
+	CHECK_MESSAGE(!out.contains(did_not_trap), "death case returned instead of trapping");
 }
 
 } //namespace
