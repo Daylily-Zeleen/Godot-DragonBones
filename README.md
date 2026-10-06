@@ -48,6 +48,17 @@ A GDExtension plugin to add DragonBones for Godot.
 
 4. If compiling is successfully, you can get the compiled plugin in `demo/addons/godot_dragon_bones.daylily-zeleen`.
 
+## C++ unit tests
+
+Unit tests (doctest) are off by default. Build with `tests=yes`, then run them through Godot:
+
+```shell
+scons target=template_debug tests=yes
+godot --path demo --gddb-run-tests
+```
+
+Exit code is 0 on success, non-zero on failure. For CMake, configure with `-DGODOT_DRAGONBONES_TESTS=ON`.
+
 ## Run "demo" project
 
 **The "master" branch has not contains compiled libraries, "demo" project can't be run correctly if you clone this branch or download it as zip archive and run it directly!**

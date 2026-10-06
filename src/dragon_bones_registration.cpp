@@ -44,6 +44,10 @@
 #include "armature_view.h"
 #include "event_object.h"
 
+#ifdef GDDB_TESTS_ENABLED
+#include "test_runner.h"
+#endif // GDDB_TESTS_ENABLED
+
 using namespace godot;
 
 static DragonBones *dragon_bones{ nullptr };
@@ -82,6 +86,11 @@ void initialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_lev
 
 		loader.instantiate();
 		ResourceLoader::get_singleton()->add_resource_format_loader(loader);
+
+#ifdef GDDB_TESTS_ENABLED
+		// 只有 tests=yes 构建会走到这里；--gddb-run-tests 命中时运行单测并以结果退出。
+		callable_mp_static(&gddb::tests::try_run).call_deferred();
+#endif // GDDB_TESTS_ENABLED
 	}
 }
 

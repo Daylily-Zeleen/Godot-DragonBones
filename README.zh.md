@@ -47,6 +47,17 @@
 
 4. 如果编译成功的话，你将可以在`demo/addons/godot_dragon_bones.daylily-zeleen`获取到编译好的插件。
 
+## C++ 单元测试
+
+单元测试（doctest）默认不编译。使用 `tests=yes` 编译，再通过 Godot 运行：
+
+```shell
+scons target=template_debug tests=yes
+godot --path demo --gddb-run-tests
+```
+
+成功时退出码为 0，失败为非 0。CMake 用户配置 `-DGODOT_DRAGONBONES_TESTS=ON` 即可。
+
 ## 运行示例项目
 
 **"master"分支不包含编译好的库，直接克隆或作为zip档下载是无法直接运行”demo“中的示例！**

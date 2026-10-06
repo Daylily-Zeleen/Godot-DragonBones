@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/build/build-systems.md", "reason": "核对 SCons 与 CMake 的 tests 开关一致、源集合未 regress（不得再收 thirdparty/godot-cpp）"}
+{"file": ".trellis/spec/gdextension/memory-and-lifetime.md", "reason": "核对 InitializedBuffer 的分配/释放与析构语义符合 Godot 分配器桥接约定"}

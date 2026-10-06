@@ -30,6 +30,8 @@
 
 #pragma once
 
+#include "initialized_buffer.h"
+
 #include <godot_cpp/classes/canvas_item_material.hpp>
 #include <godot_cpp/templates/local_vector.hpp>
 #include <godot_cpp/variant/packed_color_array.hpp>
@@ -39,133 +41,6 @@
 #include <godot_cpp/variant/transform2d.hpp>
 
 namespace godot {
-
-namespace internal {
-
-template <typename T, typename U = uint32_t, bool tight = false>
-class InitializedBuffer {
-	T *data{ nullptr };
-	U capacity{ 0 };
-	U count{ 0 };
-
-public:
-	InitializedBuffer() = default;
-	InitializedBuffer(const InitializedBuffer &) = delete;
-	InitializedBuffer(InitializedBuffer &&) = delete;
-
-	~InitializedBuffer() { reset(); }
-
-	_FORCE_INLINE_ T *ptr() const { return data; }
-	_FORCE_INLINE_ bool is_empty() const { return count == 0; }
-	_FORCE_INLINE_ U size() const { return count; }
-	_FORCE_INLINE_ U get_capacity() const { return capacity; }
-	_FORCE_INLINE_ size_t get_capacity_bytes() const { return capacity * sizeof(T); }
-	_FORCE_INLINE_ void reserve(U p_size) {
-		if (p_size <= capacity) {
-			return;
-		}
-
-		U prev_capacity = capacity;
-		if (tight) {
-			capacity = p_size;
-		} else {
-			// Try 1.5x the current capacity.
-			// This ratio was chosen because it is close to the ideal growth rate of the golden ratio.
-			// See https://archive.ph/Z2R8w for details.
-			capacity = MAX((U)2, capacity + ((1 + capacity) >> 1));
-			// If 1.5x growth isn't enough, just use the needed size exactly.
-			if (p_size > capacity) {
-				capacity = p_size;
-			}
-		}
-		data = (T *)memrealloc(data, capacity * sizeof(T));
-		CRASH_COND_MSG(!data, "Out of memory");
-		memnew_arr_placement(data + prev_capacity, capacity - prev_capacity);
-	}
-	_FORCE_INLINE_ U resize(U p_size) {
-		if (p_size > capacity) {
-			reserve(p_size);
-		}
-		count = p_size;
-	}
-	_FORCE_INLINE_ const T &operator[](U idx) const {
-		CRASH_BAD_INDEX(idx, count);
-		return data[idx];
-	}
-	_FORCE_INLINE_ T &operator[](U idx) {
-		CRASH_BAD_INDEX(idx, count);
-		return data[idx];
-	}
-	_FORCE_INLINE_ void clear() {
-		count = 0;
-	}
-	_FORCE_INLINE_ void reset() {
-		if (!std::is_trivially_destructible_v<T>) {
-			for (U i = 0; i < capacity; i++) {
-				data[i].~T();
-			}
-		}
-		if (data) {
-			memfree(data);
-			data = nullptr;
-		}
-		capacity = 0;
-	}
-	template <typename Func, std::enable_if_t<std::is_invocable_v<Func, T &>> *_dummy = nullptr>
-	_FORCE_INLINE_ void push_back(Func &&p_initializer) {
-		if (count >= capacity) {
-			reserve(count + 1);
-		}
-		count++;
-		T &val = data[count - 1];
-		p_initializer(val);
-	}
-	template <typename Func, std::enable_if_t<std::is_invocable_v<Func, T &>> *_dummy = nullptr>
-	_FORCE_INLINE_ void insert(U p_at, Func &&p_initializer) {
-		if (count >= capacity) {
-			reserve(count + 1);
-		}
-
-		// 插入操作：
-		//	1. 将要被挤掉的最后一个的内存拷贝出来
-		uint8_t buff[sizeof(T)];
-		memcpy(buff, data + count, sizeof(T));
-
-		//	2. 从 at 开始整体向后移动 1 个（memcpy）
-		uint8_t *dest = (uint8_t *)(data + p_at + 1);
-		const uint8_t *src = (uint8_t *)(data + p_at);
-		const size_t bytes = (size() - p_at) * sizeof(T);
-		memmove(dest, src, bytes);
-
-		//	3. 将 1 拷贝出来的内存拷贝回 at 处，实现交换
-		memcpy((uint8_t *)(data + p_at), buff, sizeof(T));
-
-		count++;
-		p_initializer(data[p_at]);
-	}
-	template <typename _Placeholder = void>
-	_FORCE_INLINE_ void push_back(T &&p_val) {
-		push_back([&](T &v) { v = std::move(p_val); });
-	}
-	template <typename _Placeholder = void>
-	_FORCE_INLINE_ void push_back(const T &p_val) {
-		push_back([&](T &v) { v = p_val; });
-	}
-	template <typename _Placeholder = void>
-	_FORCE_INLINE_ void insert(U p_at, T &&p_val) {
-		insert(p_at, [&](T &v) { v = std::move(p_val); });
-	}
-	template <typename _Placeholder = void>
-	_FORCE_INLINE_ void insert(U p_at, const T &p_val) {
-		insert(p_at, [&](T &v) { v = p_val; });
-	}
-
-	_FORCE_INLINE_ T *begin() { return data; }
-	_FORCE_INLINE_ const T *begin() const { return data; }
-	_FORCE_INLINE_ const T *end() const { return data + size(); }
-};
-
-} //namespace internal
 
 class ArmatureDrawData {
 public:
@@ -249,7 +124,7 @@ public:
 		size_t n = layers.get_capacity_bytes();
 		for (uint32_t i = 0; i < layers.get_capacity(); i++) {
 			const Layer &layer = *(layers.ptr() + i);
-			n += sizeof(Data) * layer.get_capacity_bytes();
+			n += layer.get_capacity_bytes();
 		}
 		return n;
 	}
@@ -282,7 +157,6 @@ public:
 		});
 	}
 
-	// 帧结束：把各层 data 截到实际写入的条数（resize 保留缓冲），并丢弃空层。
 	_FORCE_INLINE_ void end_frame() {
 	}
 

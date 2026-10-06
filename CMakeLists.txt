@@ -39,6 +39,12 @@ if(WIN32 AND NOT DEFINED GODOTCPP_USE_STATIC_CPP)
 	set(GODOTCPP_USE_STATIC_CPP OFF CACHE BOOL "Link the C++ runtime statically")
 endif()
 
+# C++ 单元测试（doctest）。与 SCons 的 `tests=yes` 等价，二者共用 GDDB_TESTS_ENABLED 宏。
+# 默认关闭；开启时编译 tests/ 并让 register_types.cpp 响应 --gddb-run-tests。
+if(NOT DEFINED GODOT_DRAGONBONES_TESTS)
+	set(GODOT_DRAGONBONES_TESTS OFF CACHE BOOL "Build C++ unit tests (doctest)")
+endif()
+
 # ---------------------------------------------------------------------------
 # godot-cpp
 # ---------------------------------------------------------------------------
@@ -212,6 +218,14 @@ if(BUILD_SHARED)
 	add_library(${PROJECT_NAME} SHARED ${SOURCES} register_types.cpp ${HEADERS})
 else()
 	add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
+endif()
+
+# C++ 单元测试：与 SCons 的 tests=yes 等价（同一宏、同一源集合）。
+if(GODOT_DRAGONBONES_TESTS)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE GDDB_TESTS_ENABLED)
+	target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+	file(GLOB TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+	target_sources(${PROJECT_NAME} PRIVATE ${TEST_SOURCES})
 endif()
 
 target_include_directories(${PROJECT_NAME} SYSTEM
