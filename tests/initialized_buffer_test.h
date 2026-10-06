@@ -314,6 +314,12 @@ void check_death_case_traps(const char *p_name) {
 	const godot::String entered = godot::String("[gddb] death case: ") + p_name;
 	const godot::String did_not_trap = godot::String("[gddb] death case did NOT trap: ") + p_name;
 
+	// 失败时把实际看到的东西打出来，否则 CI 上无从定位（子进程输出不会进父进程日志）。
+	if (!out.contains(entered)) {
+		godot::UtilityFunctions::print("[gddb] death-case diag: name=", p_name, " rc=", rc,
+									   " output_entries=", output.size(), " captured=<<<", out, ">>>");
+	}
+
 	CHECK_MESSAGE(out.contains(entered), "child did not run the death case (output missing entry marker)");
 	CHECK_MESSAGE(!out.contains(did_not_trap), "death case returned instead of trapping");
 }

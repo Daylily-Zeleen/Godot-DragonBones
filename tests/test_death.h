@@ -145,9 +145,20 @@ inline int32_t spawn_death_case(const char *p_name, godot::Array *r_output = nul
 	// 子进程需要与父进程相同的工程路径（`--path res://` 不是合法工程路径）。
 	const godot::String project_dir = godot::ProjectSettings::get_singleton()->globalize_path("res://");
 
-	const godot::PackedStringArray args = {
-		"--path", project_dir, godot::String(DEATH_CASE_ARG_PREFIX) + p_name
-	};
+	godot::PackedStringArray args;
+	args.push_back("--path");
+	args.push_back(project_dir);
+
+	// 必须继承 headless：无显示设备的环境（CI）下子进程若尝试创建显示服务会直接失败退出，
+	// 扩展初始化（因而测试入口）根本不会执行，标记也就无从产生。
+	for (const godot::String &arg : godot::OS::get_singleton()->get_cmdline_args()) {
+		if (arg == "--headless") {
+			args.push_back("--headless");
+			break;
+		}
+	}
+
+	args.push_back(godot::String(DEATH_CASE_ARG_PREFIX) + p_name);
 
 	godot::Array output;
 	const int32_t rc = godot::OS::get_singleton()->execute(exe, args, output, true);
