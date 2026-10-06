@@ -226,3 +226,115 @@ PROBE R1 frame=N ok=1 bones=60 v=15744   （201 帧全部 ok=1，0 帧 ok=0）
 - 探针与临时 include 均已移除。
 
 `template_debug` / `template_release` 均构建通过。
+
+#### R3 追加：scratch thread_local 化 + 阈值释放
+
+**动机**：R3 的 `draw_data_cache` / `surface_pool` / `mesh_surfaces` 原是
+`DragonBonesArmatureView` 的**每实例成员**。但 `_draw()` 由 `CanvasItem` 驱动、同线程
+串行，一份缓冲即够；每实例成员意味着多 view 时各持一份同规模缓冲（纯内存浪费）。
+改为 **cpp 内 `static thread_local DrawScratch draw_scratch`**，与 R1 的
+`bone_scratch` 同一套做法（`thread_local` 而非裸 `static`，防跨线程触发 `_draw`
+时串数据）。
+
+**改动**：
+
+- `src/armature_view.h`：净删 `draw_data_cache` / `SurfaceData` / `surface_pool` /
+  `mesh_surfaces` / `used_meshes` 成员块（~121 行），头文件只剩 `LocalVector<RID> draw_meshes`。
+- `src/armature_view.cpp`：新增文件级 `struct DrawScratch`（含 `DrawData draw_data`、
+  内嵌 `SurfaceData`、`surface_pool`、`mesh_surfaces`、`used_meshes`、`get_capacity_bytes()`、
+  `try_reset()`）+ `static thread_local DrawScratch draw_scratch`。
+  `build_surfaces()` 由成员改为文件局部函数并前向声明，全部引用改 `draw_scratch.`，
+  lambda 捕获由 `[this]` 改 `[]`。
+- `src/mesh_display.h`：`DrawData` 加 `void reset() { layers.reset(); }`（因
+  `operator=` 被 delete，`draw_data = DrawData()` 不可用）。
+- `~DragonBonesArmatureView()` 开头 `draw_scratch.try_reset();`。
+
+**阈值释放**：`try_reset()` 阈值 `8u << 17` = 1 MiB，按 `surface_pool` 各数组
+`size()` 之和判定；超阈才 `reset` 全部缓冲，否则保留。理由同 R1：scratch 跨 view
+共享，单帧低利用率不代表该缩，否则多 view 交替绘制会退化成每帧反复分配/释放。
+
+**等价性验证**（thread_local 版）：
+
+- 真实 demo（`龙`，60 骨）：`PROBE EQ f=900 eq=1 meshes=1/1 v=435`，
+  逐元素比对 indices / vertices / uv / colors / texture / blend，900 帧全 `eq=1`。
+- 合成 3 分支（同 mesh 同 blend / 同 mesh 换 blend / 换 texture）：
+  `PROBE SYN meshes=2 surf=3`；`m0 s0 v=7 i=7 blend=0`（3+4 累积）、
+  `m0 s1 v=5 i=5 blend=1(ADD)`、`m1 s0 v=6 i=6 blend=0` —— 与 R3 原版验证结果逐项一致。
+
+**性能**（同进程 A/B）：
+
+| 版本 | `_draw` 耗时 |
+|---|---|
+| HEAD（无 R3） | 81.8 µs |
+| R3（每实例成员） | 76.5 µs（best） |
+| R3 + thread_local | avg 258~276 µs / static 对照 249~277 µs（同进程内无差异） |
+
+> 说明：`thread_local` 化**不改热路径**（仍是同一份 scratch 被复用），实测与
+> `static` 对照在噪声内持平（本机 `_draw` 抖动 ±20%，故用「跳前 200 帧后求均值」而非
+> best 作跨版本比较；R3 的 76.5 µs best 与本节均值不同基准，不可直接相减）。
+> **thread_local 化的收益是内存**（多 view 不再各持一份缓冲），不是单 view 性能。
+
+**性能修正（同进程交替 A/B，调试绘制关闭）**：先前「−6.5%」是**跨进程 best-of**、
+噪声主导，不可信。把 HEAD 的 `_draw` 与 R3 的 `_draw` 编进同一 DLL、逐帧交替执行、
+各累计 400 帧求均值：
+
+| 轮次 | HEAD（旧） | R3（新） | 降幅 |
+|---|---|---|---|
+| run1 | 256.2 µs | 217.9 µs | −15.0% |
+| run2 | 258.8 µs | 222.6 µs | −14.0% |
+| run3 | 242.6 µs | 197.6 µs | −18.5% |
+
+即 **−14~18%**（而非 −6.5%）。与 R1（−34%）的差异来自**可优化占比**：R1 的路径
+全是引擎外纯 C++（骨几何构建），几乎整体可优化；R3 的可优化部分只占约一半。
+
+**R3 剩余耗时分解**（新 `_draw` 各段，400 帧均值，步条 435 顶点 / 1 surface）：
+
+| 段 | 耗时 | 说明 |
+|---|---|---|
+| collect | ~35 µs | `append_draw_data` 取样条顶点/变换 |
+| build | ~12 µs | `build_surfaces`（R3 优化对象） |
+| clear | ~15 µs | `mesh_clear` × 1 |
+| arr 组装 | ~4 µs | `Array` 填 4 个元素 |
+| **addsurf** | **~67 µs** | `mesh_add_surface_from_arrays` |
+| `mesh_surface_set_material` | ~4 µs（干净时） | |
+| `canvas_item_add_mesh` | ~3 µs | |
+
+> 上表 `arr` + `addsurf` + `mat` + `canvas` 加总 ≈ 78 µs，比「旧 vs 新」A/B 差
+> （~40 µs）偏大：探针自带计时代价会放大各段（尤其 `mat` 在有额外探针时读到 18~27 µs，
+> 无探针时应为个位数）。比值可信，绝对值以 A/B 差为准。
+
+**addsurf 为何无法在扩展内规避（同格式缩放实验）**：用**同一格式**（VERTEX/COLOR/TEX_UV/
+INDEX）分别提交 435 顶点与 **43 顶点（1/10）**：
+
+| 顶点数 | addsurf |
+|---|---|
+| 435 | ~68 µs |
+| 43 | ~17.5 µs |
+
+差 51 µs / 差 392 顶点 ⇒ **约 130 ns/顶点**。说明这 67 µs 主体是**逐顶点的字节打包**
+（引擎 `RenderingServer::_surface_set_data` 把 `Packed*Array` 解成 `Vector<uint8_t>`：
+分配 3~4 个 `Vector<uint8_t>` + 每顶点 memcpy），只有约 10~17 µs 是定长固定开销。
+
+**因此真正的瓶颈不是「`Packed*Array` 跨界」，而是**：引擎 API 只接受 `Array`，并在内部
+把每个顶点重新打包成字节缓冲 —— 扩展这边无法绕过，除非改用完全不同的 API
+（`mesh_surface_get_format` / RD 直写，均不现实）。**放弃**「Packed 直写（取消 `Array`
+组装）」：`arr` 组装本身仅 ~4 µs，真正的 67 µs 全在引擎内部，改扩展侧无用。
+
+这解释了 R3 天花板：可优化的（build 12 + clear 15 ≈ 27 µs）对比不可优化的引擎内
+（addsurf 67 ≈ 全是逐顶点打包）与必要采集（collect 35），故只有十几到二十个百分点。
+
+`template_debug` / `template_release` 均构建通过；探针与 `<chrono>` / `<vector>` /
+`<tuple>` 临时 include 已移除（`grep -c "PROBE\|chrono"` 为 0）；冒烟运行无新增错误/
+断言；`demo/` 未触碰。
+
+### R3 追加二 — `DrawData` 抽独立头文件并改名 `ArmatureDrawData`
+
+`DrawData` 已具规模（~100 行，独立于 `Display` 体系），从 `src/mesh_display.h` 抽出为
+**`src/armature_draw_data.h`**（自带 include：`canvas_item_material` / `local_vector` /
+各 `packed_*_array` / `rid` / `transform2d`），并全局改名 `DrawData` → `ArmatureDrawData`
+（6 个文件）。`mesh_display.h` 改为 `#include "armature_draw_data.h"`。
+
+改名动机：`DrawData` 过于泛化，且与 `DebugDraw` 的 `DebugDrawData` 之类易混；
+`ArmatureDrawData` 指明其语义为「一个 armature 的绘制命令集」。
+
+`template_debug` / `template_release` 均构建通过；冒烟无回归。
