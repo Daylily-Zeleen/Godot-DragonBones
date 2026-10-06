@@ -89,7 +89,7 @@ void DragonBonesMeshDisplay::append_draw_data(ArmatureDrawData &r_data, const Tr
 	}
 
 	r_data.add_data(slot->_zOrder, p_base_transfrom * transform,
-					vertices, indices, colors, vertices_uv,
+					&vertices, &indices, &colors, &vertices_uv,
 					texture_rid, slot->blend_mode
 #ifdef DEBUG_ENABLED
 					,

@@ -256,22 +256,23 @@ public:
 
 	_FORCE_INLINE_ void begin_frame() { layers.clear(); }
 
-	// 追加一条绘制命令。复用已有槽位就地覆写；仅当本帧条目多于上帧时才增长。
+	/** NOTE: 这里假定传入的 LocalVector 指针在这次绘制过程中不会变为悬垂指针  */
 	_FORCE_INLINE_ void add_data(int p_z_order, const Transform2D &p_transform,
-								 const LocalVector<Vector2> &p_vertices, const LocalVector<int32_t> &p_indices,
-								 const LocalVector<Color> &p_colors, const LocalVector<Vector2> &p_vertices_uv,
+								 const LocalVector<Vector2> *p_vertices, const LocalVector<int32_t> *p_indices,
+								 const LocalVector<Color> *p_colors, const LocalVector<Vector2> *p_vertices_uv,
 								 int64_t p_texture_rid, CanvasItemMaterial::BlendMode p_blend_mode
 #ifdef DEBUG_ENABLED
 								 ,
 								 const Color &p_debug_color
 #endif // DEBUG_ENABLED
 	) {
+		DEV_ASSERT(p_vertices && p_indices && p_colors && p_vertices_uv);
 		get_or_create_layer(p_z_order).push_back({
 				p_transform,
-				&p_vertices,
-				&p_indices,
-				&p_colors,
-				&p_vertices_uv,
+				p_vertices,
+				p_indices,
+				p_colors,
+				p_vertices_uv,
 				p_texture_rid,
 				p_blend_mode,
 				p_z_order,
