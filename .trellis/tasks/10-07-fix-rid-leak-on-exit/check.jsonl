@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/gdextension/memory-and-lifetime.md", "reason": "核查静态 Ref<>/RID 的释放时机是否在 RenderingServer 存活期内"}
+{"file": ".trellis/spec/build/ci-and-release.md", "reason": "核查 CI 检查步骤是否正确取回退出码、失败是否中止后续"}

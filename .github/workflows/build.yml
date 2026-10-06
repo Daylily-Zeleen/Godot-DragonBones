@@ -116,6 +116,54 @@ jobs:
                   grep -q "\[doctest\] Status: SUCCESS!" tests-output.log
                   exit "$rc"
 
+            # 单元测试入口以 std::exit() 结束进程，走不到引擎的正常关闭路径，
+            # 因此退出期的资源泄露/析构错误只能在**正常退出**的运行里观察到。
+            # 这里以编辑器模式启动再退出：编辑器会枚举检查器属性，从而触发调试绘制
+            # 相关材质的惰性创建（正是泄露所在），Dummy 驱动即可复现，无需 GPU。
+            - name: Check for exit-time resource leaks and crashes
+              shell: bash
+              timeout-minutes: 3
+              run: |
+                  set -uo pipefail
+                  # 注意：引擎在此类错误上**退出码仍为 0**，必须靠扫描输出判定。
+                  "$GODOT" --headless --editor --path demo --quit-after 120 >exit-check.log 2>&1
+                  runner_rc=$?
+                  echo "--- runner exit=$runner_rc ---"
+                  cat exit-check.log
+
+                  fail=0
+
+                  # 引擎在这类泄露上退出码仍为 0，故不能只依赖它；但非 0 一定是问题。
+                  if [ "$runner_rc" -ne 0 ]; then
+                      echo "::error::引擎以非零码退出（$runner_rc）"
+                      fail=1
+                  fi
+
+                  # 防假绿：确认引擎确实起来并跑到了退出期。
+                  if ! grep -q "Godot Engine v" exit-check.log; then
+                      echo "::error::未检测到引擎启动输出，检查未真正执行"
+                      fail=1
+                  fi
+
+                  # 全量扫描 ERROR：资源泄露（"leaked at exit"）、
+                  # RenderingServer 已销毁后的析构等都会以 ERROR 打印。
+                  if grep -n "ERROR:" exit-check.log; then
+                      echo "::error::检测到引擎 ERROR（含资源泄露/析构错误），详见上方日志"
+                      fail=1
+                  fi
+
+                  # 异常崩溃。
+                  if grep -nE "CrashHandlerException|Program crashed|signal [0-9]+" exit-check.log; then
+                      echo "::error::检测到异常崩溃"
+                      fail=1
+                  fi
+
+                  if [ "$fail" -ne 0 ]; then
+                      echo "退出期检查失败：存在资源泄露或异常崩溃。"
+                      exit 1
+                  fi
+                  echo "退出期检查通过：无 ERROR、无崩溃。"
+
     build:
         runs-on: ${{ matrix.runner }}
         name: ${{ matrix.name }}
