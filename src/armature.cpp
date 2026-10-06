@@ -254,7 +254,10 @@ void DragonBonesArmature::set_current_animation(const String &p_animation) {
 		play(p_animation, armature_view->get_animation_loop_count());
 	} else {
 		// 相同动画，无需响应
+		return;
 	}
+
+	queue_redraw();
 }
 
 String DragonBonesArmature::get_current_animation() const {
@@ -331,6 +334,8 @@ void DragonBonesArmature::seek_animation(const String &p_animation_name, float p
 	}
 
 	state->setCurrentTime(current_progress * state->getTotalTime());
+
+	queue_redraw();
 }
 
 bool DragonBonesArmature::is_playing() const {
@@ -466,7 +471,13 @@ Ref<Texture2D> DragonBonesArmature::get_texture_override() const {
 }
 
 void DragonBonesArmature::set_texture_override(const Ref<Texture2D> &p_texture_override) {
+	if (texture_override == p_texture_override) {
+		return;
+	}
+
 	texture_override = p_texture_override;
+
+	queue_redraw();
 }
 
 ConstraintsDictionary DragonBonesArmature::get_ik_constraints() {
@@ -724,11 +735,6 @@ bool DragonBonesArmatureProxy::_set(const StringName &p_name, const Variant &p_v
 	for (const auto &prop_info : armature_property_list) {
 		if (prop_info.name == p_name) {
 			armature->set(p_name, p_val);
-			if (prop_info.name.ends_with("modulate")) {
-				armature->queue_redraw();
-			} else {
-				notify_property_list_changed();
-			}
 			return true;
 		}
 	}
