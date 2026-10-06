@@ -68,15 +68,9 @@ public:
 	_FORCE_INLINE_ bool has_flag(Flag p_flag) const { return draw_flags & p_flag; }
 
 	// 只能在 CanvasItem::_draw 阶段调用。
-	void draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data);
-
-	// TODO: 是否会有在运行时替换嵌套的 Armature 的情况？有的话也需要调用清除
-	void clear_cache();
+	void draw(DragonBonesArmature *p_root_armature, const ArmatureDrawData &p_draw_data);
 
 private:
-	LocalVector<StringName> ik_targets;
-	LocalVector<StringName> ik_driven;
-
 	CanvasItem *owner;
 
 	// 线框专用网格：直接画在 owner 自身画布项上，不挂材质。
@@ -87,13 +81,10 @@ private:
 	// 延迟到 _draw() 里创建（属性设置阶段可能尚未入树）。
 	RID canvas_bones;
 
-	// 骨骼网格：画在 canvas_bones 上，由那里挂的材质做描边。
+	// 骨骼网格：单次提交、画在 canvas_bones 上，由那里挂的材质做描边与填充。
 	RID mesh_bones;
 
 	uint8_t draw_flags{ DRAW_MESH | DRAW_BONE | DRAW_BONE_NAME };
-
-	bool cached = false;
-	void cache_ik_bones(DragonBonesArmature *p_armature);
 };
 
 #endif // DEBUG_ENABLED

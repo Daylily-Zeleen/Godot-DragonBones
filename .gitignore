@@ -18,6 +18,10 @@ project/
 
 # Cmake
 build/
+# .trellis/spec/build/ 是规格文档目录，与 CMake 的 build/ 同名；上面的 build/ 会把它一并忽略，
+# 导致该层 spec 从未入库。用反转规则只放行这一路径。
+!.trellis/spec/build/
+!.trellis/spec/build/**
 
 # scons
 bin/

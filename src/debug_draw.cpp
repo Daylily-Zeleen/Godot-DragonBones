@@ -105,6 +105,14 @@ uniform vec4 outline_color_ik : source_color = vec4(1.0, 0.6, 0.1, 0.8);
 
 const float outline_px = %.2f;
 
+// 填充色来自 ARRAY_CUSTOM0（RGBA8），不是 ARRAY_COLOR：
+// mesh 的 ARRAY_COLOR 必须是 R32G32B32A32_SFLOAT（16 B/顶点）且不支持广播，
+// 而自定义通道允许 RGBA8（4 B/顶点）。canvas 的片元着色器读不到 CUSTOM0，
+// 故在顶点阶段把它转交给 COLOR，由光栅化插值给片元（顶点色逐顶点相同，插值无影响）。
+void vertex() {
+	COLOR = CUSTOM0;
+}
+
 void fragment() {
 	// UV = (横向偏移, 半宽)，故 d = |半宽| - |偏移|：轮廓处 0，内侧为正。
 	float d = abs(UV.y) - abs(UV.x);        
@@ -163,10 +171,13 @@ Color rim_color(const Color &p_body) {
 struct DebugDrawGeometry {
 	// 顶点。
 	LocalVector<Vector2> vertices;
-	LocalVector<Color> colors;
+	// 逐顶点颜色，打包成 RGBA8（每分量 1 字节），提交时走 ARRAY_CUSTOM0。
+	// mesh 的 ARRAY_COLOR 必须是 R32G32B32A32_SFLOAT（16 B/顶点）且不支持广播，
+	// 故改用 ARRAY_CUSTOM0 的 RGBA8 格式：内存 1/4，且仍是单次提交、绘制顺序不变。
+	LocalVector<uint32_t> colors;
 	LocalVector<int32_t> indices;
 
-	// 逐顶点轮廓编码，提交时写进 ARRAY_TEX_UV。
+	// 轮廓编码 UV=(到中线横向偏移, ±半宽) 见 get_bone_material 的说明。
 	LocalVector<Vector2> vertex_uv;
 
 	// UV.y 的符号：-1 表示该骨受 IK 约束，描边改用橙色。
@@ -174,10 +185,35 @@ struct DebugDrawGeometry {
 
 	_FORCE_INLINE_ bool is_empty() const { return indices.is_empty(); }
 
+	_FORCE_INLINE_ void clear() {
+		vertices.clear();
+		colors.clear();
+		indices.clear();
+		vertex_uv.clear();
+	}
+
+	_FORCE_INLINE_ void reset() {
+		vertices.reset();
+		colors.reset();
+		indices.reset();
+		vertex_uv.reset();
+	}
+
+	// 已分配的容量字节数
+	_FORCE_INLINE_ size_t get_capacity_bytes() const {
+		return vertices.get_capacity() * sizeof(Vector2) +
+				vertex_uv.get_capacity() * sizeof(Vector2) +
+				colors.get_capacity() * sizeof(uint32_t) +
+				indices.get_capacity() * sizeof(int32_t);
+	}
+
 	// ---- 写入底座 ----
+	// 颜色以 RGBA8 打包好的 uint32_t 传入（由调用方用 Color::to_abgr32() 算好），
+	// 这里只做写入，不再做任何颜色转换。
 
 	_FORCE_INLINE_ void body_tri(const Vector2 &a, const Vector2 &b, const Vector2 &c,
-								 const Vector2 &p_uv_a, const Vector2 &p_uv_b, const Vector2 &p_uv_c, const Color &p_color) {
+								 const Vector2 &p_uv_a, const Vector2 &p_uv_b, const Vector2 &p_uv_c,
+								 uint32_t p_rgba8_color) {
 		const int32_t base = vertices.size();
 		// 统一绕序。
 		const bool flip = (b - a).cross(c - a) < 0.0f;
@@ -187,39 +223,51 @@ struct DebugDrawGeometry {
 		vertex_uv.push_back(flip ? Vector2(p_uv_c.x, p_uv_c.y * uv_sign) : Vector2(p_uv_b.x, p_uv_b.y * uv_sign));
 		vertices.push_back(flip ? b : c);
 		vertex_uv.push_back(flip ? Vector2(p_uv_b.x, p_uv_b.y * uv_sign) : Vector2(p_uv_c.x, p_uv_c.y * uv_sign));
-		colors.push_back(p_color);
-		colors.push_back(p_color);
-		colors.push_back(p_color);
+		colors.push_back(p_rgba8_color);
+		colors.push_back(p_rgba8_color);
+		colors.push_back(p_rgba8_color);
 		indices.push_back(base);
 		indices.push_back(base + 1);
 		indices.push_back(base + 2);
 	}
 
 	_FORCE_INLINE_ void body_quad(const Vector2 &a, const Vector2 &b, const Vector2 &c, const Vector2 &d,
-								  const Vector2 &p_uv_a, const Vector2 &p_uv_b, const Vector2 &p_uv_c, const Vector2 &p_uv_d, const Color &p_color) {
-		body_tri(a, b, c, p_uv_a, p_uv_b, p_uv_c, p_color);
-		body_tri(a, c, d, p_uv_a, p_uv_c, p_uv_d, p_color);
+								  const Vector2 &p_uv_a, const Vector2 &p_uv_b, const Vector2 &p_uv_c, const Vector2 &p_uv_d,
+								  uint32_t p_rgba8_color) {
+		body_tri(a, b, c, p_uv_a, p_uv_b, p_uv_c, p_rgba8_color);
+		body_tri(a, c, d, p_uv_a, p_uv_c, p_uv_d, p_rgba8_color);
 	}
 
 public:
+	// 圆环 / 圆盘用的单位圆采样点（DISC_SEGMENTS + 1 个，末点即首点，省去取模）。
+	// 这些角度只取决于段号、与骨骼数据无关，故整表只算一次。
+	// 用与原先逐帧调用时完全相同的表达式计算，保证顶点值与优化前逐 bit 一致。
+	const inline static struct DiscUnitCircle {
+		Vector2 pts[DISC_SEGMENTS + 1];
+		DiscUnitCircle() {
+			for (int i = 0; i <= DISC_SEGMENTS; ++i) {
+				const float a = TAU_F * float(i) / float(DISC_SEGMENTS);
+				pts[i] = Vector2(cos(a), sin(a));
+			}
+		}
+	} disc_unit_circle;
+
 	// ---- 填充 ----
 
-	void body_circle(const Vector2 &p_c, float p_r, const Color &p_color) {
+	void body_circle(const Vector2 &p_c, float p_r, uint32_t p_rgba8_color) {
 		// 实心圆盘不自带描边：所有顶点 UV 相同 → d 恒定 → 片元判定为纯填充。
 		const Vector2 uv(0.0f, p_r);
 		for (int i = 0; i < DISC_SEGMENTS; ++i) {
-			const float a0 = TAU_F * float(i) / float(DISC_SEGMENTS);
-			const float a1 = TAU_F * float(i + 1) / float(DISC_SEGMENTS);
-			const Vector2 p0 = p_c + Vector2(cos(a0), sin(a0)) * p_r;
-			const Vector2 p1 = p_c + Vector2(cos(a1), sin(a1)) * p_r;
-			body_tri(p_c, p0, p1, uv, uv, uv, p_color);
+			const Vector2 p0 = p_c + disc_unit_circle.pts[i] * p_r;
+			const Vector2 p1 = p_c + disc_unit_circle.pts[i + 1] * p_r;
+			body_tri(p_c, p0, p1, uv, uv, uv, p_rgba8_color);
 		}
 	}
 
-	void body_annulus(const Vector2 &p_c, float p_outer, float p_inner, const Color &p_color) {
+	void body_annulus(const Vector2 &p_c, float p_outer, float p_inner, uint32_t p_rgba8_color) {
 		// 内半径塌缩时不能构造：负半径会把点镜像到对侧，四边形退化成贯穿整个圆的长刺。
 		if (p_inner <= 0.0f) {
-			body_circle(p_c, p_outer, p_color);
+			body_circle(p_c, p_outer, p_rgba8_color);
 			return;
 		}
 
@@ -231,18 +279,16 @@ public:
 		const Vector2 uv_outer(hw, hw);
 		const Vector2 uv_inner(-hw, hw);
 		for (int i = 0; i < DISC_SEGMENTS; ++i) {
-			const float a0 = TAU_F * float(i) / float(DISC_SEGMENTS);
-			const float a1 = TAU_F * float(i + 1) / float(DISC_SEGMENTS);
-			const Vector2 d0(cos(a0), sin(a0));
-			const Vector2 d1(cos(a1), sin(a1));
+			const Vector2 d0 = disc_unit_circle.pts[i];
+			const Vector2 d1 = disc_unit_circle.pts[i + 1];
 			// UV.x = 到中线的偏移：外沿 +hw、内沿 -hw，两侧 |offset| 都等于 hw，
 			// 于是 d = hw - |offset| = 0，外沿与内沿同时被描边。
 			body_quad(p_c + d0 * p_inner, p_c + d0 * p_outer, p_c + d1 * p_outer, p_c + d1 * p_inner,
-					  uv_inner, uv_outer, uv_outer, uv_inner, p_color);
+					  uv_inner, uv_outer, uv_outer, uv_inner, p_rgba8_color);
 		}
 	}
 
-	void body_segment(const Vector2 &p_a, const Vector2 &p_b, float p_width, const Color &p_color) {
+	void body_segment(const Vector2 &p_a, const Vector2 &p_b, float p_width, uint32_t p_rgba8_color) {
 		const Vector2 axis = p_b - p_a;
 		const float len = axis.length();
 		if (len <= 0.0f) {
@@ -259,16 +305,16 @@ public:
 		const Vector2 uv_side_a(hw, hw);
 		const Vector2 uv_side_b(-hw, hw);
 		body_quad(p_a + n, p_b + n, p_b - n, p_a - n,
-				  uv_side_a, uv_side_a, uv_side_b, uv_side_b, p_color);
+				  uv_side_a, uv_side_a, uv_side_b, uv_side_b, p_rgba8_color);
 		// 两端半圆帽。
-		body_cap(p_a, n, p_color);
-		body_cap(p_b, -n, p_color);
+		body_cap(p_a, n, p_rgba8_color);
+		body_cap(p_b, -n, p_rgba8_color);
 	}
 
 	// 线段端, 以 p_end 为心、半径 = |n|、按 p_n 指向扫半圈。
 	// UV.x 也取 radius：沿半径方向 |offset| 从 0（圆心）变到 radius（弧），
 	// 弧上 d = radius - radius = 0 被描边；圆心处 d = radius ≠ 0，只填充。
-	void body_cap(const Vector2 &p_end, const Vector2 &p_n, const Color &p_color) {
+	void body_cap(const Vector2 &p_end, const Vector2 &p_n, uint32_t p_rgba8_color) {
 		constexpr float rad_per_seg = PI_F / float(CAP_SEGMENTS);
 
 		const float radius = p_n.length();
@@ -276,15 +322,19 @@ public:
 
 		const Vector2 uv_c(0.0f, radius);
 		const Vector2 uv_arc(radius, radius);
+		// a1(i) 与 a0(i+1) 是同一个角度表达式，故逐段的终点可直接作为下一段的起点复用，
+		// 每段只需 1 次 (cos, sin)，而不是 2 次；数值与逐个重算完全相同。
+		Vector2 cur = Vector2(cos(begin_angle), sin(begin_angle));
 		for (int i = 0; i < CAP_SEGMENTS; ++i) {
-			const float a0 = begin_angle + rad_per_seg * i;
 			const float a1 = begin_angle + rad_per_seg * (i + 1);
-			body_tri(p_end, p_end + Vector2(cos(a0), sin(a0)) * radius, p_end + Vector2(cos(a1), sin(a1)) * radius,
-					 uv_c, uv_arc, uv_arc, p_color);
+			const Vector2 next(cos(a1), sin(a1));
+			body_tri(p_end, p_end + cur * radius, p_end + next * radius,
+					 uv_c, uv_arc, uv_arc, p_rgba8_color);
+			cur = next;
 		}
 	}
 
-	void body_kite(const Vector2 &p_head, const Vector2 &p_dir, const Vector2 &p_perp, const float p_length, const float p_wide_half, const float p_tip_half, const Color &p_color) {
+	void body_kite(const Vector2 &p_head, const Vector2 &p_dir, const Vector2 &p_perp, const float p_length, const float p_wide_half, const float p_tip_half, uint32_t p_rgba8_color) {
 		const float spring_ofs = p_wide_half * KITE_SPRINT_AT;
 		const Vector2 spring_pos = p_head + p_dir * spring_ofs;
 		const Vector2 tip_pos = p_head + p_dir * p_length;
@@ -308,11 +358,86 @@ public:
 		const Vector2 uv_ta(0.0f, 0.0f);
 		const Vector2 uv_tb(-p_tip_half, p_tip_half);
 
-		body_tri(p_head, spring_a, spring_b, uv_h, uv_sa, uv_sb, p_color);
-		body_tri(spring_a, tip_a, tip_b, uv_sa, uv_ta, uv_tb, p_color);
-		body_tri(spring_a, tip_b, spring_b, uv_sa, uv_tb, uv_sb, p_color);
+		body_tri(p_head, spring_a, spring_b, uv_h, uv_sa, uv_sb, p_rgba8_color);
+		body_tri(spring_a, tip_a, tip_b, uv_sa, uv_ta, uv_tb, p_rgba8_color);
+		body_tri(spring_a, tip_b, spring_b, uv_sa, uv_tb, uv_sb, p_rgba8_color);
 	}
 };
+
+// ---------------------------------------------------------------------------
+// 逐帧复用的 scratch 缓冲。
+//
+// 之所以是 static thread_local 而不是 DebugDraw 的成员：绘制由 CanvasItem::_draw()
+// 驱动，同一线程内串行执行，一份缓冲足够；作为成员会让每个 DragonBonesArmatureView
+// 各持一份同样大小的缓冲，纯属浪费。
+// 用 thread_local 而非裸 static：万一某平台在不同线程触发 _draw，也不会串数据。
+//
+// clear() 只置 size=0、保留已分配容量，故稳态下零分配。
+// ---------------------------------------------------------------------------
+static thread_local struct {
+	LocalVector<DebugBone> bones;
+	DebugDrawGeometry geometry;
+
+	// IK 归属：只反映「当前正在遍历的那个 armature」的约束，每进入一个 armature
+	// 即清空重填，遍历结束即失效。
+	LocalVector<StringName> ik_targets;
+	LocalVector<StringName> ik_driven;
+
+	_FORCE_INLINE_ void clear_bones() {
+		bones.clear();
+		geometry.clear();
+	}
+	_FORCE_INLINE_ void clear_ik() {
+		ik_targets.clear();
+		ik_driven.clear();
+	}
+	// 全部 scratch 缓冲当前占用的容量字节数（含骨骼清单与 IK 名字表）。
+	_FORCE_INLINE_ size_t get_capacity_bytes() {
+		return bones.get_capacity() * sizeof(DebugBone) +
+				ik_targets.get_capacity() * sizeof(StringName) +
+				ik_driven.get_capacity() * sizeof(StringName) +
+				geometry.get_capacity_bytes();
+	}
+
+	void try_reset() {
+		// 缓冲总容量超过此值才考虑释放：8 * 2^17 == 1 MiB（1048576 B）。
+		// 实测单根骨骼几何约 9482 B，故 1 MiB ≈ 110 根骨骼；低于此值的骨架永不被回收，
+		// 避免正常项目反复分配。阈值按「全部缓冲容量之和」计，不假定骨架复杂度。
+		constexpr size_t RELEASE_THRESHOLD_BYTES = 8u << 17;
+
+		if (get_capacity_bytes() <= RELEASE_THRESHOLD_BYTES) {
+			return;
+		}
+
+		bones.reset();
+		geometry.reset();
+		ik_targets.reset();
+		ik_driven.reset();
+	}
+} bone_scratch;
+
+// 就地收集某个 armature 自己作用域内的 IK 约束，写入 r_targets / r_driven。
+// 必须在遍历该 armature 的骨骼之前调用，且只反映该 armature 的约束。
+// _constraints 里的 _target/_root/_bone 已是本 armature 内解析好的 Bone*，
+// 取它们的 name 即为本 armature 的骨骼名，天然限定在正确的作用域内。
+void collect_ik_of_armature(DragonBonesArmature *p_armature,
+							LocalVector<StringName> &r_targets,
+							LocalVector<StringName> &r_driven) {
+	for (const dragonBones::Constraint *constraint : p_armature->getArmature()->_constraints) {
+		if (constraint == nullptr || constraint->_constraintData == nullptr) {
+			continue;
+		}
+		if (constraint->_constraintData->target != nullptr) {
+			r_targets.push_back(StringName(to_gd_str(constraint->_constraintData->target->name)));
+		}
+		if (constraint->_constraintData->root != nullptr) {
+			r_driven.push_back(StringName(to_gd_str(constraint->_constraintData->root->name)));
+		}
+		if (constraint->_constraintData->bone != nullptr) {
+			r_driven.push_back(StringName(to_gd_str(constraint->_constraintData->bone->name)));
+		}
+	}
+}
 
 } //namespace
 
@@ -333,23 +458,26 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 	// ------------------------------------------------------------------
 	const bool has_kite = p_bone.length > PREFER_KITE_LENGTH_RATIO * radius;
 	const Color body_color = is_ik_target ? p_props.color_ik_target : p_props.color_bone;
+	// 用 to_abgr32()（= 0xAABBGGRR，小端内存字节序为 R,G,B,A）：
+	// ARRAY_CUSTOM0 的 RGBA8_UNORM 对应 DATA_FORMAT_R8G8B8A8_UNORM，按 byte0=R 读取。
+	const uint32_t body_rgba8 = body_color.to_abgr32();
 
 	if (has_kite) {
 		const Vector2 head = center + dir * radius;
 		const float kite_length = p_bone.length - radius;
 		const float width_half = radius * KITE_HALF_WIDTH;
 		const float tip_half = radius * KITE_TIP_HALF;
-		r_geometry.body_kite(head, dir, perp, kite_length, width_half, tip_half, body_color);
+		r_geometry.body_kite(head, dir, perp, kite_length, width_half, tip_half, body_rgba8);
 	}
 
 	const float ring_w = radius * (is_ik_target ? IK_RING_W : PLAIN_RING_W);
 	const float ring_outer = radius + ring_w * 0.5;
 	const float ring_inner = radius - ring_w * 0.5;
-	r_geometry.body_annulus(center, ring_outer, ring_inner, body_color);
+	r_geometry.body_annulus(center, ring_outer, ring_inner, body_rgba8);
 
 	if (is_ik_target) {
 		// 粗环内部的低不透明度深色圆盘。
-		r_geometry.body_circle(center, ring_inner, faded(body_color, IK_DISC_ALPHA));
+		r_geometry.body_circle(center, ring_inner, faded(body_color, IK_DISC_ALPHA).to_abgr32());
 	}
 
 	// ------------------------------------------------------------------
@@ -362,14 +490,14 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 		const float arm_in = radius * 0.6f;
 
 		const float spoke_to = has_kite ? (radius - spoke_w * 0.5f) : (MAX(p_bone.length, arm_out));
-		r_geometry.body_segment(center, center + dir * spoke_to, spoke_w, body_color);
+		r_geometry.body_segment(center, center + dir * spoke_to, spoke_w, body_rgba8);
 
-		r_geometry.body_segment(center - perp * arm_out, center - perp * arm_in, spoke_w, body_color);
-		r_geometry.body_segment(center + perp * arm_out, center + perp * arm_in, spoke_w, body_color);
-		r_geometry.body_segment(center - dir * arm_out, center - dir * arm_in, spoke_w, body_color);
+		r_geometry.body_segment(center - perp * arm_out, center - perp * arm_in, spoke_w, body_rgba8);
+		r_geometry.body_segment(center + perp * arm_out, center + perp * arm_in, spoke_w, body_rgba8);
+		r_geometry.body_segment(center - dir * arm_out, center - dir * arm_in, spoke_w, body_rgba8);
 	} else {
 		const float spoke_to = has_kite ? (radius - spoke_w * 0.5f) : (MAX(p_bone.length, radius - spoke_w * 0.5f));
-		r_geometry.body_segment(center, center + dir * spoke_to, spoke_w, body_color);
+		r_geometry.body_segment(center, center + dir * spoke_to, spoke_w, body_rgba8);
 	}
 }
 
@@ -402,6 +530,14 @@ PackedArray to_packed_array(const LocalVector<Elem> &p_points) {
 	return out;
 }
 
+// 把 RGBA8（每项 4 字节，字节序 R,G,B,A）展开成 PackedByteArray，供 ARRAY_CUSTOM0 使用。
+PackedByteArray to_packed_byte_array_rgba8(const LocalVector<uint32_t> &p_rgba8_colors) {
+	PackedByteArray out;
+	out.resize(p_rgba8_colors.size() * 4);
+	memcpy((uint8_t *)out.ptrw(), (uint8_t *)p_rgba8_colors.ptr(), p_rgba8_colors.size() * sizeof(uint32_t));
+	return out;
+}
+
 void DebugDraw::set_color_ik_bone_outline(const Color &p_color) {
 	get_bone_material()->set_shader_parameter("outline_color_ik", p_color);
 }
@@ -410,6 +546,12 @@ Color DebugDraw::get_color_ik_bone_outline() {
 }
 
 DebugDraw::~DebugDraw() {
+	// 调试开着却被直接析构（view 出树/销毁）也要尝试回收：此时不会再有人复用 scratch。
+	// 内部按阈值门控，未超阈值则保留（其它 view 可能仍在用同一份 thread_local）。
+	if (is_enabled()) {
+		bone_scratch.try_reset();
+	}
+
 	const auto RS = RenderingServer::get_singleton();
 	if (canvas_bones.is_valid()) {
 		RS->free_rid(canvas_bones);
@@ -432,6 +574,8 @@ void DebugDraw::set_enabled(bool p_enabled) {
 			mesh_bones = RS->mesh_create();
 		}
 	} else {
+		bone_scratch.try_reset();
+
 		// 画布项也一并释放：重新启用时会在 draw() 里按当前画布重建。
 		if (canvas_bones.is_valid()) {
 			RS->free_rid(canvas_bones);
@@ -448,7 +592,7 @@ void DebugDraw::set_enabled(bool p_enabled) {
 	}
 }
 
-void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_draw_data) {
+void DebugDraw::draw(DragonBonesArmature *p_root_armature, const ArmatureDrawData &p_draw_data) {
 	ERR_FAIL_NULL(p_root_armature);
 
 	const auto RS = RenderingServer::get_singleton();
@@ -464,15 +608,15 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 		PackedVector2Array debug_vertices;
 		PackedColorArray debug_colors;
 
-		for (const DrawData::Layer &layer : p_draw_data) {
-			for (const auto &data : layer.data) {
+		for (const ArmatureDrawData::Layer &layer : p_draw_data) {
+			for (const auto &data : layer.get_data()) {
 				auto base_index = debug_vertices.size();
 				auto insert_begin_index = debug_mesh_indices.size();
-				auto data_indices_count = data.indices.size();
+				auto data_indices_count = data.indices->size();
 
 				debug_mesh_indices.resize(debug_mesh_indices.size() + data_indices_count);
 				auto idx_ptrw = debug_mesh_indices.ptrw() + insert_begin_index;
-				auto src_ptr = data.indices.ptr();
+				auto src_ptr = data.indices->ptr();
 
 				while (data_indices_count > 0) {
 					*idx_ptrw = *src_ptr + base_index;
@@ -481,10 +625,19 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 					--data_indices_count;
 				}
 
-				debug_vertices.append_array(data.transform.xform(data.vertices));
+				{
+					const uint32_t base_idx = debug_vertices.size();
+					const uint32_t data_size = data.vertices->size();
+					debug_vertices.resize(debug_vertices.size() + data_size);
+					Vector2 *dest_ptr = debug_vertices.ptrw();
+					const Vector2 *src_ptr = data.vertices->ptr();
+					for (int32_t i = 0; i < data_size; ++i) {
+						dest_ptr[base_idx + i] = data.transform.xform(src_ptr[i]);
+					}
+				}
 
 				PackedColorArray colors;
-				colors.resize(data.vertices.size());
+				colors.resize(data.vertices->size());
 				colors.fill(data.debug_color);
 				debug_colors.append_array(colors);
 			}
@@ -519,14 +672,18 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 	// ---- 骨骼 ----
 	// 描边和填充放进同一个表面，填充在后，于是每个形状盖住自己的内侧描边。
 	if (draw_flags & (DRAW_BONE | DRAW_BONE_NAME)) {
-		if (!cached) {
-			cache_ik_bones(p_root_armature);
-		}
-
-		LocalVector<DebugBone> bone_data; // TODO: 是否作为成员变量进行缓存比较好？
+		// 复用 thread_local scratch：clear 只置 size=0、保留容量，稳态零分配。
+		bone_scratch.clear_bones();
+		LocalVector<DebugBone> &bone_data = bone_scratch.bones;
 
 		Transform2D global_transform{};
-		p_root_armature->for_each_armature_recursively([&global_transform, &ik_targets = ik_targets, &ik_driven = ik_driven, &bone_data](DragonBonesArmature *p_armature, int) {
+		p_root_armature->for_each_armature_recursively([&global_transform, &bone_data](DragonBonesArmature *p_armature, int) {
+			// IK 归属必须是「该骨骼所属 armature」作用域内的判定：不同嵌套 armature 的骨骼
+			// 可以重名，若把全部 armature 的约束汇总成一份名字表，A 里的 IK 骨会误标 B 里的
+			// 同名普通骨。故每进入一个 armature 就重新收集它自己的约束（复用同一份容量）。
+			bone_scratch.clear_ik();
+			collect_ik_of_armature(p_armature, bone_scratch.ik_targets, bone_scratch.ik_driven);
+
 			global_transform = global_transform * p_armature->transform;
 			for (const auto &[bone_name, bone] : p_armature->get_bones()) {
 				if (!bone.is_valid()) {
@@ -543,9 +700,9 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 				const float length = bone->get_length();
 
 				DebugBone::Kind kind = DebugBone::KIND_PLAIN;
-				if (ik_targets.has(bone_name)) {
+				if (bone_scratch.ik_targets.has(bone_name)) {
 					kind = DebugBone::KIND_IK_TARGET;
-				} else if (ik_driven.has(bone_name)) {
+				} else if (bone_scratch.ik_driven.has(bone_name)) {
 					kind = DebugBone::KIND_IK_DRIVEN;
 				}
 
@@ -560,8 +717,9 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 		});
 
 		if (has_flag(DRAW_BONE)) {
-			// 所有骨骼的填充几何收进同一个表面；描边由材质在片元里按 UV 距离算。
-			DebugDrawGeometry geometry;
+			// 所有骨骼的填充几何收进同一个表面、一次提交：绘制顺序与逐骨写入顺序一致，
+			// 描边与填充都由材质在片元里按 UV 距离算，颜色来自 ARRAY_CUSTOM0（见提交处）。
+			DebugDrawGeometry &geometry = bone_scratch.geometry;
 			for (const DebugBone &bone : bone_data) {
 				append_debug_bone_geometry(bone, *this, geometry);
 			}
@@ -571,8 +729,8 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 				arr.resize(RenderingServer::ARRAY_MAX);
 				arr[RenderingServer::ARRAY_INDEX] = to_packed_array<PackedInt32Array>(geometry.indices);
 				arr[RenderingServer::ARRAY_VERTEX] = to_packed_array<PackedVector2Array>(geometry.vertices);
-				arr[RenderingServer::ARRAY_COLOR] = to_packed_array<PackedColorArray>(geometry.colors);
 				arr[RenderingServer::ARRAY_TEX_UV] = to_packed_array<PackedVector2Array>(geometry.vertex_uv);
+				arr[RenderingServer::ARRAY_CUSTOM0] = to_packed_byte_array_rgba8(geometry.colors);
 				RS->mesh_add_surface_from_arrays(mesh_bones, RenderingServer::PRIMITIVE_TRIANGLES, arr);
 			}
 
@@ -599,32 +757,6 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const DrawData &p_dra
 			draw_debug_bone_names(owner, bone_data, *this);
 		}
 	}
-}
-
-void DebugDraw::clear_cache() {
-	ik_targets.clear();
-	ik_driven.clear();
-}
-
-void DebugDraw::cache_ik_bones(DragonBonesArmature *p_armature) {
-	p_armature->for_each_armature_recursively([this](DragonBonesArmature *p_a, int) {
-		for (const dragonBones::Constraint *constraint : p_a->getArmature()->_constraints) {
-			if (constraint == nullptr || constraint->_constraintData == nullptr) {
-				continue;
-			}
-			if (constraint->_constraintData->target != nullptr) {
-				ik_targets.push_back(StringName(to_gd_str(constraint->_constraintData->target->name)));
-			}
-			if (constraint->_constraintData->root != nullptr) {
-				ik_driven.push_back(StringName(to_gd_str(constraint->_constraintData->root->name)));
-			}
-			if (constraint->_constraintData->bone != nullptr) {
-				ik_driven.push_back(StringName(to_gd_str(constraint->_constraintData->bone->name)));
-			}
-		}
-	});
-
-	cached = true;
 }
 
 #endif // DEBUG_ENABLED

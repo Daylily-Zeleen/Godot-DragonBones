@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  mesh_display.h                                                        */
+/*  armature_draw_data_test.h                                             */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                           Godot-DragonBones                            */
@@ -30,64 +30,59 @@
 
 #pragma once
 
-#include <godot_dragon_bones.h>
+#ifndef DOCTEST_CONFIG_NO_POSIX_SIGNALS
+#define DOCTEST_CONFIG_NO_POSIX_SIGNALS
+#endif
+#ifndef DOCTEST_CONFIG_NO_EXCEPTIONS_BUT_WITH_ALL_ASSERTS
+#define DOCTEST_CONFIG_NO_EXCEPTIONS_BUT_WITH_ALL_ASSERTS
+#endif
 
-#include <dragonBones/core/BaseObject.h>
-#include <godot_cpp/classes/canvas_item_material.hpp>
-#include <godot_cpp/classes/texture2d.hpp>
-#include <godot_cpp/templates/local_vector.hpp>
+#include <doctest/doctest.h>
 
-#include "armature_draw_data.h"
+#include <armature_draw_data.h>
 
-namespace godot {
+namespace {
 
-class Display {
-protected:
-	class Slot_GD *slot{ nullptr };
-	friend class Slot_GD;
+using godot::ArmatureDrawData;
+using godot::LocalVector;
+using godot::Transform2D;
+using godot::Vector2;
 
-public:
-	Transform2D transform{};
+// get_capacity_bytes 应等于「各缓冲的真实字节数」之和，量纲为字节。
+// D2 回归：修复前对 layer.get_capacity_bytes()（已是字节）又乘了一次 sizeof(Data)，
+// 在有一条命令时会让结果放大 sizeof(Data) 倍。
+TEST_CASE("ArmatureDrawData: get_capacity_bytes counts real bytes (D2)") {
+	ArmatureDrawData dd;
+	CHECK(dd.get_capacity_bytes() == 0);
 
-	virtual void queue_redraw() const = 0;
-	virtual void append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const = 0;
-
-	virtual void release(); // NOTE: 子类要在此出处理自身的内存管理 （多继承的情况下必须用指在开头的指针才能 memdelete）
-};
-
-class DragonBonesMeshDisplay : public Display {
-private:
-	DragonBonesMeshDisplay(const DragonBonesMeshDisplay &);
-
-	void fill_vertices_colors(const Color &p_color);
-
-public:
-	LocalVector<int32_t> indices;
-	LocalVector<Color> colors;
-	LocalVector<Vector2> vertices_uv;
 	LocalVector<Vector2> vertices;
+	LocalVector<int32_t> indices;
+	LocalVector<godot::Color> colors;
+	LocalVector<Vector2> uvs;
+	vertices.push_back(Vector2(0, 0));
+	vertices.push_back(Vector2(1, 1));
+	indices.push_back(0);
+	indices.push_back(1);
+	indices.push_back(0);
+	colors.push_back(godot::Color(1, 1, 1, 1));
+	colors.push_back(godot::Color(1, 1, 1, 1));
+	uvs.push_back(Vector2(0, 0));
+	uvs.push_back(Vector2(1, 1));
 
+	dd.begin_frame();
+	dd.add_data(0, Transform2D(), &vertices, &indices, &colors, &uvs, 0, godot::CanvasItemMaterial::BLEND_MODE_MIX
 #ifdef DEBUG_ENABLED
-	Color debug_color;
+				,
+				godot::Color()
 #endif // DEBUG_ENABLED
+	);
 
-public:
-	DragonBonesMeshDisplay();
+	const size_t cap = dd.get_capacity_bytes();
+	// 必须包含 layers 缓冲 + 该 layer 的 data 缓冲，且量纲合理（字节）。
+	CHECK(cap >= sizeof(ArmatureDrawData::Data));
+	// D2 回归：修复前会把 layer 字节数再乘 sizeof(Data)，结果 ≥ sizeof(Data)^2。
+	// 断言真实值不会达到该量级（Data 含 4 个指针 + 变换等，sizeof 至少 48 字节）。
+	CHECK(cap < sizeof(ArmatureDrawData::Data) * sizeof(ArmatureDrawData::Data));
+}
 
-	void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) {}
-	class DragonBonesArmature *get_armature() const;
-
-	virtual void queue_redraw() const override;
-	virtual void append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const override;
-
-	virtual void release() override;
-
-private:
-	static LocalVector<DragonBonesMeshDisplay *> pool;
-
-public:
-	static DragonBonesMeshDisplay *from_pool();
-	static void clear_pool();
-};
-
-} //namespace godot
+} //namespace

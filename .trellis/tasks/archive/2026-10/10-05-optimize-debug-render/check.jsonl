@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/gdextension/memory-and-lifetime.md", "reason": "核查容器复用是否引入泄漏/双重释放，RID 是否仍只释放一次"}
+{"file": ".trellis/spec/gdextension/quality-guidelines.md", "reason": "质量门：静态检查、构建警告、风格"}

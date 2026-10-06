@@ -180,7 +180,7 @@ void DragonBonesArmature::queue_redraw() const {
 	}
 }
 
-void DragonBonesArmature::append_draw_data(DrawData &r_data, const Transform2D &p_base_transfrom, const Color &p_modulate) const {
+void DragonBonesArmature::append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom, const Color &p_modulate) const {
 	if (slot && !slot->getVisible()) {
 		return;
 	}

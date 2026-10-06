@@ -57,7 +57,10 @@ DragonBonesMeshDisplay::DragonBonesMeshDisplay()
 }
 
 void DragonBonesMeshDisplay::fill_vertices_colors(const Color &p_color) {
-	colors.fill(p_color);
+	Color *p = colors.ptr();
+	for (uint32_t i = 0; i < colors.size(); ++i) {
+		p[i] = p_color;
+	}
 }
 
 DragonBonesArmature *DragonBonesMeshDisplay::get_armature() const {
@@ -70,7 +73,7 @@ void DragonBonesMeshDisplay::queue_redraw() const {
 	get_armature()->queue_redraw();
 }
 
-void DragonBonesMeshDisplay::append_draw_data(DrawData &r_data, const Transform2D &p_base_transfrom, const Color &p_modulate) const {
+void DragonBonesMeshDisplay::append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom, const Color &p_modulate) const {
 	if (!slot->getVisible()) {
 		return;
 	}
@@ -78,26 +81,21 @@ void DragonBonesMeshDisplay::append_draw_data(DrawData &r_data, const Transform2
 	const_cast<DragonBonesMeshDisplay *>(this)->fill_vertices_colors(slot->color * p_modulate);
 
 	auto armature = get_armature();
-	RID texture;
+	int64_t texture_rid;
 	if (armature && armature->get_texture_override().is_valid()) {
-		texture = armature->get_texture_override()->get_rid();
+		texture_rid = armature->get_texture_override()->get_rid().get_id();
 	} else if (slot->get_texture().is_valid()) {
-		texture = slot->get_texture()->get_rid();
+		texture_rid = slot->get_texture()->get_rid().get_id();
 	}
 
-	r_data[slot->_zOrder].push_back({
-			p_base_transfrom * transform,
-			vertices,
-			indices,
-			colors,
-			vertices_uv,
-			texture,
-			slot->blend_mode,
-			slot->_zOrder,
+	r_data.add_data(slot->_zOrder, p_base_transfrom * transform,
+					&vertices, &indices, &colors, &vertices_uv,
+					texture_rid, slot->blend_mode
 #ifdef DEBUG_ENABLED
-			debug_color,
+					,
+					debug_color
 #endif // DEBUG_ENABLED
-	});
+	);
 }
 
 void DragonBonesMeshDisplay::release() {

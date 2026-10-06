@@ -38,8 +38,8 @@
 
 #include "armature.h"
 #include "dragon_bones.h"
-#include "event_object.h"
 
+#include "event_object.h"
 using namespace godot;
 
 // ----------------
@@ -59,13 +59,263 @@ static void clear_static() {
 }
 // ----------------
 
+// ---------------------------------------------------------------------------
+// 逐帧复用的绘制 scratch：只被 _draw() 使用，且 _draw() 由 CanvasItem 驱动、
+// 同线程串行，故全进程一份足够。放在 cpp 内 static thread_local 而非每实例成员：
+// 多 view 时不会各自持有一份同规模缓冲（与 debug_draw 的 bone_scratch 同一套做法）。
+// 用 thread_local 线程级复用。
+// ---------------------------------------------------------------------------
+struct DrawScratch {
+	// 一个待提交的表面：合并后的顶点/索引/颜色/UV 缓冲 + 材质信息。
+	class SurfaceData {
+		PackedInt32Array indices;
+		PackedVector2Array vertices;
+		PackedColorArray colors;
+		PackedVector2Array vertices_uv;
+
+		int64_t n_indices = 0;
+		int64_t n_vertices = 0;
+		int64_t n_colors = 0;
+		int64_t n_uv = 0;
+
+	public:
+		int64_t texture_rid{ 0 };
+		CanvasItemMaterial::BlendMode blend_mode{ CanvasItemMaterial::BLEND_MODE_MIX };
+
+		_FORCE_INLINE_ const PackedInt32Array &get_indices() const {
+			if (n_indices)
+				return indices;
+
+			const static PackedInt32Array zero_arr;
+			return zero_arr;
+		}
+
+		_FORCE_INLINE_ const PackedVector2Array &get_vertices() const {
+			if (n_vertices)
+				return vertices;
+
+			const static PackedVector2Array zero_arr;
+			return zero_arr;
+		}
+
+		_FORCE_INLINE_ const PackedColorArray &get_colors() const {
+			if (n_colors)
+				return colors;
+
+			const static PackedColorArray zero_arr;
+			return zero_arr;
+		}
+
+		_FORCE_INLINE_ const PackedVector2Array &get_vertices_uv() const {
+			if (n_uv)
+				return vertices_uv;
+
+			const static PackedVector2Array zero_arr;
+			return zero_arr;
+		}
+
+	private:
+		friend class DrawScratch;
+
+		_FORCE_INLINE_ void begin_frame() {
+			n_indices = 0;
+			n_vertices = 0;
+			n_colors = 0;
+			n_uv = 0;
+		}
+
+		_FORCE_INLINE_ void append_vertices(const Transform2D &p_xform, const LocalVector<Vector2> &p_src) {
+			const int64_t cnt = p_src.size();
+			if (cnt == 0) {
+				return;
+			}
+			const int64_t need = n_vertices + cnt;
+			if (vertices.size() < need) {
+				vertices.resize(need);
+			}
+			Vector2 *dst = vertices.ptrw() + n_vertices;
+			const Vector2 *src = p_src.ptr();
+			for (int64_t i = 0; i < cnt; ++i) {
+				dst[i] = p_xform.xform(src[i]);
+			}
+			n_vertices = need;
+		}
+
+		_FORCE_INLINE_ void append_colors(const LocalVector<Color> &p_src) {
+			const int64_t cnt = p_src.size();
+			if (cnt == 0) {
+				return;
+			}
+			const int64_t need = n_colors + cnt;
+			if (colors.size() < need) {
+				colors.resize(need);
+			}
+			const Color *dst = colors.ptrw() + n_colors;
+			memcpy((uint8_t *)dst, (uint8_t *)p_src.ptr(), sizeof(Color) * cnt);
+			n_colors = need;
+		}
+
+		_FORCE_INLINE_ void append_uv(const LocalVector<Vector2> &p_src) {
+			const int64_t cnt = p_src.size();
+			if (cnt == 0) {
+				return;
+			}
+			const int64_t need = n_uv + cnt;
+			if (vertices_uv.size() < need) {
+				vertices_uv.resize(need);
+			}
+			const Vector2 *dst = vertices_uv.ptrw() + n_uv;
+			memcpy((uint8_t *)dst, (uint8_t *)p_src.ptr(), sizeof(Vector2) * cnt);
+			n_uv = need;
+		}
+
+		_FORCE_INLINE_ void append_indices(const LocalVector<int32_t> &p_src, int64_t p_base_vertex) {
+			const int64_t cnt = p_src.size();
+			if (cnt == 0) {
+				return;
+			}
+			const int64_t need = n_indices + cnt;
+			if (indices.size() < need) {
+				indices.resize(need);
+			}
+			int32_t *dst = indices.ptrw() + n_indices;
+			const int32_t *src = p_src.ptr();
+			for (int64_t i = 0; i < cnt; ++i) {
+				dst[i] = src[i] + (int32_t)p_base_vertex;
+			}
+			n_indices = need;
+		}
+
+		_FORCE_INLINE_ void end_frame() {
+			if (n_indices > 0)
+				indices.resize(n_indices);
+			if (n_vertices)
+				vertices.resize(n_vertices);
+			if (n_colors)
+				colors.resize(n_colors);
+			if (n_uv)
+				vertices_uv.resize(n_uv);
+		}
+
+		size_t get_capacity_bytes() const {
+			return indices.size() * sizeof(int32_t) +
+					vertices.size() * sizeof(Vector2) +
+					colors.size() * sizeof(Color) +
+					vertices_uv.size() * sizeof(Vector2);
+		}
+	};
+	using SurfaceIndices = LocalVector<uint32_t>;
+
+	ArmatureDrawData draw_data;
+
+private:
+	LocalVector<SurfaceData> surfaces;
+
+	LocalVector<SurfaceIndices> mesh_surfaces;
+	uint32_t mesh_count = 0;
+
+public:
+	_FORCE_INLINE_ uint32_t get_mesh_count() const { return mesh_count; }
+	_FORCE_INLINE_ const SurfaceIndices &get_mesh_surface_indices(const uint32_t &p_mesh_idx) const {
+		DEV_ASSERT(p_mesh_idx < get_mesh_count());
+		return mesh_surfaces[p_mesh_idx];
+	}
+	_FORCE_INLINE_ const SurfaceData &get_surface(const uint32_t &p_surface_idx) const {
+		DEV_ASSERT(p_surface_idx < surfaces.size());
+		return surfaces[p_surface_idx];
+	}
+
+	void try_reset() {
+		// 全部缓冲的容量字节数（含 draw_data 内部与各表面数组）。
+		constexpr size_t RELEASE_THRESHOLD_BYTES = 8u << 18; // 2 MiB
+
+		const size_t cur_capacity_bytes = [this]() -> size_t {
+			size_t n = draw_data.get_capacity_bytes();
+			for (const SurfaceData &s : surfaces) {
+				n += s.get_capacity_bytes();
+			}
+			return n;
+		}();
+
+		if (cur_capacity_bytes <= RELEASE_THRESHOLD_BYTES) {
+			return;
+		}
+		surfaces.reset();
+		mesh_surfaces.reset();
+		mesh_count = 0;
+		draw_data.reset();
+	}
+
+	// 根据 draw_data 重建 surface 与 mesh 数据。
+	void rebuild() {
+		mesh_count = 0;
+		if (draw_data.is_empty()) {
+			return;
+		}
+
+		auto acquire_surface = [this](uint32_t p_surface_idx, int64_t p_texture_rid, CanvasItemMaterial::BlendMode p_blend_mode) -> SurfaceData * {
+			if (p_surface_idx >= surfaces.size()) {
+				surfaces.push_back(DrawScratch::SurfaceData());
+			}
+
+			SurfaceData &surface = surfaces[p_surface_idx];
+			surface.texture_rid = p_texture_rid;
+			surface.blend_mode = p_blend_mode;
+			surface.begin_frame();
+			return &surface;
+		};
+
+		uint32_t next_surface_idx = 0;
+		SurfaceData *cur_surface = nullptr;
+
+		for (const ArmatureDrawData::Layer &layer : draw_data) {
+			for (const ArmatureDrawData::Data &data : layer.get_data()) {
+				if (data.indices->is_empty()) {
+					continue;
+				}
+
+				if (cur_surface == nullptr || data.texture_rid != cur_surface->texture_rid) {
+					// 首个 surface，或 纹理不同必须换 新 mesh 进行绘制
+					cur_surface = acquire_surface(next_surface_idx, data.texture_rid, data.blend_mode);
+
+					++mesh_count;
+					const uint32_t cur_mesh_idx = mesh_count - 1;
+					if (mesh_surfaces.size() < mesh_count) {
+						mesh_surfaces.push_back(SurfaceIndices());
+					}
+					SurfaceIndices &si = mesh_surfaces[cur_mesh_idx];
+					si.clear();
+					si.push_back(next_surface_idx++);
+				} else if (data.blend_mode != cur_surface->blend_mode) {
+					// 同 mesh 不同的 blend_mode 必须换 surface。
+					cur_surface = acquire_surface(next_surface_idx, data.texture_rid, data.blend_mode);
+
+					mesh_surfaces[mesh_count - 1].push_back(next_surface_idx++);
+				}
+
+				DrawScratch::SurfaceData &sd = *cur_surface;
+				const int64_t base_vertex = sd.n_vertices;
+				sd.append_indices(*data.indices, base_vertex);
+				sd.append_vertices(data.transform, *data.vertices);
+				sd.append_colors(*data.colors);
+				sd.append_uv(*data.vertices_uv);
+			}
+		}
+
+		for (uint32_t i = 0; i < mesh_count; ++i) {
+			for (uint32_t idx : mesh_surfaces[i]) {
+				surfaces[idx].end_frame();
+			}
+		}
+	}
+};
+
+static thread_local DrawScratch draw_scratch;
+
 void DragonBonesArmatureView::rebuild_armature() {
 	if (armature) {
 		armature->release(); // 已经处理内存的释放
 		armature = nullptr;
-#ifdef DEBUG_ENABLED
-		debug_draw.clear_cache();
-#endif // DEBUG_ENABLED
 	}
 
 	if (factory.is_valid()) {
@@ -388,9 +638,11 @@ void DragonBonesArmatureView::_draw() {
 		return;
 	}
 
-	// Collect draw data.
-	DrawData draw_data; // TODO: 避免每帧重建
-	armature->append_draw_data(draw_data);
+	// Collect draw data. 复用成员：begin_frame() 只复位游标，不释放缓冲。
+	draw_scratch.draw_data.begin_frame();
+	armature->append_draw_data(draw_scratch.draw_data);
+	draw_scratch.draw_data.end_frame();
+	const ArmatureDrawData &draw_data = draw_scratch.draw_data;
 
 	if (draw_data.is_empty()) {
 		return;
@@ -398,64 +650,7 @@ void DragonBonesArmatureView::_draw() {
 
 	const auto RS = RenderingServer::get_singleton();
 
-	struct SurfaceData {
-		PackedInt32Array indices;
-		PackedVector2Array vertices;
-		PackedColorArray colors;
-		PackedVector2Array vertices_uv;
-
-		RID texture;
-		CanvasItemMaterial::BlendMode blend_mode;
-
-		SurfaceData() :
-				blend_mode(CanvasItemMaterial::BLEND_MODE_MIX) {}
-		SurfaceData(RID p_texture, CanvasItemMaterial::BlendMode p_blend_mode) :
-				texture(p_texture), blend_mode(p_blend_mode) {}
-	};
-
-	// Prepare mesh data.
-	const auto &first_data = draw_data.begin()->data[0];
-	using Surfaces = std::vector<SurfaceData>;
-	std::vector<Surfaces> meshes{ { { first_data.texture, first_data.blend_mode } } };
-	for (const DrawData::Layer &layer : draw_data) {
-		for (const DrawData::Data &data : layer.data) {
-			if (data.indices.is_empty()) {
-				continue;
-			}
-
-			Surfaces &surfaces = meshes.back();
-			SurfaceData *surface_data = &surfaces.back(); // NOTE: 不使用引用，引用初始化之后不能重新绑定
-
-			if (surface_data->texture != data.texture) {
-				meshes.emplace_back(Surfaces{ SurfaceData(data.texture, data.blend_mode) });
-				surface_data = &meshes.back().front();
-			} else if (surface_data->blend_mode != data.blend_mode) {
-				surfaces.emplace_back(SurfaceData(data.texture, data.blend_mode));
-				surface_data = &surfaces.back();
-			}
-
-			using size_ty = int64_t;
-			const size_ty base_vertices_index = surface_data->vertices.size();
-			const size_ty base_indices_index = surface_data->indices.size();
-			size_ty data_indices_count = data.indices.size();
-
-			surface_data->indices.resize(base_indices_index + data_indices_count);
-			auto surface_indices_ptrw = surface_data->indices.ptrw() + base_indices_index;
-			auto data_indices_ptr = data.indices.ptr();
-
-			while (data_indices_count > 0) {
-				*surface_indices_ptrw = *data_indices_ptr + base_vertices_index;
-				++surface_indices_ptrw;
-				++data_indices_ptr;
-
-				--data_indices_count;
-			}
-
-			surface_data->vertices.append_array(data.transform.xform(data.vertices));
-			surface_data->colors.append_array(data.colors);
-			surface_data->vertices_uv.append_array(data.vertices_uv);
-		}
-	}
+	draw_scratch.rebuild();
 
 	// Clear surfaces.
 	for (RID mesh : draw_meshes) {
@@ -464,26 +659,27 @@ void DragonBonesArmatureView::_draw() {
 
 	// Add rendering commands.
 	constexpr Transform2D identity{};
-	for (decltype(meshes.size()) mesh_idx = 0; mesh_idx < meshes.size(); ++mesh_idx) {
-		const RID mesh = get_draw_mesh(mesh_idx);
-		const Surfaces &surfaces = meshes.at(mesh_idx);
+	for (uint32_t mesh_i = 0; mesh_i < draw_scratch.get_mesh_count(); ++mesh_i) {
+		const RID mesh = get_draw_mesh(mesh_i);
+		const DrawScratch::SurfaceIndices &surface_indices = draw_scratch.get_mesh_surface_indices(mesh_i);
 
-		for (decltype(surfaces.size()) surface_idx = 0; surface_idx < surfaces.size(); ++surface_idx) {
-			const SurfaceData &surface_data = surfaces.at(surface_idx);
+		for (uint32_t surface_i = 0; surface_i < surface_indices.size(); ++surface_i) {
+			const DrawScratch::SurfaceData &surface_data = draw_scratch.get_surface(surface_indices[surface_i]);
 
 			Array arr;
 			arr.resize(RenderingServer::ARRAY_MAX);
-			arr[RenderingServer::ARRAY_INDEX] = surface_data.indices;
-			arr[RenderingServer::ARRAY_VERTEX] = surface_data.vertices;
-			arr[RenderingServer::ARRAY_COLOR] = surface_data.colors;
-			arr[RenderingServer::ARRAY_TEX_UV] = surface_data.vertices_uv;
+			arr[RenderingServer::ARRAY_INDEX] = surface_data.get_indices();
+			arr[RenderingServer::ARRAY_VERTEX] = surface_data.get_vertices();
+			arr[RenderingServer::ARRAY_COLOR] = surface_data.get_colors();
+			arr[RenderingServer::ARRAY_TEX_UV] = surface_data.get_vertices_uv();
 
 			RS->mesh_add_surface_from_arrays(mesh, RenderingServer::PRIMITIVE_TRIANGLES, arr);
 			auto mat = get_blend_material(surface_data.blend_mode);
 			RS->mesh_surface_set_material(mesh, RS->mesh_get_surface_count(mesh) - 1, mat);
 		}
 
-		RS->canvas_item_add_mesh(get_canvas_item(), mesh, identity, get_modulate(), surfaces[0].texture);
+		RID texture = UtilityFunctions::rid_from_int64(draw_scratch.get_surface(surface_indices[0]).texture_rid);
+		RS->canvas_item_add_mesh(get_canvas_item(), mesh, identity, get_modulate(), texture);
 	}
 
 #ifdef DEBUG_ENABLED
@@ -671,6 +867,8 @@ DragonBonesArmatureView::DragonBonesArmatureView() {
 }
 
 DragonBonesArmatureView::~DragonBonesArmatureView() {
+	draw_scratch.try_reset();
+
 	if (armature) {
 		armature->release(); // 已经处理内存的释放
 		armature = nullptr;

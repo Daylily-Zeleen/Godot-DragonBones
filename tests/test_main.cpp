@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  mesh_display.h                                                        */
+/*  test_main.cpp                                                         */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                           Godot-DragonBones                            */
@@ -28,66 +28,13 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#pragma once
+// 唯一的 doctest 实现 TU。所有测试头文件都在此 include 以登记 TEST_CASE。
 
-#include <godot_dragon_bones.h>
+#define DOCTEST_CONFIG_NO_POSIX_SIGNALS
+#define DOCTEST_CONFIG_NO_EXCEPTIONS_BUT_WITH_ALL_ASSERTS
+#define DOCTEST_CONFIG_IMPLEMENT
 
-#include <dragonBones/core/BaseObject.h>
-#include <godot_cpp/classes/canvas_item_material.hpp>
-#include <godot_cpp/classes/texture2d.hpp>
-#include <godot_cpp/templates/local_vector.hpp>
+#include <doctest/doctest.h>
 
-#include "armature_draw_data.h"
-
-namespace godot {
-
-class Display {
-protected:
-	class Slot_GD *slot{ nullptr };
-	friend class Slot_GD;
-
-public:
-	Transform2D transform{};
-
-	virtual void queue_redraw() const = 0;
-	virtual void append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const = 0;
-
-	virtual void release(); // NOTE: 子类要在此出处理自身的内存管理 （多继承的情况下必须用指在开头的指针才能 memdelete）
-};
-
-class DragonBonesMeshDisplay : public Display {
-private:
-	DragonBonesMeshDisplay(const DragonBonesMeshDisplay &);
-
-	void fill_vertices_colors(const Color &p_color);
-
-public:
-	LocalVector<int32_t> indices;
-	LocalVector<Color> colors;
-	LocalVector<Vector2> vertices_uv;
-	LocalVector<Vector2> vertices;
-
-#ifdef DEBUG_ENABLED
-	Color debug_color;
-#endif // DEBUG_ENABLED
-
-public:
-	DragonBonesMeshDisplay();
-
-	void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) {}
-	class DragonBonesArmature *get_armature() const;
-
-	virtual void queue_redraw() const override;
-	virtual void append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const override;
-
-	virtual void release() override;
-
-private:
-	static LocalVector<DragonBonesMeshDisplay *> pool;
-
-public:
-	static DragonBonesMeshDisplay *from_pool();
-	static void clear_pool();
-};
-
-} //namespace godot
+#include "armature_draw_data_test.h"
+#include "initialized_buffer_test.h"

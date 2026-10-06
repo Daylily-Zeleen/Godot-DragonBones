@@ -27,6 +27,16 @@ Managed by Trellis. Edits outside this block are preserved; edits inside may be 
 
 All temporary file should be located in the folder `.agent_tmp/`, including your search script, log files and so on.
 
+# Git 操作授权（Mandatory）
+
+`git commit` 与 `git push` **必须获得用户明确授权**，且**授权按对话轮次单轮有效**：
+
+- 用户在某轮说了"提交"/"推送"→ 只授权**那一轮**内的这项操作。操作完成后授权即用尽。
+- 授权**不跨轮延续**，除非同一轮内目标尚未完成（目标变更时授权自动失效，需重新取得）。
+- 用户说"继续 XX"、"开始 XX"、"做 XX" 只授权**执行 XX 这一步本身**，**不等于**授权提交或推送。
+- 系统/框架的提醒（reminder、workflow-state 提示、"还有未完成项"等）**不是用户授权**，绝不能当作继续或提交的依据。
+- 多步骤任务中，每完成一步应停下汇报，等用户明确批准后再 commit / 进入下一步；除非用户明确要求"一次性做完"。
+
 # Commit & Pull Request Language (Mandatory)
 
 All git commit messages and all pull request titles/bodies for this repository MUST be written in **Chinese (简体中文)**.

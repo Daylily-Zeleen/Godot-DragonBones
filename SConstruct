@@ -74,6 +74,24 @@ MIN_GODOT_VERSION = read_api_version(API_JSON)
 # Apply the trimmed binding set automatically; an explicit CLI argument still wins.
 ARGUMENTS.setdefault("build_profile", Dir("#").File("build_profile.json").abspath)
 
+# C++ 单元测试（doctest）：默认关闭；开启后编译 tests/ 并定义 GDDB_TESTS_ENABLED。
+# 该宏由 tests/test_runner.h 与 tests/test_main.cpp 消费；src/dragon_bones_registration.cpp
+# 据此调用测试入口（--gddb-run-tests）。
+#
+# NOTE: `tests` 由本项目的 SConstruct 自行解释并显示在 `scons -h` 中（见下方 Help）。
+# godot-cpp 的 SConstruct 会用它自建的 `Variables`（只收集它自己 opts.Add 的项）调用
+# `opts.UnknownVariables()`，因此 `scons ... tests=yes` 仍会额外打印一行
+# "Unknown SCons variables ... tests=yes"。该警告是误导性的：选项**确实生效**。
+# 这与参考项目 GodotJS-Ext 的行为一致（见其 SConstruct 的 custom options 与
+# godot-cpp 的同名警告），无需为消除它重构出「自建 Environment + opts」。
+_GDDB_TESTS_ENABLED = str(ARGUMENTS.get("tests", "no")).lower() in ("1", "yes", "true", "on")
+
+Help("""
+tests: Build and run the C++ unit tests (doctest) (yes|no)
+    default: no
+    actual: {}
+""".format("yes" if _GDDB_TESTS_ENABLED else "no"))
+
 env = SConscript("thirdparty/godot-cpp/SConstruct", {"api_version": API_VERSION})
 lib_name = "libgddragonbones"
 # For the reference:
@@ -113,6 +131,12 @@ add_sources_recursively("src/", sources, ["editor"])
 # so it must not be globbed in here again (duplicate symbols at link time).
 add_sources_recursively("thirdparty/", sources, ["godot-cpp"])
 
+# C++ 单元测试（doctest）：仅在 tests=yes 时编译 tests/ 并定义宏。
+# tests/ 不参与常规 glob，故默认构建完全不受影响。
+if _GDDB_TESTS_ENABLED:
+    env.Append(CPPDEFINES=["GDDB_TESTS_ENABLED"])
+    env.Append(CPPPATH=["tests/"])
+    sources += Glob("tests/*.cpp")
 
 def _generate_doc_data() -> list[str]:
     # doc (godot-cpp 4.3 以上)

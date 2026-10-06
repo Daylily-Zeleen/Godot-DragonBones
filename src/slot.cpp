@@ -177,9 +177,9 @@ void Slot_GD::_updateFrame() {
 			frameDisplay->colors.resize(vertexCount); // 仅改变数组大小，在绘制前将被合并计算具体颜色
 			frameDisplay->vertices_uv.resize(vertexCount);
 			frameDisplay->vertices.resize(vertexCount);
-			auto indices_ptr = frameDisplay->indices.ptrw();
-			auto verticesUV_ptr = frameDisplay->vertices_uv.ptrw();
-			auto verticesPos_ptr = frameDisplay->vertices.ptrw();
+			auto indices_ptr = frameDisplay->indices.ptr();
+			auto verticesUV_ptr = frameDisplay->vertices_uv.ptr();
+			auto verticesPos_ptr = frameDisplay->vertices.ptr();
 
 			for (std::size_t i = 0, l = (vertexCount << 1); i < l; i += 2) {
 				std::size_t iH = i >> 1;
@@ -190,7 +190,7 @@ void Slot_GD::_updateFrame() {
 
 				verticesUV_ptr[iH] = uv;
 				verticesPos_ptr[iH] = Point2(floatArray[vertexOffset + i],
-						hasFFD * floatArray[vertexOffset + i + 1]);
+											 hasFFD * floatArray[vertexOffset + i + 1]);
 			}
 
 			// setup indicies
@@ -206,9 +206,9 @@ void Slot_GD::_updateFrame() {
 			frameDisplay->colors.resize(4); // 仅改变数组大小，在绘制前将被合并计算具体颜色
 			frameDisplay->vertices_uv.resize(4);
 			frameDisplay->vertices.resize(4);
-			auto indices_ptr = frameDisplay->indices.ptrw();
-			auto verticesUV_ptr = frameDisplay->vertices_uv.ptrw();
-			auto verticesPos_ptr = frameDisplay->vertices.ptrw();
+			auto indices_ptr = frameDisplay->indices.ptr();
+			auto verticesUV_ptr = frameDisplay->vertices_uv.ptr();
+			auto verticesPos_ptr = frameDisplay->vertices.ptr();
 
 			indices_ptr[0] = 0;
 			indices_ptr[1] = 1;
@@ -277,7 +277,7 @@ void Slot_GD::_updateMesh() {
 			weightFloatOffset += 65536;
 		}
 
-		auto verticesPos_ptr = meshDisplay->vertices.ptrw();
+		auto verticesPos_ptr = meshDisplay->vertices.ptr();
 		for (
 				std::size_t i = 0, iD = 0, iB = weightData->offset + (unsigned)BinaryOffset::WeightBoneIndices + weightData->bones.size(), iV = (std::size_t)weightFloatOffset, iF = 0;
 				i < vertexCount;
@@ -316,7 +316,7 @@ void Slot_GD::_updateMesh() {
 			vertexOffset += 65536;
 		}
 
-		auto verticesPos_ptr = meshDisplay->vertices.ptrw();
+		auto verticesPos_ptr = meshDisplay->vertices.ptr();
 		for (std::size_t i = 0, l = (vertexCount << 1); i < l; i += 2) {
 			const auto iH = (i >> 1);
 			const auto xG = floatArray[vertexOffset + i] * scale + deformVertices[i];
