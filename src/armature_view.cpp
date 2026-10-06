@@ -63,13 +63,10 @@ static void clear_static() {
 // 逐帧复用的绘制 scratch：只被 _draw() 使用，且 _draw() 由 CanvasItem 驱动、
 // 同线程串行，故全进程一份足够。放在 cpp 内 static thread_local 而非每实例成员：
 // 多 view 时不会各自持有一份同规模缓冲（与 debug_draw 的 bone_scratch 同一套做法）。
-// 用 thread_local 而非裸 static：防止某平台在不同线程触发 _draw 时串数据。
+// 用 thread_local 线程级复用。
 // ---------------------------------------------------------------------------
 struct DrawScratch {
 	// 一个待提交的表面：合并后的顶点/索引/颜色/UV 缓冲 + 材质信息。
-	// 逐帧复用：数组缓冲跨帧保留，故用量用 n_* 计数器表示 —— 不能用 size()，
-	// 因为 Packed*Array 缩到 0 会释放缓冲。数组只增不减（按需 resize 变大，
-	// 帧末截到 n_* 仍在容量内，不退到 0）。
 	class SurfaceData {
 		PackedInt32Array indices;
 		PackedVector2Array vertices;
@@ -212,18 +209,14 @@ struct DrawScratch {
 					vertices_uv.size() * sizeof(Vector2);
 		}
 	};
-
 	using SurfaceIndices = LocalVector<uint32_t>;
-	// 每帧复用的绘制数据：begin_frame() 复位游标、不释放缓冲。
+
 	ArmatureDrawData draw_data;
 
 private:
-	// 表面缓冲池：只增不减，跨帧保留各数组已分配的缓冲。
-	// 用下标引用而不是 SurfaceData*，避免池扩容时指针悬空。
 	LocalVector<SurfaceData> surfaces;
 
 	LocalVector<SurfaceIndices> mesh_surfaces;
-	// 本帧使用的分组数（mesh_surfaces 的容量跨帧保留，故不能只看 size）。
 	uint32_t mesh_count = 0;
 
 public:
@@ -239,7 +232,7 @@ public:
 
 	void try_reset() {
 		// 全部缓冲的容量字节数（含 draw_data 内部与各表面数组）。
-		constexpr size_t RELEASE_THRESHOLD_BYTES = 8u << 17; // 1 MiB
+		constexpr size_t RELEASE_THRESHOLD_BYTES = 8u << 18; // 2 MiB
 
 		const size_t cur_capacity_bytes = [this]() -> size_t {
 			size_t n = draw_data.get_capacity_bytes();
@@ -258,33 +251,27 @@ public:
 		draw_data.reset();
 	}
 
-	void build_surfaces() {
+	// 根据 draw_data 重建 surface 与 mesh 数据。
+	void rebuild() {
 		mesh_count = 0;
 		if (draw_data.is_empty()) {
 			return;
 		}
 
-		// 取/建第 p_mesh 组里的第 p_surface 个表面，复位其计数。
-		auto acquire_surface = [this](uint32_t p_mesh, uint32_t p_surface, RID p_texture,
-									  CanvasItemMaterial::BlendMode p_blend) -> uint32_t {
-			uint32_t pool_index = p_surface;
-			for (uint32_t m = 0; m < p_mesh; ++m) {
-				pool_index += mesh_surfaces[m].size();
+		auto acquire_surface = [this](uint32_t p_surface_idx, RID p_texture, CanvasItemMaterial::BlendMode p_blend_mode) -> SurfaceData * {
+			if (p_surface_idx >= surfaces.size()) {
+				surfaces.push_back(DrawScratch::SurfaceData(p_texture, p_blend_mode));
 			}
-			if (surfaces.size() <= pool_index) {
-				surfaces.push_back(DrawScratch::SurfaceData(p_texture, p_blend));
-			} else {
-				surfaces[pool_index].texture = p_texture;
-				surfaces[pool_index].blend_mode = p_blend;
-			}
-			surfaces[pool_index].begin_frame();
-			return pool_index;
+
+			SurfaceData &surface = surfaces[p_surface_idx];
+			surface.texture = p_texture;
+			surface.blend_mode = p_blend_mode;
+			surface.begin_frame();
+			return &surface;
 		};
 
-		RID cur_texture{};
-		CanvasItemMaterial::BlendMode cur_blend = CanvasItemMaterial::BLEND_MODE_MIX;
-		uint32_t cur_surface_idx = 0;
-		bool started = false;
+		uint32_t next_surface_idx = 0;
+		SurfaceData *cur_surface = nullptr;
 
 		for (const ArmatureDrawData::Layer &layer : draw_data) {
 			for (const ArmatureDrawData::Data &data : layer.data) {
@@ -292,28 +279,26 @@ public:
 					continue;
 				}
 
-				if (data.texture != cur_texture || !started) {
-					// 首个表面，或换 mesh。
+				if (cur_surface == nullptr || data.texture != cur_surface->texture) {
+					// 首个 surface，或 纹理不同必须换 新 mesh 进行绘制
+					cur_surface = acquire_surface(next_surface_idx, data.texture, data.blend_mode);
+
 					++mesh_count;
 					const uint32_t cur_mesh_idx = mesh_count - 1;
-					cur_surface_idx = acquire_surface(cur_mesh_idx, 0, data.texture, data.blend_mode);
 					if (mesh_surfaces.size() < mesh_count) {
 						mesh_surfaces.push_back(SurfaceIndices());
 					}
-					mesh_surfaces[cur_mesh_idx].clear();
-					mesh_surfaces[cur_mesh_idx].push_back(cur_surface_idx);
-					cur_texture = data.texture;
-					cur_blend = data.blend_mode;
-					started = true;
-				} else if (data.blend_mode != cur_blend) {
-					// 同 mesh 内换 surface。
-					const uint32_t s = mesh_surfaces[mesh_count - 1].size();
-					cur_surface_idx = acquire_surface(mesh_count - 1, s, data.texture, data.blend_mode);
-					mesh_surfaces[mesh_count - 1].push_back(cur_surface_idx);
-					cur_blend = data.blend_mode;
+					SurfaceIndices &si = mesh_surfaces[cur_mesh_idx];
+					si.clear();
+					si.push_back(next_surface_idx++);
+				} else if (data.blend_mode != cur_surface->blend_mode) {
+					// 同 mesh 不同的 blend_mode 必须换 surface。
+					cur_surface = acquire_surface(next_surface_idx, data.texture, data.blend_mode);
+
+					mesh_surfaces[mesh_count - 1].push_back(next_surface_idx++);
 				}
 
-				DrawScratch::SurfaceData &sd = surfaces[cur_surface_idx];
+				DrawScratch::SurfaceData &sd = *cur_surface;
 				const int64_t base_vertex = sd.n_vertices;
 				sd.append_indices(data.indices, base_vertex);
 				sd.append_vertices(data.transform, data.vertices);
@@ -322,7 +307,6 @@ public:
 			}
 		}
 
-		// 帧末：各用到的表面把数组截到逻辑用量（保留缓冲）。
 		for (uint32_t i = 0; i < mesh_count; ++i) {
 			for (uint32_t idx : mesh_surfaces[i]) {
 				surfaces[idx].end_frame();
@@ -671,7 +655,7 @@ void DragonBonesArmatureView::_draw() {
 
 	const auto RS = RenderingServer::get_singleton();
 
-	draw_scratch.build_surfaces();
+	draw_scratch.rebuild();
 
 	// Clear surfaces.
 	for (RID mesh : draw_meshes) {

@@ -40,11 +40,6 @@
 
 namespace godot {
 
-// Draw commands for one frame, bucketed by z-order and kept sorted by it.
-//
-// 逐帧复用：容器本体与各条命令的 Packed*Array 缓冲跨帧保留，本帧只复位写入游标
-// 并就地覆写。因为 Packed*Array 缩到 0 会释放缓冲，用量用 used 游标表示，
-// 绝不能靠 size()。
 class ArmatureDrawData {
 public:
 	// A single draw command: a mesh plus the transform and material to draw it with.
@@ -183,10 +178,8 @@ public:
 
 	_FORCE_INLINE_ bool is_empty() const { return layers.is_empty(); }
 
-	// 释放全部容量（连同层次与各条命令的缓冲归还系统）。只在确认长期不再需要时调用。
+	// 释放全部容量（连同层次与各条命令的缓冲归还系统）。
 	_FORCE_INLINE_ void reset() { layers.reset(); }
-
-	_FORCE_INLINE_ const Layer &operator[](uint32_t p_index) const { return layers[p_index]; }
 
 	_FORCE_INLINE_ const Layer *begin() const { return layers.ptr(); }
 	_FORCE_INLINE_ const Layer *end() const { return layers.ptr() + layers.size(); }
