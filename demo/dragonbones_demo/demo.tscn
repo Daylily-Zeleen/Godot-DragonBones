@@ -38,7 +38,6 @@ theme_override_constants/margin_bottom = 20
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 70
 
 [node name="GridContainer" type="GridContainer" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -105,9 +104,17 @@ text = "FlipY:"
 unique_name_in_owner = true
 layout_mode = 2
 
+[node name="Control" type="Control" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
 [node name="AdvanceUI" type="VBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 visible = false
+layout_mode = 2
+size_flags_vertical = 8
+
+[node name="HSeparator" type="HSeparator" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/AdvanceUI"]
 layout_mode = 2
 
 [node name="Label6" type="Label" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/AdvanceUI"]
@@ -131,13 +138,32 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Advance"
 
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 10
+
+[node name="HSeparator" type="HSeparator" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="RichTextLabel" parent="CanvasLayer/PanelContainer/MarginContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_font_sizes/normal_font_size = 14
+bbcode_enabled = true
+text = "- Holing mouse [color=aqua]Middle Button[/color] to move camera.
+- [color=aqua]Mouse Wheel[/color] to adjust camera zoom."
+fit_content = true
+
 [node name="DragonBonesArmatureView" type="DragonBonesArmatureView" parent="."]
 factory = ExtResource("4_uifn2")
-instantiate_dragon_bones_data_name = "idle_gen"
-instantiate_armature_name = "idle"
+instantiate_dragon_bones_data_name = "Dragon"
 armature_settings = {
 "current_animation": "[none]",
 "sub_armatures": {}
 }
 position = Vector2(723, 354)
 scale = Vector2(0.7, 0.7)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+anchor_mode = 0
+position_smoothing_enabled = true
