@@ -30,6 +30,8 @@
 
 #include "debug_draw.h"
 
+#include "dragon_bones.h"
+
 #include <dragonBones/armature/Constraint.h>
 #include <dragonBones/armature/Slot.h>
 
@@ -95,6 +97,7 @@ static constexpr float DEBUG_OUTLINE_PX = 1.25f;
 // UV.y 的符号兼作标志位：负 = 该骨受 IK 约束，描边改用橙色。
 // 线框直接画在 owner 画布项上，不经过本着色器。
 // ---------------------------------------------------------------------------
+static void release_bone_material();
 static Ref<ShaderMaterial> &get_bone_material() {
 	static Ref<ShaderMaterial> material = [] {
 		const String shader_text = vformat(R"(
@@ -136,10 +139,16 @@ void fragment() {
 		// 设置初始这
 		ret->set_shader_parameter("outline_color_ik", Color(1.0, 0.6, 0.1, 0.8));
 
+		DragonBones::add_clean_static_callback(release_bone_material); // 添加清理回调
 		return ret;
 	}();
 
 	return material;
+}
+
+// 清理绘制骨骼用的材质
+static void release_bone_material() {
+	get_bone_material().unref();
 }
 
 // 一根待绘制的骨骼。起点与朝向都取自合成矩阵（get_global_transform），已含父级旋转。
