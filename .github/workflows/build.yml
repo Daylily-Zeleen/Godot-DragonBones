@@ -36,6 +36,80 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    tests:
+        runs-on: ubuntu-latest
+        name: 🧪 C++ unit tests
+        steps:
+            - name: Set up Python
+              uses: actions/setup-python@v7
+              with:
+                  python-version: "3.x"
+
+            - name: Set up SCons
+              shell: bash
+              run: |
+                  python -c "import sys; print(sys.version)"
+                  python -m pip install scons==4.4
+                  scons --version
+
+            - name: Checkout project
+              uses: actions/checkout@v7
+              with:
+                  submodules: recursive
+
+            - name: (Linux) Install dependencies
+              run: |
+                  sudo apt-get update -qq
+                  sudo apt-get install -qqq build-essential pkg-config
+
+            - name: Compile extension with tests
+              shell: sh
+              env:
+                  SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
+                  SCONS_CACHE_LIMIT: 7168
+              run: |
+                  scons target=template_debug platform=linux arch=x86_64 debug_symbols=no tests=yes
+
+            - name: Fetch Godot
+              shell: bash
+              env:
+                  GODOT_VERSION: 4.3-stable
+                  GODOT_ASSET: Godot_v4.3-stable_linux.x86_64.zip
+              run: |
+                  set -euo pipefail
+                  mkdir -p tests-bin
+                  URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/${GODOT_ASSET}"
+                  echo "Downloading $URL"
+                  curl -fL --retry 3 --retry-delay 2 -o godot.zip "$URL"
+                  unzip -o godot.zip -d tests-bin/
+                  chmod +x tests-bin/Godot* 2>/dev/null || true
+                  GODOT_BIN="$(find tests-bin -maxdepth 1 -name 'Godot*' -type f | head -1)"
+                  test -n "$GODOT_BIN"
+                  echo "GODOT=$GITHUB_WORKSPACE/$GODOT_BIN" >> "$GITHUB_ENV"
+                  echo "Using GODOT=$GITHUB_WORKSPACE/$GODOT_BIN"
+
+            - name: Import project assets
+              shell: bash
+              run: |
+                  set +e
+                  "$GODOT" --headless --path demo --import
+                  rc=$?
+                  echo "--import exit=$rc (non-zero is expected: demo.gd needs the extension, which is loaded on the *next* run)"
+                  test -f demo/.godot/extension_list.cfg
+                  grep -q "godot_dragon_bones" demo/.godot/extension_list.cfg
+
+            - name: Run C++ unit tests
+              shell: bash
+              timeout-minutes: 1
+              run: |
+                  set -o pipefail
+                  "$GODOT" --headless --path demo --gddb-run-tests 2>&1 | tee tests-output.log
+                  # 经 tee 后需显式取回管道首命令的退出码。
+                  rc=${PIPESTATUS[0]}
+                  # 断言确实跑到了用例（防止入口未触发却以 0 退出的假绿）。
+                  grep -q "\[doctest\] Status: SUCCESS!" tests-output.log
+                  exit "$rc"
+
     build:
         runs-on: ${{ matrix.runner }}
         name: ${{ matrix.name }}

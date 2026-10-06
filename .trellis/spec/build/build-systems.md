@@ -357,6 +357,20 @@ scons -Q --silent platform=windows target=template_debug arch=x86_64 -j1 tests=y
 
 > **Gotcha**: `--gddb-run-tests` finishes with `std::exit(exit_code)` rather than `SceneTree::quit()`, because `SceneTree` is not in `build_profile.json` (adding it pulls in `Node` and a dependency chain). `std::exit` skips engine shutdown, so the run ends with benign at-exit noise (`Pages in use exist at exit in PagedAllocator: ...`, `BUG: Unreferenced static string to 0: ...`) — these are expected and not test failures.
 
+### Running tests in CI
+
+CI (`.github/workflows/build.yml` job `tests`) runs the suite on a **fresh checkout**, where `demo/.godot/` does not exist (it is gitignored). The order matters:
+
+1. `scons target=template_debug platform=linux arch=x86_64 tests=yes` — the shipped DLL must be the `tests=yes` build, or `try_run()` is not compiled in.
+2. Run the engine once with **`--import`** — on a fresh project this *only generates* `.godot/extension_list.cfg`; the extension is loaded at the **next** startup, not this one.
+3. Run `--headless --path demo --gddb-run-tests` — the extension now loads, `try_run()` fires, and the process exits with the test result.
+
+> **Gotcha**: step 2 exits **non-zero** and that is expected: `demo.gd` references extension classes, but the editor scan/import phase runs *before* the extension is loaded, so script compilation fails. The step only needs to produce `extension_list.cfg`; assert on the file, not the exit code.
+
+> **Gotcha**: if `--gddb-run-tests` does not trigger the entry point (extension not loaded, or the DLL was built without `tests=yes`), the process does **not** exit — it falls through to running the demo's main scene, which is a game loop that never quits. Locally this looks like a hang; in CI it would burn up to the 6h job ceiling. The CI step is wrapped in `timeout-minutes: 10`, and asserts on `[doctest] Status: SUCCESS!` so a silently-not-run entry cannot pass as green.
+
+> **Gotcha**: the shipped DLL under `demo/addons/.../bin/` is overwritten by *every* build. After a plain `scons ... ` (no `tests=yes`), that DLL no longer contains the test entry point, and `--gddb-run-tests` will appear to hang. Rebuild with `tests=yes` before running tests.
+
 ### Death tests
 
 `CRASH_BAD_INDEX` / `ERR_FAIL` are unrecoverable in-process, so cases that must trap run in a **child process** and the parent asserts on its exit code. `tests/test_death.h` provides this generically:

@@ -53,7 +53,8 @@
 
 ```shell
 scons target=template_debug tests=yes
-godot --path demo --gddb-run-tests
+godot --headless --path demo --import || true
+godot --headless --path demo --gddb-run-tests
 ```
 
 成功时退出码为 0，失败为非 0。CMake 用户配置 `-DGODOT_DRAGONBONES_TESTS=ON` 即可。

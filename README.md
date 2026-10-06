@@ -54,7 +54,8 @@ Unit tests (doctest) are off by default. Build with `tests=yes`, then run them t
 
 ```shell
 scons target=template_debug tests=yes
-godot --path demo --gddb-run-tests
+godot --headless --path demo --import || true
+godot --headless --path demo --gddb-run-tests
 ```
 
 Exit code is 0 on success, non-zero on failure. For CMake, configure with `-DGODOT_DRAGONBONES_TESTS=ON`.
