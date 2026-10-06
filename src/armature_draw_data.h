@@ -101,6 +101,20 @@ public:
 	ArmatureDrawData(const ArmatureDrawData &) = delete;
 	ArmatureDrawData &operator=(const ArmatureDrawData &) = delete;
 
+	size_t get_capacity_bytes() const {
+		size_t n = 0;
+		for (const Layer &l : layers) {
+			for (const Data &d : l.data) {
+				n += sizeof(Data);
+				n += d.vertices.size() * sizeof(Vector2);
+				n += d.indices.size() * sizeof(int32_t);
+				n += d.colors.size() * sizeof(Color);
+				n += d.vertices_uv.size() * sizeof(Vector2);
+			}
+		}
+		return n;
+	}
+
 	// 帧开始：只复位写入游标。**不析构 Layer/Data、不释放缓冲**，供本帧就地覆写。
 	_FORCE_INLINE_ void begin_frame() {
 		for (Layer &layer : layers) {
@@ -110,12 +124,12 @@ public:
 
 	// 追加一条绘制命令。复用已有槽位就地覆写；仅当本帧条目多于上帧时才增长。
 	_FORCE_INLINE_ void add_data(int p_z_order, const Transform2D &p_transform,
-				  const PackedVector2Array &p_vertices, const PackedInt32Array &p_indices,
-				  const PackedColorArray &p_colors, const PackedVector2Array &p_vertices_uv,
-				  RID p_texture, CanvasItemMaterial::BlendMode p_blend_mode
+								 const PackedVector2Array &p_vertices, const PackedInt32Array &p_indices,
+								 const PackedColorArray &p_colors, const PackedVector2Array &p_vertices_uv,
+								 RID p_texture, CanvasItemMaterial::BlendMode p_blend_mode
 #ifdef DEBUG_ENABLED
-				  ,
-				  const Color &p_debug_color
+								 ,
+								 const Color &p_debug_color
 #endif // DEBUG_ENABLED
 	) {
 		Layer &layer = get_or_create_layer(p_z_order);

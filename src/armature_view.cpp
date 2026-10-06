@@ -125,14 +125,14 @@ struct DrawScratch {
 	private:
 		friend class DrawScratch;
 
-		_FORCE_INLINE_ void begin() {
+		_FORCE_INLINE_ void begin_frame() {
 			n_indices = 0;
 			n_vertices = 0;
 			n_colors = 0;
 			n_uv = 0;
 		}
 
-		void append_vertices(const Transform2D &p_xform, const PackedVector2Array &p_src) {
+		_FORCE_INLINE_ void append_vertices(const Transform2D &p_xform, const PackedVector2Array &p_src) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -149,7 +149,7 @@ struct DrawScratch {
 			n_vertices = need;
 		}
 
-		void append_colors(const PackedColorArray &p_src) {
+		_FORCE_INLINE_ void append_colors(const PackedColorArray &p_src) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -163,7 +163,7 @@ struct DrawScratch {
 			n_colors = need;
 		}
 
-		void append_uv(const PackedVector2Array &p_src) {
+		_FORCE_INLINE_ void append_uv(const PackedVector2Array &p_src) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -177,7 +177,7 @@ struct DrawScratch {
 			n_uv = need;
 		}
 
-		void append_indices(const PackedInt32Array &p_src, int64_t p_base_vertex) {
+		_FORCE_INLINE_ void append_indices(const PackedInt32Array &p_src, int64_t p_base_vertex) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -194,8 +194,7 @@ struct DrawScratch {
 			n_indices = need;
 		}
 
-		// 帧末把数组截到逻辑用量（仍在容量内，不释放缓冲）。
-		_FORCE_INLINE_ void finish() {
+		_FORCE_INLINE_ void end_frame() {
 			if (n_indices > 0)
 				indices.resize(n_indices);
 			if (n_vertices)
@@ -231,8 +230,8 @@ struct DrawScratch {
 		// 全部缓冲的容量字节数（含 draw_data 内部与各表面数组）。
 		constexpr size_t RELEASE_THRESHOLD_BYTES = 8u << 17; // 1 MiB
 
-		const size_t cur_capacity_bytes = [this] {
-			size_t n = 0;
+		const size_t cur_capacity_bytes = [this]() -> size_t {
+			size_t n = draw_data.get_capacity_bytes();
 			for (const SurfaceData &s : surface_pool) {
 				n += s.get_capacity_bytes();
 			}
@@ -249,13 +248,13 @@ struct DrawScratch {
 	}
 
 	void build_surfaces() {
-		if (draw_data.is_empty())
-			return;
-
 		// draw_scratch.surface_pool 只增不减；本帧用到的条目通过 draw_scratch.mesh_surfaces 的分组引用。
 		// 分组的判据与旧逻辑一致：纹理变化 -> 换到下一个 mesh；同 mesh 内混合模式变化
 		// -> 换到下一个 surface。区别只是就地覆写缓冲而非每帧新建容器。
 		used_meshes = 0;
+
+		if (draw_data.is_empty())
+			return;
 
 		// 取/建第 p_mesh 组里的第 p_surface 个表面，复位其计数。
 		auto acquire_surface = [this](uint32_t p_mesh, uint32_t p_surface, RID p_texture,
@@ -270,7 +269,7 @@ struct DrawScratch {
 				surface_pool[pool_index].texture = p_texture;
 				surface_pool[pool_index].blend_mode = p_blend;
 			}
-			surface_pool[pool_index].begin();
+			surface_pool[pool_index].begin_frame();
 			return pool_index;
 		};
 
@@ -317,7 +316,7 @@ struct DrawScratch {
 		// 帧末：各用到的表面把数组截到逻辑用量（保留缓冲）。
 		for (uint32_t i = 0; i < used_meshes; ++i) {
 			for (uint32_t idx : mesh_surfaces[i]) {
-				surface_pool[idx].finish();
+				surface_pool[idx].end_frame();
 			}
 		}
 	}
