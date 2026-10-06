@@ -59,19 +59,32 @@ Segmentation fault (core dumped)   --import exit=139
 > 另一处修正：先前把 `Unreferenced static string` / `Pages in use exist` 大量 ERROR
 > 判为"既有噪声"。实测证明它们是**同一次崩溃的次生输出** —— 修复后这些输出全部消失。
 
-## 3. 修复方案（已实现并跨平台验证）
+## 3. 修复方案（已实现并跨平台验证，提交 `d834b27`）
 
-复用仓库既有的静态清理机制 `DragonBones::add_clean_static_callback`：
+复用仓库既有的静态清理机制 `DragonBones::add_clean_static_callback`，在材质**首次创建时**
+注册清理回调（`src/debug_draw.cpp`，唯一改动文件，+9 行）：
 
-- `debug_draw.h` 新增 `static void release_static_material();`（`DebugDraw` 成员，具外部链接）；
-- `debug_draw.cpp` 在匿名命名空间**之外**定义它，内部调用 `get_bone_material().unref()`；
-- `armature_view.cpp::_bind_methods()` 中与 `blend_materials` 的 `clear_static` **并列注册**（`#ifdef DEBUG_ENABLED` 守卫）。
+```cpp
+#include "dragon_bones.h"
+// 匿名命名空间内前置声明
+static void release_bone_material();
+
+// get_bone_material() 的 lambda 内、return ret; 之前：
+DragonBones::add_clean_static_callback(release_bone_material); // 添加清理回调
+
+// 函数体（匿名命名空间之外，供回调取址）
+static void release_bone_material() {
+	get_bone_material().unref();
+}
+```
 
 时序（`main/main.cpp`）：`uninitialize_modules(MODULE_INITIALIZATION_LEVEL_SCENE)`（`:5280`，
 清理回调执行处）**早于** `finalize_display()`（`:5325`，RenderingServer 销毁）——
 实测此时 `RenderingServer::get_singleton()` 非 null，释放安全。
 
 **替代方案（否）**：改为每帧创建材质 —— `_draw` 是热路径，与仓库既有性能取向冲突。
+把释放入口做成 `DebugDraw` 静态成员并在 `_bind_methods()` 注册亦可（`blend_materials` 的
+`clear_static` 就这么做），但需额外暴露头文件声明；直接自由函数更简洁，故最终采用后者。
 
 ## 4. 验证（A/B 对照，同一环境同一引擎二进制）
 
