@@ -213,26 +213,37 @@ struct DrawScratch {
 		}
 	};
 
+	using SurfaceIndices = LocalVector<uint32_t>;
 	// 每帧复用的绘制数据：begin_frame() 复位游标、不释放缓冲。
 	ArmatureDrawData draw_data;
 
+private:
 	// 表面缓冲池：只增不减，跨帧保留各数组已分配的缓冲。
 	// 用下标引用而不是 SurfaceData*，避免池扩容时指针悬空。
-	LocalVector<SurfaceData> surface_pool;
-	// 每帧的分组：mesh_surfaces[i] 是本帧第 i 个 mesh 用到的 surface_pool 下标。
-	LocalVector<LocalVector<uint32_t>> mesh_surfaces;
-	// 本帧使用的分组数（mesh_surfaces 的容量跨帧保留，故不能只看 size）。
-	uint32_t used_meshes = 0;
+	LocalVector<SurfaceData> surfaces;
 
-	// 超阈值时释放全部缓冲，否则保留以便复用。
-	// 只在「确认长期不再需要绘制」的时机调用（该 view 的调试/绘制缓冲不再使用）。
+	LocalVector<SurfaceIndices> mesh_surfaces;
+	// 本帧使用的分组数（mesh_surfaces 的容量跨帧保留，故不能只看 size）。
+	uint32_t mesh_count = 0;
+
+public:
+	_FORCE_INLINE_ uint32_t get_mesh_count() const { return mesh_count; }
+	_FORCE_INLINE_ const SurfaceIndices &get_mesh_surface_indices(const uint32_t &p_mesh_idx) const {
+		DEV_ASSERT(p_mesh_idx < get_mesh_count());
+		return mesh_surfaces[p_mesh_idx];
+	}
+	_FORCE_INLINE_ const SurfaceData &get_surface(const uint32_t &p_surface_idx) const {
+		DEV_ASSERT(p_surface_idx < surfaces.size());
+		return surfaces[p_surface_idx];
+	}
+
 	void try_reset() {
 		// 全部缓冲的容量字节数（含 draw_data 内部与各表面数组）。
 		constexpr size_t RELEASE_THRESHOLD_BYTES = 8u << 17; // 1 MiB
 
 		const size_t cur_capacity_bytes = [this]() -> size_t {
 			size_t n = draw_data.get_capacity_bytes();
-			for (const SurfaceData &s : surface_pool) {
+			for (const SurfaceData &s : surfaces) {
 				n += s.get_capacity_bytes();
 			}
 			return n;
@@ -241,20 +252,17 @@ struct DrawScratch {
 		if (cur_capacity_bytes <= RELEASE_THRESHOLD_BYTES) {
 			return;
 		}
-		surface_pool.reset();
+		surfaces.reset();
 		mesh_surfaces.reset();
-		used_meshes = 0;
+		mesh_count = 0;
 		draw_data.reset();
 	}
 
 	void build_surfaces() {
-		// draw_scratch.surface_pool 只增不减；本帧用到的条目通过 draw_scratch.mesh_surfaces 的分组引用。
-		// 分组的判据与旧逻辑一致：纹理变化 -> 换到下一个 mesh；同 mesh 内混合模式变化
-		// -> 换到下一个 surface。区别只是就地覆写缓冲而非每帧新建容器。
-		used_meshes = 0;
-
-		if (draw_data.is_empty())
+		mesh_count = 0;
+		if (draw_data.is_empty()) {
 			return;
+		}
 
 		// 取/建第 p_mesh 组里的第 p_surface 个表面，复位其计数。
 		auto acquire_surface = [this](uint32_t p_mesh, uint32_t p_surface, RID p_texture,
@@ -263,19 +271,19 @@ struct DrawScratch {
 			for (uint32_t m = 0; m < p_mesh; ++m) {
 				pool_index += mesh_surfaces[m].size();
 			}
-			if (surface_pool.size() <= pool_index) {
-				surface_pool.push_back(DrawScratch::SurfaceData(p_texture, p_blend));
+			if (surfaces.size() <= pool_index) {
+				surfaces.push_back(DrawScratch::SurfaceData(p_texture, p_blend));
 			} else {
-				surface_pool[pool_index].texture = p_texture;
-				surface_pool[pool_index].blend_mode = p_blend;
+				surfaces[pool_index].texture = p_texture;
+				surfaces[pool_index].blend_mode = p_blend;
 			}
-			surface_pool[pool_index].begin_frame();
+			surfaces[pool_index].begin_frame();
 			return pool_index;
 		};
 
 		RID cur_texture{};
 		CanvasItemMaterial::BlendMode cur_blend = CanvasItemMaterial::BLEND_MODE_MIX;
-		uint32_t cur_pool_index = 0;
+		uint32_t cur_surface_idx = 0;
 		bool started = false;
 
 		for (const ArmatureDrawData::Layer &layer : draw_data) {
@@ -284,27 +292,28 @@ struct DrawScratch {
 					continue;
 				}
 
-				if (!started || data.texture != cur_texture) {
+				if (data.texture != cur_texture || !started) {
 					// 首个表面，或换 mesh。
-					++used_meshes;
-					cur_pool_index = acquire_surface(used_meshes - 1, 0, data.texture, data.blend_mode);
-					if (mesh_surfaces.size() < used_meshes) {
-						mesh_surfaces.push_back(LocalVector<uint32_t>());
+					++mesh_count;
+					const uint32_t cur_mesh_idx = mesh_count - 1;
+					cur_surface_idx = acquire_surface(cur_mesh_idx, 0, data.texture, data.blend_mode);
+					if (mesh_surfaces.size() < mesh_count) {
+						mesh_surfaces.push_back(SurfaceIndices());
 					}
-					mesh_surfaces[used_meshes - 1].clear();
-					mesh_surfaces[used_meshes - 1].push_back(cur_pool_index);
+					mesh_surfaces[cur_mesh_idx].clear();
+					mesh_surfaces[cur_mesh_idx].push_back(cur_surface_idx);
 					cur_texture = data.texture;
 					cur_blend = data.blend_mode;
 					started = true;
 				} else if (data.blend_mode != cur_blend) {
 					// 同 mesh 内换 surface。
-					const uint32_t s = mesh_surfaces[used_meshes - 1].size();
-					cur_pool_index = acquire_surface(used_meshes - 1, s, data.texture, data.blend_mode);
-					mesh_surfaces[used_meshes - 1].push_back(cur_pool_index);
+					const uint32_t s = mesh_surfaces[mesh_count - 1].size();
+					cur_surface_idx = acquire_surface(mesh_count - 1, s, data.texture, data.blend_mode);
+					mesh_surfaces[mesh_count - 1].push_back(cur_surface_idx);
 					cur_blend = data.blend_mode;
 				}
 
-				DrawScratch::SurfaceData &sd = surface_pool[cur_pool_index];
+				DrawScratch::SurfaceData &sd = surfaces[cur_surface_idx];
 				const int64_t base_vertex = sd.n_vertices;
 				sd.append_indices(data.indices, base_vertex);
 				sd.append_vertices(data.transform, data.vertices);
@@ -314,9 +323,9 @@ struct DrawScratch {
 		}
 
 		// 帧末：各用到的表面把数组截到逻辑用量（保留缓冲）。
-		for (uint32_t i = 0; i < used_meshes; ++i) {
+		for (uint32_t i = 0; i < mesh_count; ++i) {
 			for (uint32_t idx : mesh_surfaces[i]) {
-				surface_pool[idx].end_frame();
+				surfaces[idx].end_frame();
 			}
 		}
 	}
@@ -671,12 +680,12 @@ void DragonBonesArmatureView::_draw() {
 
 	// Add rendering commands.
 	constexpr Transform2D identity{};
-	for (uint32_t mesh_i = 0; mesh_i < draw_scratch.used_meshes; ++mesh_i) {
+	for (uint32_t mesh_i = 0; mesh_i < draw_scratch.get_mesh_count(); ++mesh_i) {
 		const RID mesh = get_draw_mesh(mesh_i);
-		const LocalVector<uint32_t> &group = draw_scratch.mesh_surfaces[mesh_i];
+		const DrawScratch::SurfaceIndices &surface_indices = draw_scratch.get_mesh_surface_indices(mesh_i);
 
-		for (uint32_t surface_i = 0; surface_i < group.size(); ++surface_i) {
-			const DrawScratch::SurfaceData &surface_data = draw_scratch.surface_pool[group[surface_i]];
+		for (uint32_t surface_i = 0; surface_i < surface_indices.size(); ++surface_i) {
+			const DrawScratch::SurfaceData &surface_data = draw_scratch.get_surface(surface_indices[surface_i]);
 
 			Array arr;
 			arr.resize(RenderingServer::ARRAY_MAX);
@@ -690,7 +699,7 @@ void DragonBonesArmatureView::_draw() {
 			RS->mesh_surface_set_material(mesh, RS->mesh_get_surface_count(mesh) - 1, mat);
 		}
 
-		RS->canvas_item_add_mesh(get_canvas_item(), mesh, identity, get_modulate(), draw_scratch.surface_pool[group[0]].texture);
+		RS->canvas_item_add_mesh(get_canvas_item(), mesh, identity, get_modulate(), draw_scratch.get_surface(surface_indices[0]).texture);
 	}
 
 #ifdef DEBUG_ENABLED
