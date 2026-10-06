@@ -359,6 +359,7 @@ bool DragonBonesArmatureView::is_active() const {
 #ifdef DEBUG_ENABLED
 void DragonBonesArmatureView::set_debug_draw_enabled(bool p_enabled) {
 	debug_draw.set_enabled(p_enabled);
+	notify_property_list_changed();
 	queue_redraw();
 }
 
@@ -611,6 +612,8 @@ void DragonBonesArmatureView::_validate_property(PropertyInfo &p_property) const
 	} else if (p_property.name == SNAME("instantiate_skin_name")) {
 		auto skins = factory->get_loaded_dragon_bones_skin_name_list(instantiate_dragon_bones_data_name, instantiate_armature_name);
 		p_property.hint_string = String(",").join(skins);
+	} else if (p_property.name != StringName("debug_draw_enabled") && p_property.name.begins_with("debug_draw_")) {
+		p_property.usage = is_debug_draw_enabled() ? PROPERTY_USAGE_DEFAULT : PROPERTY_USAGE_INTERNAL;
 	}
 }
 #endif // TOOLS_ENABLED
