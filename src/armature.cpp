@@ -306,14 +306,31 @@ float DragonBonesArmature::tell_animation(const String &p_animation_name) const 
 }
 
 void DragonBonesArmature::seek_animation(const String &p_animation_name, float p_progress) {
-	if (has_animation(p_animation_name)) {
-		stop(p_animation_name, true);
-		auto current_progress = Math::fmod(p_progress, 1.0f);
-		if (current_progress == 0 && p_progress != 0) {
-			current_progress = 1.0f;
-		}
-		armature_instance->getAnimation()->gotoAndStopByProgress(to_std_str(p_animation_name), current_progress < 0 ? 1. + current_progress : current_progress);
+	if (!has_animation(p_animation_name)) {
+		return;
 	}
+
+	Animation *animation = armature_instance->getAnimation();
+	const std::string animation_name = to_std_str(p_animation_name);
+
+	auto current_progress = Math::fmod(p_progress, 1.0f);
+	if (current_progress == 0 && p_progress != 0) {
+		current_progress = 1.0f;
+	}
+	if (current_progress < 0) {
+		current_progress += 1.0f;
+	}
+
+	// 定位播放头不得改变播放状态（不 stop、不 reset）。
+	AnimationState *state = animation->getState(animation_name);
+	if (state == nullptr) {
+		state = animation->gotoAndStopByProgress(animation_name, current_progress);
+		if (state == nullptr) {
+			return;
+		}
+	}
+
+	state->setCurrentTime(current_progress * state->getTotalTime());
 }
 
 bool DragonBonesArmature::is_playing() const {
