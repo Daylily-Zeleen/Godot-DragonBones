@@ -1,7 +1,12 @@
-[gd_scene load_steps=5 format=3 uid="uid://8apibgrqeqe7"]
+[gd_scene load_steps=8 format=3 uid="uid://8apibgrqeqe7"]
 
 [ext_resource type="Script" path="res://dragonbones_demo/demo.gd" id="1_23ee0"]
-[ext_resource type="DragonBonesFactory" uid="uid://cs5pavjfb6qxw" path="res://dragonbones_demo/assets/Dragon/Dragon_ske.dbfactory" id="2_bqjym"]
+[ext_resource type="Texture2D" uid="uid://d06dx2nodlm4d" path="res://dragonbones_demo/icons/checked.png" id="2_2qlyd"]
+[ext_resource type="Texture2D" uid="uid://c0rdeewwswllv" path="res://dragonbones_demo/icons/unchecked.png" id="3_wpxxe"]
+[ext_resource type="DragonBonesFactory" uid="uid://cs5pavjfb6qxw" path="res://dragonbones_demo/assets/Dragon/Dragon_ske.dbfactory" id="4_uifn2"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_oa6ql"]
+bg_color = Color(0.0666667, 0.0901961, 0.054902, 0.807843)
 
 [sub_resource type="SystemFont" id="SystemFont_t0rb7"]
 subpixel_positioning = 0
@@ -9,6 +14,9 @@ subpixel_positioning = 0
 [sub_resource type="Theme" id="Theme_hseux"]
 default_font = SubResource("SystemFont_t0rb7")
 default_font_size = 37
+CheckButton/icons/checked = ExtResource("2_2qlyd")
+CheckButton/icons/unchecked = ExtResource("3_wpxxe")
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_oa6ql")
 
 [node name="Demo" type="Node"]
 script = ExtResource("1_23ee0")
@@ -124,12 +132,12 @@ layout_mode = 2
 text = "Advance"
 
 [node name="DragonBonesArmatureView" type="DragonBonesArmatureView" parent="."]
-factory = ExtResource("2_bqjym")
-instantiate_dragon_bones_data_name = "Dragon"
-instantiate_armature_name = "Dragon"
+factory = ExtResource("4_uifn2")
+instantiate_dragon_bones_data_name = "idle_gen"
+instantiate_armature_name = "idle"
 armature_settings = {
-"current_animation": "stand",
+"current_animation": "[none]",
 "sub_armatures": {}
 }
-position = Vector2(751, 420)
+position = Vector2(723, 354)
 scale = Vector2(0.7, 0.7)
