@@ -79,13 +79,8 @@ struct DrawScratch {
 		int64_t n_uv = 0;
 
 	public:
-		RID texture;
-		CanvasItemMaterial::BlendMode blend_mode;
-
-		SurfaceData() :
-				blend_mode(CanvasItemMaterial::BLEND_MODE_MIX) {}
-		SurfaceData(RID p_texture, CanvasItemMaterial::BlendMode p_blend_mode) :
-				texture(p_texture), blend_mode(p_blend_mode) {}
+		int64_t texture_rid{ 0 };
+		CanvasItemMaterial::BlendMode blend_mode{ CanvasItemMaterial::BLEND_MODE_MIX };
 
 		_FORCE_INLINE_ const PackedInt32Array &get_indices() const {
 			if (n_indices)
@@ -129,7 +124,7 @@ struct DrawScratch {
 			n_uv = 0;
 		}
 
-		_FORCE_INLINE_ void append_vertices(const Transform2D &p_xform, const PackedVector2Array &p_src) {
+		_FORCE_INLINE_ void append_vertices(const Transform2D &p_xform, const LocalVector<Vector2> &p_src) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -146,7 +141,7 @@ struct DrawScratch {
 			n_vertices = need;
 		}
 
-		_FORCE_INLINE_ void append_colors(const PackedColorArray &p_src) {
+		_FORCE_INLINE_ void append_colors(const LocalVector<Color> &p_src) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -160,7 +155,7 @@ struct DrawScratch {
 			n_colors = need;
 		}
 
-		_FORCE_INLINE_ void append_uv(const PackedVector2Array &p_src) {
+		_FORCE_INLINE_ void append_uv(const LocalVector<Vector2> &p_src) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -174,7 +169,7 @@ struct DrawScratch {
 			n_uv = need;
 		}
 
-		_FORCE_INLINE_ void append_indices(const PackedInt32Array &p_src, int64_t p_base_vertex) {
+		_FORCE_INLINE_ void append_indices(const LocalVector<int32_t> &p_src, int64_t p_base_vertex) {
 			const int64_t cnt = p_src.size();
 			if (cnt == 0) {
 				return;
@@ -258,13 +253,13 @@ public:
 			return;
 		}
 
-		auto acquire_surface = [this](uint32_t p_surface_idx, RID p_texture, CanvasItemMaterial::BlendMode p_blend_mode) -> SurfaceData * {
+		auto acquire_surface = [this](uint32_t p_surface_idx, int64_t p_texture_rid, CanvasItemMaterial::BlendMode p_blend_mode) -> SurfaceData * {
 			if (p_surface_idx >= surfaces.size()) {
-				surfaces.push_back(DrawScratch::SurfaceData(p_texture, p_blend_mode));
+				surfaces.push_back(DrawScratch::SurfaceData());
 			}
 
 			SurfaceData &surface = surfaces[p_surface_idx];
-			surface.texture = p_texture;
+			surface.texture_rid = p_texture_rid;
 			surface.blend_mode = p_blend_mode;
 			surface.begin_frame();
 			return &surface;
@@ -274,14 +269,14 @@ public:
 		SurfaceData *cur_surface = nullptr;
 
 		for (const ArmatureDrawData::Layer &layer : draw_data) {
-			for (const ArmatureDrawData::Data &data : layer.data) {
-				if (data.indices.is_empty()) {
+			for (const ArmatureDrawData::Data &data : layer.get_data()) {
+				if (data.indices->is_empty()) {
 					continue;
 				}
 
-				if (cur_surface == nullptr || data.texture != cur_surface->texture) {
+				if (cur_surface == nullptr || data.texture_rid != cur_surface->texture_rid) {
 					// 首个 surface，或 纹理不同必须换 新 mesh 进行绘制
-					cur_surface = acquire_surface(next_surface_idx, data.texture, data.blend_mode);
+					cur_surface = acquire_surface(next_surface_idx, data.texture_rid, data.blend_mode);
 
 					++mesh_count;
 					const uint32_t cur_mesh_idx = mesh_count - 1;
@@ -293,17 +288,17 @@ public:
 					si.push_back(next_surface_idx++);
 				} else if (data.blend_mode != cur_surface->blend_mode) {
 					// 同 mesh 不同的 blend_mode 必须换 surface。
-					cur_surface = acquire_surface(next_surface_idx, data.texture, data.blend_mode);
+					cur_surface = acquire_surface(next_surface_idx, data.texture_rid, data.blend_mode);
 
 					mesh_surfaces[mesh_count - 1].push_back(next_surface_idx++);
 				}
 
 				DrawScratch::SurfaceData &sd = *cur_surface;
 				const int64_t base_vertex = sd.n_vertices;
-				sd.append_indices(data.indices, base_vertex);
-				sd.append_vertices(data.transform, data.vertices);
-				sd.append_colors(data.colors);
-				sd.append_uv(data.vertices_uv);
+				sd.append_indices(*data.indices, base_vertex);
+				sd.append_vertices(data.transform, *data.vertices);
+				sd.append_colors(*data.colors);
+				sd.append_uv(*data.vertices_uv);
 			}
 		}
 
@@ -683,7 +678,8 @@ void DragonBonesArmatureView::_draw() {
 			RS->mesh_surface_set_material(mesh, RS->mesh_get_surface_count(mesh) - 1, mat);
 		}
 
-		RS->canvas_item_add_mesh(get_canvas_item(), mesh, identity, get_modulate(), draw_scratch.get_surface(surface_indices[0]).texture);
+		RID texture = UtilityFunctions::rid_from_int64(draw_scratch.get_surface(surface_indices[0]).texture_rid);
+		RS->canvas_item_add_mesh(get_canvas_item(), mesh, identity, get_modulate(), texture);
 	}
 
 #ifdef DEBUG_ENABLED

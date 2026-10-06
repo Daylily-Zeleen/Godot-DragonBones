@@ -609,14 +609,14 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const ArmatureDrawDat
 		PackedColorArray debug_colors;
 
 		for (const ArmatureDrawData::Layer &layer : p_draw_data) {
-			for (const auto &data : layer.data) {
+			for (const auto &data : layer.get_data()) {
 				auto base_index = debug_vertices.size();
 				auto insert_begin_index = debug_mesh_indices.size();
-				auto data_indices_count = data.indices.size();
+				auto data_indices_count = data.indices->size();
 
 				debug_mesh_indices.resize(debug_mesh_indices.size() + data_indices_count);
 				auto idx_ptrw = debug_mesh_indices.ptrw() + insert_begin_index;
-				auto src_ptr = data.indices.ptr();
+				auto src_ptr = data.indices->ptr();
 
 				while (data_indices_count > 0) {
 					*idx_ptrw = *src_ptr + base_index;
@@ -625,10 +625,19 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const ArmatureDrawDat
 					--data_indices_count;
 				}
 
-				debug_vertices.append_array(data.transform.xform(data.vertices));
+				{
+					const uint32_t base_idx = debug_vertices.size();
+					const uint32_t data_size = data.vertices->size();
+					debug_vertices.resize(debug_vertices.size() + data_size);
+					Vector2 *dest_ptr = debug_vertices.ptrw();
+					const Vector2 *src_ptr = data.vertices->ptr();
+					for (int32_t i = 0; i < data_size; ++i) {
+						dest_ptr[base_idx + i] = data.transform.xform(src_ptr[i]);
+					}
+				}
 
 				PackedColorArray colors;
-				colors.resize(data.vertices.size());
+				colors.resize(data.vertices->size());
 				colors.fill(data.debug_color);
 				debug_colors.append_array(colors);
 			}

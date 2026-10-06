@@ -62,10 +62,10 @@ private:
 	void fill_vertices_colors(const Color &p_color);
 
 public:
-	PackedInt32Array indices;
-	PackedColorArray colors;
-	PackedVector2Array vertices_uv;
-	PackedVector2Array vertices;
+	LocalVector<int32_t> indices;
+	LocalVector<Color> colors;
+	LocalVector<Vector2> vertices_uv;
+	LocalVector<Vector2> vertices;
 
 #ifdef DEBUG_ENABLED
 	Color debug_color;
