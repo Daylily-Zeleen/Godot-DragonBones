@@ -146,18 +146,14 @@ inline int32_t spawn_death_case(const char *p_name, godot::Array *r_output = nul
 	const godot::String project_dir = godot::ProjectSettings::get_singleton()->globalize_path("res://");
 
 	godot::PackedStringArray args;
+	// 无条件带 --headless：本子进程只用于验证「执行体会 trap」，不需要窗口/渲染。
+	// 且必须显式加：`--headless` 被引擎解析后**不会**出现在 OS::get_cmdline_args() 里
+	// （main/main.cpp:1442 只设置内部 display/audio driver），因此无法从父进程命令行继承。
+	// 缺了它，无显示设备的环境（CI）下 DisplayServer 创建会全部失败、
+	// 引擎在扩展初始化前就返回（main/main.cpp:3382-3395），子进程根本执行不到测试入口。
+	args.push_back("--headless");
 	args.push_back("--path");
 	args.push_back(project_dir);
-
-	// 必须继承 headless：无显示设备的环境（CI）下子进程若尝试创建显示服务会直接失败退出，
-	// 扩展初始化（因而测试入口）根本不会执行，标记也就无从产生。
-	for (const godot::String &arg : godot::OS::get_singleton()->get_cmdline_args()) {
-		if (arg == "--headless") {
-			args.push_back("--headless");
-			break;
-		}
-	}
-
 	args.push_back(godot::String(DEATH_CASE_ARG_PREFIX) + p_name);
 
 	godot::Array output;

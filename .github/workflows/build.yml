@@ -29,7 +29,13 @@
 # /**************************************************************************/
 
 name: 🛠️ Builds
-on: [push, pull_request, merge_group]
+# 同一提交若既 push 到分支、又属于某 PR，会在 push 与 pull_request 上各跑一次。
+# 因此 push 只针对 master（合并后验证），开发分支由 pull_request 触发，避免重复。
+on:
+    push:
+        branches: [master]
+    pull_request:
+    merge_group:
 
 concurrency:
     group: ${{ github.workflow }}|${{ github.ref_name }}
