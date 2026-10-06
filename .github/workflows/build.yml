@@ -97,10 +97,8 @@ jobs:
             - name: Import project assets
               shell: bash
               run: |
-                  set +e
+                  # `shell: bash` 默认带 -e：--import 非零退出（含段错误 139）会直接中止本 job。
                   "$GODOT" --headless --path demo --import
-                  rc=$?
-                  echo "--import exit=$rc (non-zero is expected: demo.gd needs the extension, which is loaded on the *next* run)"
                   test -f demo/.godot/extension_list.cfg
                   grep -q "godot_dragon_bones" demo/.godot/extension_list.cfg
 

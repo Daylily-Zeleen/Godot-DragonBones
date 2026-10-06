@@ -58,11 +58,53 @@ grep -c "ERROR:" out.log     # 期望 >= 1（未修复时）
 - [x] 修复后：run `37543911036`（`d834b27`）→ **success，23/23 job 全绿**
 - [x] 确认新 step `Check for exit-time resource leaks and crashes` 确实执行（`runner exit=0`，无 `::error::`）
 
-## 遗留（本次未做，用户未表态）
+## 跟进（2026-10-07，同一任务）
 
-CI 检查目前跑 `--headless --editor --path demo`；实测 `--import` 路径更早更直接地复现
-（且 `Import project assets` step 仍用 `set +e` 容忍段错误）。若需收紧，可把检查挂到 `--import`
-并去掉该容忍。
+### 删除 `Import project assets` 里的 `set +e`
+
+该 step 由既有提交 `6251223`（`ci: 新增 C++ 单元测试 job 并补齐构建文档`，10-06 21:56，
+已在 `origin/master`）引入，原先写为：
+
+```bash
+set +e
+"$GODOT" --headless --path demo --import
+rc=$?
+echo "--import exit=$rc (non-zero is expected: ...)"
+```
+
+`set +e` **拆掉了 bash 自带的错误处理**，于是 `--import` 的任何非零退出（含段错误 139）
+都不再中止 job。PR #74 的 CI（run 37528759403）正是 `--import exit=139` 却报告 step success。
+
+注释的两处说法实测均不成立：
+
+- "non-zero is expected"：干净状态首次 `--import` 实测**退出码为 0**（本机与 CI 均如此）。
+  首次导入确实会报 3 条 GDScript 编译错误（扩展尚未注册），但**报错与退出码是两回事** —— 
+  注释把二者混为一谈。真出现非零时（崩溃）反被吞掉。
+- 预期非零的假设本身即多余。
+
+**改动**：删掉 `set +e` 与那行误导注释，其余保持原样（`--import`、`extension_list.cfg`
+存在性断言、`grep godot_dragon_bones`）：
+
+```bash
+# `shell: bash` 默认带 -e：--import 非零退出（含段错误 139）会直接中止本 job。
+"$GODOT" --headless --path demo --import
+test -f demo/.godot/extension_list.cfg
+grep -q "godot_dragon_bones" demo/.godot/extension_list.cfg
+```
+
+Actions 的 `shell: bash` 默认参数为 `bash --noprofile --norc -e -o pipefail`（见 CI 日志），
+`-e` 已保证非零退出即中止；信号致死（139）同样触发中止。故不需要手工取 `rc`、自定义
+`::error::` 或防假绿守卫 —— 那些都是对 `set +e` 的补偿，去掉 `set +e` 后即为冗余。
+
+**E2E 验证**（WSL + Godot 4.3-stable linux，从仓库根目录运行该 step，复刻 `bash -e -o pipefail`）：
+
+| 场景 | step 退出码 |
+|---|---|
+| CI 旧 `.so`（无修复） | **139**（job 中止） |
+| 本地修复版 `.so` | 0（通过） |
+
+即原先被 `set +e` 吞掉的那次段错误，现在会在 `--import` 阶段中止 CI —— 早于 `--editor`
+检查。此改动是**独立的既有欠账**，与本次 RID 泄露修复本身无因果关系。
 
 ## 风险与回滚点
 
