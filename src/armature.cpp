@@ -254,7 +254,10 @@ void DragonBonesArmature::set_current_animation(const String &p_animation) {
 		play(p_animation, armature_view->get_animation_loop_count());
 	} else {
 		// 相同动画，无需响应
+		return;
 	}
+
+	queue_redraw();
 }
 
 String DragonBonesArmature::get_current_animation() const {
@@ -306,14 +309,33 @@ float DragonBonesArmature::tell_animation(const String &p_animation_name) const 
 }
 
 void DragonBonesArmature::seek_animation(const String &p_animation_name, float p_progress) {
-	if (has_animation(p_animation_name)) {
-		stop(p_animation_name, true);
-		auto current_progress = Math::fmod(p_progress, 1.0f);
-		if (current_progress == 0 && p_progress != 0) {
-			current_progress = 1.0f;
-		}
-		armature_instance->getAnimation()->gotoAndStopByProgress(to_std_str(p_animation_name), current_progress < 0 ? 1. + current_progress : current_progress);
+	if (!has_animation(p_animation_name)) {
+		return;
 	}
+
+	Animation *animation = armature_instance->getAnimation();
+	const std::string animation_name = to_std_str(p_animation_name);
+
+	auto current_progress = Math::fmod(p_progress, 1.0f);
+	if (current_progress == 0 && p_progress != 0) {
+		current_progress = 1.0f;
+	}
+	if (current_progress < 0) {
+		current_progress += 1.0f;
+	}
+
+	// 定位播放头不得改变播放状态（不 stop、不 reset）。
+	AnimationState *state = animation->getState(animation_name);
+	if (state == nullptr) {
+		state = animation->gotoAndStopByProgress(animation_name, current_progress);
+		if (state == nullptr) {
+			return;
+		}
+	}
+
+	state->setCurrentTime(current_progress * state->getTotalTime());
+
+	queue_redraw();
 }
 
 bool DragonBonesArmature::is_playing() const {
@@ -449,7 +471,13 @@ Ref<Texture2D> DragonBonesArmature::get_texture_override() const {
 }
 
 void DragonBonesArmature::set_texture_override(const Ref<Texture2D> &p_texture_override) {
+	if (texture_override == p_texture_override) {
+		return;
+	}
+
 	texture_override = p_texture_override;
+
+	queue_redraw();
 }
 
 ConstraintsDictionary DragonBonesArmature::get_ik_constraints() {
@@ -707,11 +735,6 @@ bool DragonBonesArmatureProxy::_set(const StringName &p_name, const Variant &p_v
 	for (const auto &prop_info : armature_property_list) {
 		if (prop_info.name == p_name) {
 			armature->set(p_name, p_val);
-			if (prop_info.name.ends_with("modulate")) {
-				armature->queue_redraw();
-			} else {
-				notify_property_list_changed();
-			}
 			return true;
 		}
 	}
