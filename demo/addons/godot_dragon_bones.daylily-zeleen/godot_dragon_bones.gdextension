@@ -23,7 +23,7 @@ DragonBonesUserData = "icons/DragonBonesWhite.png"
 [configuration]
 
 entry_symbol = "godot_dragon_bones_library_init"
-compatibility_minimum = 4.2
+compatibility_minimum = 4.3
 
 [libraries]
 linux.x86_64.debug = "bin/libgddragonbones.linux.template_debug.x86_64.so"

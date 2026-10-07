@@ -32,15 +32,13 @@
 # /**************************************************************************/
 
 import os
-import shutil
+import subprocess
+import sys
 
 import os
 os.system("chcp 65001")
 
-
 from SCons.Script import ARGUMENTS
-
-import json
 
 # godot-cpp 10.x ships one API JSON per Godot version (gdextension/
 # extension_api-4-3.json ... 4-7.json), so the target must be stated explicitly.
@@ -56,20 +54,6 @@ API_VERSION = ARGUMENTS.get("api_version", "4.3")
 API_JSON = ARGUMENTS.get("custom_api_file") or os.path.join(
     "thirdparty", "godot-cpp", "gdextension",
     f"extension_api-{API_VERSION.replace('.', '-')}.json")
-
-
-def read_api_version(json_path):
-    """Return "major.minor" from an extension_api.json, falling back to API_VERSION."""
-    try:
-        with open(json_path, "r", encoding="utf-8") as f:
-            header = json.load(f)["header"]
-    except Exception as e:
-        print(f"Warning: cannot read '{json_path}' ({e}); falling back to {API_VERSION}.")
-        return API_VERSION
-    return f"{header['version_major']}.{header['version_minor']}"
-
-
-MIN_GODOT_VERSION = read_api_version(API_JSON)
 
 # Apply the trimmed binding set automatically; an explicit CLI argument still wins.
 ARGUMENTS.setdefault("build_profile", Dir("#").File("build_profile.json").abspath)
@@ -150,7 +134,7 @@ def _generate_doc_data() -> list[str]:
             print("Not including class reference as we're targeting a pre-4.3 baseline.")
     return []
 
-
+# 确保调试构建包含编辑器内容
 if env.debug_features:
     env.Append(CPPDEFINES=["TOOLS_ENABLED"])
     sources += Glob("src/editor/*.cpp")
@@ -188,98 +172,48 @@ else:
     )
 
 
-def copy_file(from_path, to_path):
-    try:
-        if not os.path.exists(os.path.dirname(to_path)):
-            os.makedirs(os.path.dirname(to_path))
-        shutil.copyfile(from_path, to_path)
-    except Exception as e:
-        print(e)
-        raise e
-
-
 platform = env["platform"]
 compile_target = env["target"]
 suffix = env["suffix"]
 ios_simulator = env["ios_simulator"]
 share_lib_suffix = env["SHLIBSUFFIX"]
 
+# 后处理实现由 SCons 与 CMake 共用（misc/post_build.py），避免同一套逻辑维护两份。
+POST_BUILD_SCRIPT = os.path.join(Dir("#").abspath, "misc", "post_build.py")
+
+
+def _post_build_mode():
+    # ios 的静态库不在插件目录，只需就地去掉 ".dev."；其余平台拷进插件目录。
+    return "move" if platform == "ios" else "copy"
+
+
+def _post_build_paths():
+    if platform == "macos":
+        name = f"{lib_name}.{platform}.{compile_target}.framework/{lib_name}.{platform}.{compile_target}"
+        return f"{output_bin_folder}/{name}", f"{plugin_bin_folder}/{name}"
+    if platform == "ios":
+        sim = ".simulator" if ios_simulator else ""
+        name = f"{lib_name}.{platform}.{compile_target}{sim}.a"
+        return f"{output_bin_folder}/{name}", f"{output_bin_folder}/{name}"
+    name = f"{lib_name}{suffix}{share_lib_suffix}"
+    return f"{output_bin_folder}/{name}", f"{plugin_bin_folder}/{name}"
+
 
 def on_complete(target, source, env):
-    print("Begin post-build process.")
-
-    if platform == "macos":
-        copy_file(
-            f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.framework/{lib_name}.{platform}.{compile_target}",
-            f"{plugin_bin_folder}/{lib_name}.{platform}.{compile_target}.framework/{lib_name}.{platform}.{compile_target}".replace(
-                ".dev.", "."
-            ),
-        )
-    elif platform == "ios":
-        # 仅移除 .dev, 路径在生成 xcframework 时矫正
-        lib_file_path :str = ""
-        if ios_simulator:
-            lib_file_path = f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.simulator.a"
-        else:
-            lib_file_path = f"{output_bin_folder}/{lib_name}.{platform}.{compile_target}.a"
-
-        if ".dev." in lib_file_path:
-            shutil.move(lib_file_path, lib_file_path.replace(".dev.", "."))
-        print("Fix ios lib name.")
-    else:
-        copy_file(
-            f"{output_bin_folder}/{lib_name}{suffix}{share_lib_suffix}",
-            f"{plugin_bin_folder}/{lib_name}{suffix}{share_lib_suffix}".replace(
-                ".dev.", "."
-            ),
-        )
-
-    copied_readme_file_path = os.path.join(plugin_folder, "README.md")
-    copied_readme_zh_file_path = os.path.join(plugin_folder, "README.zh.md")
-
-    copy_file("README.md", copied_readme_file_path)
-    copy_file("README.zh.md", copied_readme_zh_file_path)
-    copy_file("LICENSE", os.path.join(plugin_folder, "LICENSE"))
-
-    # 替换 readme 中图片的路径
-    for fp in [copied_readme_file_path, copied_readme_zh_file_path]:
-        f = open(fp, "r", encoding="utf8")
-        lines = f.readlines()
-        f.close()
-
-        for i in range(len(lines)):
-            if lines[i].count("(demo/addons/godot_dragon_bones.daylily-zeleen/") > 0:
-                lines[i] = lines[i].replace("(demo/addons/godot_dragon_bones.daylily-zeleen/", "(")
-
-        f = open(fp, "w", encoding="utf8")
-        f.writelines(lines)
-        f.close()
-
-    # 更新.gdextension中的版本信息
-    with open(extension_file, "r", encoding="utf8") as f:
-        lines = f.readlines()
-
-    version: str = open("version", "r").readline().strip()
-
-    for i in range(len(lines)):
-        if lines[i].startswith('version = "') and lines[i].endswith('"\n'):
-            lines[i] = f'version = "{version}"\n'
-            break
-
-    # Keep the declared runtime floor in sync with the API version the bindings were
-    # generated from. Godot parses this as three ints and defaults the missing ones to
-    # 0 (core/extension/gdextension_library_loader.cpp:324-335), so "4.3" == "4.3.0"
-    # and no patch number is needed.
-    for i in range(len(lines)):
-        if lines[i].startswith("compatibility_minimum"):
-            lines[i] = f"compatibility_minimum = {MIN_GODOT_VERSION}\n"
-            break
-
-    with open(extension_file, "w", encoding="utf8") as f:
-        f.writelines(lines)
-
-    print(f"Update version number in \"godot_dragon_bones.gdextension\", {version}")
-    print(f"Update compatibility_minimum to {MIN_GODOT_VERSION} (from {API_JSON})")
+    src_lib, dest_lib = _post_build_paths()
+    cmd = [
+        sys.executable, POST_BUILD_SCRIPT,
+        "--src-lib", src_lib,
+        "--dest-lib", dest_lib,
+        "--mode", _post_build_mode(),
+        "--plugin-folder", plugin_folder,
+        "--repo-root", Dir("#").abspath,
+        "--extension-file", extension_file,
+        "--version-file", os.path.join(Dir("#").abspath, "version"),
+        "--api-json", API_JSON,
+        "--api-version", API_VERSION,
+    ]
+    subprocess.run(cmd, check=True)
 
 
 # Disable scons cache for source files

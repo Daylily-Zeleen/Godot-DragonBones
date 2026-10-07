@@ -45,6 +45,25 @@ if(NOT DEFINED GODOT_DRAGONBONES_TESTS)
 	set(GODOT_DRAGONBONES_TESTS OFF CACHE BOOL "Build C++ unit tests (doctest)")
 endif()
 
+# 后处理所依赖的路径（与 SConstruct 的同名变量保持一致）。
+set(GDDB_PLUGIN_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/godot_dragon_bones.daylily-zeleen" CACHE PATH "demo addon directory that receives the built library")
+set(GDDB_EXTENSION_FILE "${GDDB_PLUGIN_FOLDER}/godot_dragon_bones.gdextension" CACHE FILEPATH "The .gdextension file whose version / compatibility_minimum are refreshed")
+set(GDDB_VERSION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/version" CACHE FILEPATH "Single source of truth for the version string")
+
+# 库基名：与 SCons 的 lib_name 一致，产物名必须与 .gdextension 的 [libraries] 引用相符，
+# 否则拷进插件目录后 Godot 也加载不到。
+set(GDDB_LIB_BASENAME "libgddragonbones")
+
+# .gdextension 的 compatibility_minimum 必须与绑定实际所用的 API 版本一致
+# （见 .trellis/spec/build/build-systems.md）。custom_api_file 优先，与 godot-cpp 自身的
+# 取值优先级相同；解析工作交给 post_build.py，此处只负责定位那个 JSON。
+if(GODOTCPP_CUSTOM_API_FILE)
+	set(GDDB_API_JSON "${GODOTCPP_CUSTOM_API_FILE}")
+else()
+	string(REPLACE "." "-" _api_dashed "${GODOTCPP_API_VERSION}")
+	set(GDDB_API_JSON "${GODOT_GDEXTENSION_DIR}/extension_api-${_api_dashed}.json")
+endif()
+
 # ---------------------------------------------------------------------------
 # godot-cpp
 # ---------------------------------------------------------------------------
@@ -120,13 +139,18 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "WASI")
 endif()
 
 # Target
+# 与 SCons 的 env.debug_features（target in [editor, template_debug]）保持一致：
+# 凡是调试构建，一律带 TOOLS_ENABLED 并编译 src/editor/*.cpp —— 编辑器插件在
+# register_types.cpp 中由 #ifdef TOOLS_ENABLED 门控注册，宏与源文件必须同进同出。
 if(CMAKE_BUILD_TYPE MATCHES Debug)
 	set(TARGET template_debug)
-	add_definitions(-DTOOLS_ENABLED=1)
+	set(GODOT_DEBUG_FEATURES ON)
 elseif(CMAKE_BUILD_TYPE MATCHES Release)
 	set(TARGET template_release)
+	set(GODOT_DEBUG_FEATURES OFF)
 else()
 	set(TARGET editor)
+	set(GODOT_DEBUG_FEATURES ON)
 endif()
 
 # ####
@@ -211,6 +235,15 @@ endif()
 # duplicate symbols at link time.
 file(GLOB_RECURSE SOURCES src/*.c** thirdparty/dragonBones/*.c**)
 
+# 与 SCons 的 add_sources_recursively("src/", sources, ["editor"]) 一致：editor 目录先排除，
+# 只有调试构建（GODOT_DEBUG_FEATURES）才加入。否则 release 构建会编译编辑器插件，
+# 却因缺少 TOOLS_ENABLED 而永不注册（见下方 target_compile_definitions）。
+list(FILTER SOURCES EXCLUDE REGEX "/editor/")
+if(GODOT_DEBUG_FEATURES)
+	file(GLOB_RECURSE EDITOR_SOURCES src/editor/*.c**)
+	list(APPEND SOURCES ${EDITOR_SOURCES})
+endif()
+
 file(GLOB_RECURSE HEADERS src/*.h** thirdparty/dragonBones/*.h** thirdparty/rapidjson/*.h**)
 
 # Define our library
@@ -226,6 +259,11 @@ if(GODOT_DRAGONBONES_TESTS)
 	target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 	file(GLOB TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
 	target_sources(${PROJECT_NAME} PRIVATE ${TEST_SOURCES})
+endif()
+
+# 调试构建（template_debug / editor）定义 TOOLS_ENABLED，与 SCons 的 env.debug_features 一致。
+if(GODOT_DEBUG_FEATURES)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE TOOLS_ENABLED)
 endif()
 
 target_include_directories(${PROJECT_NAME} SYSTEM
@@ -281,9 +319,9 @@ if(ANDROID)
 	set(SYSTEM_NAME ${SYSTEM_NAME}.${ANDROID_ABI})
 
 	# Android does not have the bits at the end if you look at the main godot repo build
-	set(OUTPUT_NAME "${PROJECT_NAME}.${PLATFORM}.${TARGET}")
+	set(OUTPUT_NAME "${GDDB_LIB_BASENAME}.${PLATFORM}.${TARGET}")
 else()
-	set(OUTPUT_NAME "${PROJECT_NAME}.${PLATFORM}.${TARGET}.${ARCH}")
+	set(OUTPUT_NAME "${GDDB_LIB_BASENAME}.${PLATFORM}.${TARGET}.${ARCH}")
 endif()
 
 # Change the output directory to the bin directory
@@ -292,9 +330,46 @@ set_target_properties(${PROJECT_NAME}
 	PROPERTIES
 	CXX_EXTENSIONS OFF
 	POSITION_INDEPENDENT_CODE ON
+	# PREFIX "" ：OUTPUT_NAME 已含 "lib"，若再叠加平台默认前缀（Linux/macOS 为 "lib"）
+	# 会得到 "liblibgddragonbones"。SCons 是显式给全名的，这里对齐。
+	PREFIX ""
 	ARCHIVE_OUTPUT_DIRECTORY "${BUILD_PATH}"
 	LIBRARY_OUTPUT_DIRECTORY "${BUILD_PATH}"
 	RUNTIME_OUTPUT_DIRECTORY "${BUILD_PATH}"
 
 	OUTPUT_NAME "${OUTPUT_NAME}"
+)
+
+# ---------------------------------------------------------------------------
+# 后处理（与 SCons 共用 misc/post_build.py，勿在本文件重复实现）
+# ---------------------------------------------------------------------------
+# 把产物拷进 demo 插件目录、同步 README/LICENSE、刷新 .gdextension 的
+# version / compatibility_minimum。
+#
+# - linux / windows / android：搬运产物（名字取自 $<TARGET_FILE_NAME>，与 SCons 的
+#   {lib_name}.{platform}.{target}.{arch}{ext} 一致）；
+# - macOS / iOS：SCons 产出 .framework / .xcframework（后者由 generate_xcframework.sh
+#   二次打包），CMake 不生成这些容器，故只同步 README/LICENSE 与版本信息。
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
+	set(GDDB_POST_BUILD_MODE "none")
+	message(STATUS "CMake 后处理：${CMAKE_SYSTEM_NAME} 的 framework/xcframework 打包不在本脚本范围内，仅同步 README/LICENSE 与版本。")
+else()
+	set(GDDB_POST_BUILD_MODE "copy")
+endif()
+
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+	COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/misc/post_build.py"
+		"--src-lib=$<TARGET_FILE:${PROJECT_NAME}>"
+		"--dest-lib=${GDDB_PLUGIN_FOLDER}/bin/$<TARGET_FILE_NAME:${PROJECT_NAME}>"
+		"--mode=${GDDB_POST_BUILD_MODE}"
+		"--plugin-folder=${GDDB_PLUGIN_FOLDER}"
+		"--repo-root=${CMAKE_CURRENT_SOURCE_DIR}"
+		"--extension-file=${GDDB_EXTENSION_FILE}"
+		"--version-file=${GDDB_VERSION_FILE}"
+		"--api-json=${GDDB_API_JSON}"
+		"--api-version=${GODOTCPP_API_VERSION}"
+	COMMENT "Post-build: copy library and sync addon files"
+	VERBATIM
 )

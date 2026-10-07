@@ -211,18 +211,29 @@ Output goes to `./bin` (`SConstruct:85`), matching godot-cpp's `.{platform}.{tar
 
 The suffix (`env["suffix"]`, including `.dev` for dev builds) comes from godot-cpp, not from this repo.
 
-### Post-Build Pipeline
+### Post-Build Pipeline — shared script
 
-A `complete` pseudo-target runs `on_complete` after linking (`SConstruct:250-252`):
+Both build systems run the **same** post-build implementation: `misc/post_build.py`.
 
-1. Copy the library into `demo/addons/godot_dragon_bones.daylily-zeleen/bin/`, rewriting `.dev.` out of the name (`SConstruct:180-206`).
-2. Copy `README.md`, `README.zh.md`, `LICENSE` into the addon (`SConstruct:207-210`).
-3. Rewrite README image paths relative to the addon (`SConstruct:212-226`).
-4. Rewrite the `.gdextension` `version = "..."` line from the `version` file (`SConstruct:228-246`).
+| System | Hook | Arguments |
+|--------|------|-----------|
+| SCons | `complete` pseudo-target → `on_complete` (`SConstruct:217-231`) | `subprocess.run([sys.executable, misc/post_build.py, ...], check=True)` |
+| CMake | `add_custom_command(... POST_BUILD)` (`CMakeLists.txt:362-376`) | `python3 misc/post_build.py --...` |
 
-Because of step 4, **the `.gdextension` version field is generated** — editing it by hand is overwritten on the next build.
+The script does four things:
 
-> **Gotcha**: `NoCache(sources)` disables SCons caching for extension sources (`SConstruct:248`). Combined with the currently-commented-out `actions/cache` step in CI, `SCONS_CACHE` / `SCONS_CACHE_LIMIT` are exported but effectively unused. Do not assume CI builds are incremental.
+1. Move the library into `demo/addons/godot_dragon_bones.daylily-zeleen/bin/`, rewriting `.dev.` out of the name.
+2. Copy `README.md`, `README.zh.md`, `LICENSE` into the addon.
+3. Rewrite README image paths relative to the addon (strips `demo/addons/godot_dragon_bones.daylily-zeleen/`).
+4. Rewrite the `.gdextension` `version = "..."` from the `version` file, and `compatibility_minimum` from the API JSON's `header.version_major/version_minor`.
+
+Because of step 4, **both the `.gdextension` version and compatibility_minimum fields are generated** — editing them by hand is overwritten on the next build.
+
+Mode is per-platform: `--mode copy` (default) copies into the addon; `--mode move` renames in place (iOS static lib, whose `.dev.` is fixed before `generate_xcframework.sh` packs it); `--mode none` skips the library entirely (CMake on macOS/iOS, where SCons produces `.framework` / `.xcframework` containers CMake does not build) while still syncing README/LICENSE/version.
+
+> **Rule**: never implement post-processing inside `SConstruct` or `CMakeLists.txt`. Add it to `misc/post_build.py` so both systems stay identical. The two hooks only compute platform-specific paths.
+
+> **Gotcha**: `NoCache(sources)` disables SCons caching for extension sources (`SConstruct:234`). Combined with the currently-commented-out `actions/cache` step in CI, `SCONS_CACHE` / `SCONS_CACHE_LIMIT` are exported but effectively unused. Do not assume CI builds are incremental.
 
 ## CMake
 
@@ -254,7 +265,7 @@ file(GLOB_RECURSE HEADERS src/*.h** thirdparty/dragonBones/*.h** thirdparty/rapi
 
 `rapidjson` is header-only, so it appears in the headers glob only.
 
-Key properties: C++17 (`CMakeLists.txt:133-135`), exceptions disabled by default (`:184-189`), MSVC `/WX /MD[d] /utf-8` with warnings suppressed (`:142,144-155,200`), output name mirroring godot-cpp (`:254-257`), `BUILD_SHARED` toggling SHARED/STATIC (`:22-24,185-189`).
+Key properties: C++17 (`CMakeLists.txt:133-135`), exceptions disabled by default (`:184-189`), MSVC `/WX /MD[d] /utf-8` with warnings suppressed (`:142,144-155,200`), output name mirroring SCons's `libgddragonbones` (`:329-341`, with `PREFIX ""` so Linux does not yield `liblibgddragonbones`), `BUILD_SHARED` toggling SHARED/STATIC (`:22-24,185-189`), and a POST_BUILD hook into the shared `misc/post_build.py` (`:345-376`).
 
 ### Rule: `if(NOT DEFINED X)`, never `if(X STREQUAL "")`
 
@@ -290,19 +301,24 @@ A literal path also guards against `CMAKE_CURRENT_SOURCE_DIR` surprises from `ad
 | WASI arch guard matches `"wams32"` (typo) — never true | `CMakeLists.txt:112` |
 | `elsE()` wrong case | `CMakeLists.txt:147` |
 | STATIC branch omits `register_types.cpp` while SHARED includes it | `CMakeLists.txt:213` vs `:215` |
-| `TOOLS_ENABLED` is defined **only** in the Debug branch, so the `editor` target compiles `src/editor/*.cpp` **without** the macro and never registers the plugin | `CMakeLists.txt:118-125` |
 | Error strings misspelled `"Unsupport architechture"` | `CMakeLists.txt:84,99,107,113` |
 
 CMake is not used by CI, so these do not fail the matrix — but do not copy them.
 
-> **Gotcha**: SCons and CMake gate the editor layer differently, and only SCons is correct.
+> **Fixed**: `TOOLS_ENABLED` used to be defined only in the Debug branch, so a CMake `editor` build compiled `src/editor/*.cpp` without the macro and silently never registered the plugin. Both systems now gate the editor layer identically (see the gotcha below).
+
+> **Gotcha**: SCons and CMake gate the editor layer identically — `TOOLS_ENABLED` is defined **and** `src/editor/*.cpp` is compiled, both under the same "debug features" condition.
 >
-> - SCons: `TOOLS_ENABLED` is injected **and** `src/editor/*.cpp` is added together under `env.debug_features` (`SConstruct:120-122`). The two are inseparable.
-> - CMake: `src/editor/dragon_bones_editor_plugin.cpp` is picked up by the `GLOB_RECURSE` regardless of target, but `add_definitions(-DTOOLS_ENABLED=1)` sits inside `if(CMAKE_BUILD_TYPE MATCHES Debug)` (`CMakeLists.txt:118-120`). The `else()` branch that sets `TARGET editor` (`:123-124`) gets no such define.
+> | System | Debug-features condition | Effect |
+> |--------|--------------------------|--------|
+> | SCons | `env.debug_features` = `target in [editor, template_debug]` (`SConstruct:138-140`) | `CPPDEFINES += TOOLS_ENABLED`; `sources += Glob("src/editor/*.cpp")` |
+> | CMake | `GODOT_DEBUG_FEATURES` = build type is Debug or Editor (`CMakeLists.txt:145-154`) | `target_compile_definitions(... TOOLS_ENABLED)` (`:264-267`) |
 >
-> `src/editor/dragon_bones_editor_plugin.h` has no `TOOLS_ENABLED` guard (only `#pragma once`, `:31`), so the editor classes compile either way — but `src/dragon_bones_registration.cpp:54-63` registers them only `#ifdef TOOLS_ENABLED`. Result: a CMake `editor` build produces a plugin whose editor features are silently never registered.
+> The two are inseparable because `src/dragon_bones_registration.cpp:58-67` registers the editor plugin only `#ifdef TOOLS_ENABLED`. Compiling the editor translation units without the macro yields a plugin whose editor features silently never register.
 >
-> If you rely on the CMake build for editor work, define `TOOLS_ENABLED` for the `editor` target too. Do not "fix" this by adding `#ifdef TOOLS_ENABLED` guards to the header — the SCons path depends on those translation units being compiled whenever the define is present.
+> In CMake the editor sources are kept out of the initial `GLOB_RECURSE` and re-added only when `GODOT_DEBUG_FEATURES` is on (`CMakeLists.txt:241-245`), mirroring SCons's `add_sources_recursively("src/", sources, ["editor"])` exclusion list. Release builds therefore compile no editor code and define no macro.
+>
+> Do **not** "fix" a misregistration by adding `#ifdef TOOLS_ENABLED` guards to `src/editor/dragon_bones_editor_plugin.h` — an earlier revision of that header had no guard, and the SCons path depends on those translation units being compiled whenever the define is present.
 
 ## Line Endings & Ignore Rules
 
