@@ -15,6 +15,8 @@ var _dragging := false
 
 # Setup UI to control DragonBonesArmature's properties.
 func _ready() -> void:
+	_prepare_for_ci_test()
+
 	# AnimationCallbackModeProcess
 	for e: String in ClassDB.class_get_enum_constants(&"DragonBonesArmatureView", &"AnimationCallbackModeProcess"):
 		animation_process_mode_option_btn.add_item(e.rsplit("_", false, 1)[1])
@@ -102,3 +104,16 @@ func _input(event: InputEvent) -> void:
 	var mb := event as InputEventMouseButton
 	if mb and mb.button_index == MOUSE_BUTTON_MIDDLE and  not mb.is_echo() and not mb.is_pressed():
 			_dragging = false
+
+
+func _prepare_for_ci_test() -> void:
+	if not OS.get_cmdline_user_args().has("--auto-exit"): return
+
+	# Enable all debug draw.
+	armature.debug_draw_enabled = true
+	armature.debug_draw_visible_bone = true
+	armature.debug_draw_visible_mesh = true
+	armature.debug_draw_visible_bone_name = true
+
+	# Auto quit after 3 sec.
+	get_tree().create_timer(3.0).timeout.connect(get_tree().quit)

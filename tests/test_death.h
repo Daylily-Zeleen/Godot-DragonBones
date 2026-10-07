@@ -41,6 +41,9 @@
 
 #include <cstdlib>
 
+#include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/main_loop.hpp>
+#include <godot_cpp/classes/object.hpp>
 #include <godot_cpp/classes/os.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/templates/local_vector.hpp>
@@ -51,6 +54,27 @@
 
 namespace gddb {
 namespace tests {
+
+// 以退出码结束进程，但**走引擎自身的退出路径**：SceneTree::quit(code) 会把码交给
+// OS::set_exit_code()，主循环随即结束，引擎按正常流程关闭 —— 模块反初始化（各静态
+// 清理回调）→ RenderingServer 等单例析构。
+//
+// 不用 std::exit()：那会跳过引擎的全部收尾，测试进程便永远观察不到退出期的资源泄露
+// 与析构错误，而这正是最难在别处复现的一类 bug。
+//
+// build_profile.json 未启用 SceneTree 类绑定，故经 MainLoop 的 Object 接口调用；
+// 运行时对象本就是 SceneTree，其 quit() 是普通绑定方法（非虚函数）。
+//
+// 调用后须立即 return，把控制权交还引擎，由其完成收尾。
+inline void quit_with_exit_code(int p_exit_code) {
+	godot::MainLoop *main_loop = godot::Engine::get_singleton()->get_main_loop();
+	if (main_loop == nullptr) {
+		// 主循环尚未建立（不应发生：入口经 call_deferred 在主循环首帧执行）。
+		// 兜底直接结束后进程，至少让退出码可见。
+		std::exit(p_exit_code);
+	}
+	main_loop->call("quit", p_exit_code);
+}
 
 // 子进程执行体：正常路径下应在内部 trap，不返回。
 using DeathBody = void (*)();
@@ -125,13 +149,16 @@ inline bool try_run_death_case() {
 
 				godot::UtilityFunctions::print("[gddb] death case did NOT trap: ", name);
 				godot::_err_flush_stdout();
-				std::exit(EXIT_SUCCESS);
+
+				quit_with_exit_code(EXIT_SUCCESS);
+				return true;
 			}
 		}
 
 		godot::UtilityFunctions::print("[gddb] unknown death case: ", name);
 		godot::_err_flush_stdout();
-		std::exit(EXIT_SUCCESS);
+		quit_with_exit_code(EXIT_SUCCESS);
+		return true;
 	}
 	return false;
 }

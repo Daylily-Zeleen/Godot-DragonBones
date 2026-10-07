@@ -166,9 +166,8 @@ inline void try_run() {
 	const int exit_code = context.run();
 
 	UtilityFunctions::print("[gddb] running tests result: ", exit_code);
-	// 测试构建以进程退出码反馈结果。SceneTree 不在 build_profile 中（加它会牵入
-	// Node 等一串依赖），故不走 engine 的优雅退出，直接以退出码结束进程。
-	std::exit(exit_code);
+
+	quit_with_exit_code(exit_code);
 }
 
 } //namespace tests
