@@ -19,8 +19,6 @@ A GDExtension plugin to add DragonBones for Godot.
 * Godot 4.3 +
 * DragonBones Pro 5.6
 
-> **Note**: Godot 4.3+ is the default. To support Godot 4.2, switch `thirdparty/godot-cpp` to its `4.2` branch and build from that.
-
 ## Get plugin
 
 1. Download from [release page](https://github.com/Daylily-Zeleen/Godot-DragonBones/releases).
