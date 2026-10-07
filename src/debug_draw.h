@@ -73,9 +73,6 @@ public:
 private:
 	CanvasItem *owner;
 
-	// 线框专用网格：直接画在 owner 自身画布项上，不挂材质。
-	RID mesh_wireframe;
-
 	// 仅调试层使用的画布项。2D 网格不读 surface 材质，材质只能挂在画布项上；
 	// owner 画布上还画着龙骨本体，直接挂材质会把本体一起染色，故必须单独一层。
 	// 延迟到 _draw() 里创建（属性设置阶段可能尚未入树）。
@@ -83,6 +80,10 @@ private:
 
 	// 骨骼网格：单次提交、画在 canvas_bones 上，由那里挂的材质做描边与填充。
 	RID mesh_bones;
+
+	// 线框专用网格：直接画在 owner 自身画布项上，不挂材质。
+	RID mesh_wireframe;
+
 
 	uint8_t draw_flags{ DRAW_MESH | DRAW_BONE | DRAW_BONE_NAME };
 };

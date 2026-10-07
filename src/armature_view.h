@@ -126,7 +126,6 @@ public:
 		}
 	}
 
-#ifdef DEBUG_ENABLED
 	void set_debug_draw_enabled(bool p_enabled);
 	bool is_debug_draw_enabled() const;
 	void set_debug_draw_visible_mesh(bool p_visible);
@@ -144,7 +143,6 @@ public:
 	Color get_debug_draw_color_ik_target() const;
 	void set_debug_draw_color_ik_bone_outline(const Color &p_color);
 	Color get_debug_draw_color_ik_bone_outline() const;
-#endif // DEBUG_ENABLED
 
 	DragonBonesArmature *get_armature();
 

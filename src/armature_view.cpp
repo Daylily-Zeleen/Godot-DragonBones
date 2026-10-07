@@ -356,80 +356,126 @@ bool DragonBonesArmatureView::is_active() const {
 	return active;
 }
 
-#ifdef DEBUG_ENABLED
 void DragonBonesArmatureView::set_debug_draw_enabled(bool p_enabled) {
+#ifdef DEBUG_ENABLED
 	debug_draw.set_enabled(p_enabled);
 	notify_property_list_changed();
 	queue_redraw();
+#endif
 }
 
 bool DragonBonesArmatureView::is_debug_draw_enabled() const {
+#ifdef DEBUG_ENABLED
 	return debug_draw.is_enabled();
+#else
+	return false;
+#endif
 }
 
 void DragonBonesArmatureView::set_debug_draw_bone_pivot_radius(float p_radius) {
+#ifdef DEBUG_ENABLED
 	DebugDraw::set_bone_pivot_radius(p_radius);
 	queue_redraw();
+#endif
 }
 
 float DragonBonesArmatureView::get_debug_draw_bone_pivot_radius() const {
+#ifdef DEBUG_ENABLED
 	return DebugDraw::get_bone_pivot_radius();
+#else
+	return 5.0f;
+#endif
 }
 
 void DragonBonesArmatureView::set_debug_draw_visible_mesh(bool p_visible) {
+#ifdef DEBUG_ENABLED
 	debug_draw.set_flag(DebugDraw::DRAW_MESH, p_visible);
 	queue_redraw();
+#endif
 }
 
 bool DragonBonesArmatureView::is_debug_draw_visible_mesh() const {
+#ifdef DEBUG_ENABLED
 	return debug_draw.has_flag(DebugDraw::DRAW_MESH);
+#else
+	return false;
+#endif
 }
 
 void DragonBonesArmatureView::set_debug_draw_visible_bone(bool p_visible) {
+#ifdef DEBUG_ENABLED
 	debug_draw.set_flag(DebugDraw::DRAW_BONE, p_visible);
 	queue_redraw();
+#endif
 }
 
 bool DragonBonesArmatureView::is_debug_draw_visible_bone() const {
+#ifdef DEBUG_ENABLED
 	return debug_draw.has_flag(DebugDraw::DRAW_BONE);
+#else
+	return false;
+#endif
 }
 
 void DragonBonesArmatureView::set_debug_draw_visible_bone_name(bool p_visible) {
+#ifdef DEBUG_ENABLED
 	debug_draw.set_flag(DebugDraw::DRAW_BONE_NAME, p_visible);
 	queue_redraw();
+#endif
 }
 
 bool DragonBonesArmatureView::is_debug_draw_visible_bone_name() const {
+#ifdef DEBUG_ENABLED
 	return debug_draw.has_flag(DebugDraw::DRAW_BONE_NAME);
+#else
+	return false;
+#endif
 }
 
 void DragonBonesArmatureView::set_debug_draw_color_bone(const Color &p_color) {
+#ifdef DEBUG_ENABLED
 	DebugDraw::color_bone = p_color;
 	queue_redraw();
+#endif
 }
 
 Color DragonBonesArmatureView::get_debug_draw_color_bone() const {
+#ifdef DEBUG_ENABLED
 	return DebugDraw::color_bone;
+#else
+	return {};
+#endif
 }
 
 void DragonBonesArmatureView::set_debug_draw_color_ik_target(const Color &p_color) {
+#ifdef DEBUG_ENABLED
 	DebugDraw::color_ik_target = p_color;
 	queue_redraw();
+#endif
 }
 
 Color DragonBonesArmatureView::get_debug_draw_color_ik_target() const {
+#ifdef DEBUG_ENABLED
 	return DebugDraw::color_ik_target;
+#else
+	return {};
+#endif
 }
 
 void DragonBonesArmatureView::set_debug_draw_color_ik_bone_outline(const Color &p_color) {
+#ifdef DEBUG_ENABLED
 	DebugDraw::set_color_ik_bone_outline(p_color);
 	queue_redraw();
+#endif
 }
 
 Color DragonBonesArmatureView::get_debug_draw_color_ik_bone_outline() const {
+#ifdef DEBUG_ENABLED
 	return DebugDraw::get_color_ik_bone_outline();
+#else
+	return {};
+#endif
 }
-#endif // DEBUG_ENABLED
 
 void DragonBonesArmatureView::set_time_scale(float p_time_scale) {
 	time_scale = p_time_scale < 0.0 ? 0.0 : p_time_scale;
@@ -725,26 +771,23 @@ void DragonBonesArmatureView::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_active", "active"), &DragonBonesArmatureView::set_active);
 	ClassDB::bind_method(D_METHOD("is_active"), &DragonBonesArmatureView::is_active);
 
-#ifdef DEBUG_ENABLED
+	/* 调试绘制属性的访问器发布版本将只返回默认值*/
 	ClassDB::bind_method(D_METHOD("set_debug_draw_enabled", "enabled"), &DragonBonesArmatureView::set_debug_draw_enabled);
 	ClassDB::bind_method(D_METHOD("is_debug_draw_enabled"), &DragonBonesArmatureView::is_debug_draw_enabled);
 	ClassDB::bind_method(D_METHOD("set_debug_draw_bone_pivot_radius", "radius"), &DragonBonesArmatureView::set_debug_draw_bone_pivot_radius);
 	ClassDB::bind_method(D_METHOD("get_debug_draw_bone_pivot_radius"), &DragonBonesArmatureView::get_debug_draw_bone_pivot_radius);
-
 	ClassDB::bind_method(D_METHOD("set_debug_draw_visible_mesh", "visible"), &DragonBonesArmatureView::set_debug_draw_visible_mesh);
 	ClassDB::bind_method(D_METHOD("is_debug_draw_visible_mesh"), &DragonBonesArmatureView::is_debug_draw_visible_mesh);
 	ClassDB::bind_method(D_METHOD("set_debug_draw_visible_bone", "visible"), &DragonBonesArmatureView::set_debug_draw_visible_bone);
 	ClassDB::bind_method(D_METHOD("is_debug_draw_visible_bone"), &DragonBonesArmatureView::is_debug_draw_visible_bone);
 	ClassDB::bind_method(D_METHOD("set_debug_draw_visible_bone_name", "visible"), &DragonBonesArmatureView::set_debug_draw_visible_bone_name);
 	ClassDB::bind_method(D_METHOD("is_debug_draw_visible_bone_name"), &DragonBonesArmatureView::is_debug_draw_visible_bone_name);
-
 	ClassDB::bind_method(D_METHOD("set_debug_draw_color_bone", "color"), &DragonBonesArmatureView::set_debug_draw_color_bone);
 	ClassDB::bind_method(D_METHOD("get_debug_draw_color_bone"), &DragonBonesArmatureView::get_debug_draw_color_bone);
 	ClassDB::bind_method(D_METHOD("set_debug_draw_color_ik_target", "color"), &DragonBonesArmatureView::set_debug_draw_color_ik_target);
 	ClassDB::bind_method(D_METHOD("get_debug_draw_color_ik_target"), &DragonBonesArmatureView::get_debug_draw_color_ik_target);
 	ClassDB::bind_method(D_METHOD("set_debug_draw_color_ik_bone_outline", "color"), &DragonBonesArmatureView::set_debug_draw_color_ik_bone_outline);
 	ClassDB::bind_method(D_METHOD("get_debug_draw_color_ik_bone_outline"), &DragonBonesArmatureView::get_debug_draw_color_ik_bone_outline);
-#endif // DEBUG_ENABLED
 
 	ClassDB::bind_method(D_METHOD("set_callback_mode_process", "mode"), &DragonBonesArmatureView::set_callback_mode_process);
 	ClassDB::bind_method(D_METHOD("get_callback_mode_process"), &DragonBonesArmatureView::get_callback_mode_process);
@@ -818,23 +861,18 @@ void DragonBonesArmatureView::_bind_methods() {
 	// This is how we set top level properties
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "active"), "set_active", "is_active");
 
-#ifdef DEBUG_ENABLED
-	// The prefix is spelled out in each property name; ADD_GROUP only records the
-	// section header, matching how the `Flip` group above is written.
+	/* 调试绘制属性，发布版本将只返回默认值 */
 	ADD_GROUP("DebugDraw", "debug_draw_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug_draw_enabled"), "set_debug_draw_enabled", "is_debug_draw_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "debug_draw_bone_pivot_radius", PROPERTY_HINT_RANGE, "0.5,64.0,0.5,or_greater"), "set_debug_draw_bone_pivot_radius", "get_debug_draw_bone_pivot_radius");
-
 	ADD_SUBGROUP("Visible", "debug_draw_visible_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug_draw_visible_mesh"), "set_debug_draw_visible_mesh", "is_debug_draw_visible_mesh");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug_draw_visible_bone"), "set_debug_draw_visible_bone", "is_debug_draw_visible_bone");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug_draw_visible_bone_name"), "set_debug_draw_visible_bone_name", "is_debug_draw_visible_bone_name");
-
 	ADD_SUBGROUP("Color", "debug_draw_color_");
 	ADD_PROPERTY(PropertyInfo(Variant::COLOR, "debug_draw_color_bone"), "set_debug_draw_color_bone", "get_debug_draw_color_bone");
 	ADD_PROPERTY(PropertyInfo(Variant::COLOR, "debug_draw_color_ik_target"), "set_debug_draw_color_ik_target", "get_debug_draw_color_ik_target");
 	ADD_PROPERTY(PropertyInfo(Variant::COLOR, "debug_draw_color_ik_bone_outline"), "set_debug_draw_color_ik_bone_outline", "get_debug_draw_color_ik_bone_outline");
-#endif // DEBUG_ENABLED
 
 	ADD_GROUP("Animation Settings", "animation_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "animation_loop_count", PROPERTY_HINT_RANGE, "0,100,1,or_greater"), "set_animation_loop_count", "get_animation_loop_count");
