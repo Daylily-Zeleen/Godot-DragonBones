@@ -121,7 +121,8 @@ public:
 				continue;
 			}
 			if (raw_slot->getDisplayIndex() < 0) {
-				raw_slot->setDisplayIndex(0);
+				// displayIndex < 0 是 DragonBones 编辑器的 "None"（无显示对象），跳过它。
+				continue;
 			}
 			auto raw_display = raw_slot->getDisplayList()[raw_slot->getDisplayIndex()];
 			if (raw_display.second == dragonBones::DisplayType::Armature) {
@@ -167,6 +168,7 @@ public:
 		}
 	}
 
+	virtual Type get_type() const override { return ARMATURE_DISPLAY; }
 	virtual void queue_redraw() const override;
 	virtual void append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const override;
 

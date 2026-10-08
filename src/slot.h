@@ -54,7 +54,7 @@ public:
 	Color color; // 直接对该变量进行设置，跳过基类的 _setColor()/colorTransform
 
 	Ref<Texture2D> get_texture() const;
-	Display *get_display() const { return static_cast<Display *>(getDisplay()); }
+	_FORCE_INLINE_ Display *get_display() const { return static_cast<Display *>(getDisplay()); }
 
 public:
 	virtual void _updateVisible() override;
