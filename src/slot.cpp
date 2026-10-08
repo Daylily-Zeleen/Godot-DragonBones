@@ -145,16 +145,25 @@ void Slot_GD::__get_uv_pt(Point2 &pt, bool p_rotated, float p_u, float p_v, cons
 }
 
 void Slot_GD::_updateFrame() {
-	// update_display_texture();
-	auto display = get_display();
-	const auto currentVerticesData = (_deformVertices != nullptr && display == _meshDisplay) ? _deformVertices->verticesData : nullptr;
+	auto display = static_cast<Display *>(get_display());
+	if (display == nullptr || display->get_type() != Display::MESH_DISPLAY) {
+		// _displayIndex < 0 或者 越界无法找到对应的实例
+		// 或切换到不是 DragonBonesMeshDisplay 类型(本项目的 DragonBonesMeshDisplay 同时处理 纹理 和 网格 两类 Display)
+		// 仅请求重绘
+		auto armature = static_cast<DragonBonesArmature *>(getArmature()->getProxy());
+		armature->queue_redraw();
+		return;
+	}
+
+	auto frameDisplay = static_cast<DragonBonesMeshDisplay *>(get_display());
 	auto currentTextureData = static_cast<DragonBonesTextureData *>(_textureData);
 
-	if (_displayIndex >= 0 && display != nullptr && currentTextureData != nullptr) {
+	if (currentTextureData != nullptr) {
+		// TODO: 支持独立散图
 		const auto atlas = currentTextureData->getParent();
 		const auto &region = currentTextureData->region;
-		auto frameDisplay = static_cast<DragonBonesMeshDisplay *>(display);
 
+		const auto currentVerticesData = (_deformVertices != nullptr && display == _meshDisplay) ? _deformVertices->verticesData : nullptr;
 		if (currentVerticesData != nullptr) {
 			// Mesh.
 			const auto &deformVertices = _deformVertices->vertices;
@@ -240,11 +249,9 @@ void Slot_GD::_updateFrame() {
 		_visibleDirty = true;
 		_blendModeDirty = true;
 		_colorDirty = true;
-		display->queue_redraw();
-		return;
 	}
 
-	// _renderDisplay->visible = false;
+	display->queue_redraw();
 }
 
 void Slot_GD::_updateMesh() {

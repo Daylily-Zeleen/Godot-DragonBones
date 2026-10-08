@@ -49,12 +49,20 @@ protected:
 public:
 	Transform2D transform{};
 
+	enum Type {
+		MESH_DISPLAY,
+		ARMATURE_DISPLAY,
+	};
+	virtual Type get_type() const = 0;
 	virtual void queue_redraw() const = 0;
 	virtual void append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const = 0;
 
 	virtual void release(); // NOTE: 子类要在此出处理自身的内存管理 （多继承的情况下必须用指在开头的指针才能 memdelete）
 };
 
+/** NOTE: 本项目中 _rawDisplay 和 _meshDisplay 共用 DragonBonesMeshDisplay,
+	另外当 DisplayType 为 Armature 时为 DragonBonesArmature
+ */
 class DragonBonesMeshDisplay : public Display {
 private:
 	DragonBonesMeshDisplay(const DragonBonesMeshDisplay &);
@@ -77,6 +85,7 @@ public:
 	void set_blend_mode(CanvasItemMaterial::BlendMode p_blend_mode) {}
 	class DragonBonesArmature *get_armature() const;
 
+	virtual Type get_type() const override { return MESH_DISPLAY; }
 	virtual void queue_redraw() const override;
 	virtual void append_draw_data(ArmatureDrawData &r_data, const Transform2D &p_base_transfrom = Transform2D(), const Color &p_modulate = Color(1.0f, 1.0f, 1.0f, 1.0f)) const override;
 
