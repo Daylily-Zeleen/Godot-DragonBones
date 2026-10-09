@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/gdextension/class-binding.md", "reason": "新增 DragonBonesData 资源的 GDCLASS/_bind_methods/ADD_PROPERTY/枚举绑定与注册级别（GDREGISTER_CLASS）契约"}
+{"file": ".trellis/spec/gdextension/directory-structure.md", "reason": "新文件 src/db_data.h/.cpp 的命名、许可头、include 顺序、namespace 与 friend 约定"}
+{"file": ".trellis/spec/gdextension/error-handling.md", "reason": "ensure_data_loaded/release_data 返回 Error 的宏选型与编辑器守卫（is_editor_hint / notify_property_list_changed）"}
+{"file": ".trellis/spec/gdextension/memory-and-lifetime.md", "reason": "单例工厂持有运行时数据的归属、returnToPool 时机、Ref<Texture2D> 卸载与 add_clean_static_callback 约定"}
+{"file": ".trellis/spec/gdextension/type-conversion.md", "reason": "to_gd_str/to_std_str 边界、缓存键字符串转换、SNAME 缓存、4.3 版本门控"}
+{"file": ".trellis/spec/gdextension/quality-guidelines.md", "reason": "禁用模式（new/delete、assert）、Godot 4.3→current 兼容要求、验证方式（编译+demo 实跑+Web）"}
+{"file": ".trellis/spec/editor/editor-plugin.md", "reason": "导入插件/导出插件/EditorPlugin 三类的门控与契约、.dbfactory 序列化现状与待迁移点、项目设置名的迁移警告"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨 Godot↔运行时边界的所有权与数据流、序列化边界读写同步、编辑器↔运行时门控检查清单"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "常量单一来源（SAVED_EXT 类）、两个构建系统同步、绑定三处一致（header/_bind_methods/doc_classes）"}

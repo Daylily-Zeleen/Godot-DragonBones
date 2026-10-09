@@ -10,7 +10,7 @@ config_version=5
 
 [Godot_DragonBones]
 
-auto_generate_dbfactory=true
+auto_generate_dbdata=true
 
 [application]
 

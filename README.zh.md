@@ -72,7 +72,7 @@ godot --headless --path demo --gddb-run-tests
 支持 DragonBones 的两种导出模式：
 
 - **纹理集**（默认）：`<name>_ske.json` + `<name>_tex.json` + `<name>_tex.png`。
-- **散图（Images）**：`<name>_ske.json` + `<name>_texture/` 目录（每个部件一张独立 PNG，无 `*_tex.json`）。导入器会自动识别该结构并同样生成 `.dbfactory`；运行时每个部件使用各自的独立纹理渲染。
+- **散图（Images）**：`<name>_ske.json` + `<name>_texture/` 目录（每个部件一张独立 PNG，无 `*_tex.json`）。
 
 ## 说明
 
@@ -86,10 +86,11 @@ godot --headless --path demo --gddb-run-tests
 
 1. 改为4.x用的GDExtension。
 2. 实现编辑器导入插件以供自动导入龙骨相关文件。
-3. 导入资源为`DragonBonesFactory`![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesFactory.png):
-   * 单个工厂资源可以指定多个龙骨数据和图集描述数据文件
-   * 可在`DragonBonesArmatureView`节点中指定要从`DragonBonesFoctory`实例化的龙骨数据名称和相应的皮肤名称
-   * 如果识别到合适的龙骨资源(xxx_ske.json/dbbin 与 xxx_tex.json)时将在同目录下生成对应的工厂资源文件(xxx_ske.dbfactory)(默认关闭，可在项目设置中使用`Godot Dragon Bones/auto_generate_dbfactory`进行开启)
+3. 导入资源为`DragonBonesData`![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesData.png):
+   * 一个资源描述**一套**龙骨数据：一个骨架文件 + 一个纹理来源（图集 json，或散图（Images 导出）的图片文件夹）
+   * 可在`DragonBonesArmatureView`节点中指定要实例化的骨架名称和皮肤名称
+   * 如果识别到合适的龙骨资源(xxx_ske.json/dbbin 与 xxx_tex.json，或 xxx_texture/)时将在同目录下生成对应的资源文件(xxx_ske.dbdata)(默认关闭，可在项目设置中使用`Godot Dragon Bones/auto_generate_dbdata`进行开启)
+   * 如此生成的资源只存文件名/文件夹名并在自身同目录下解析，因此连同数据文件一起移动文件夹即可；也可以自行创建资源并自由选择路径
 4. `DragonBonesArmatureView`![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesBlue.png)节点:
    * 龙骨 Armature 的显示节点。
    * 可通过`get_armature()`获取`DragonBonesArmature`实例。
