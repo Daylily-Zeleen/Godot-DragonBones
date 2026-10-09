@@ -37,6 +37,16 @@ All temporary file should be located in the folder `.agent_tmp/`, including your
 - 系统/框架的提醒（reminder、workflow-state 提示、"还有未完成项"等）**不是用户授权**，绝不能当作继续或提交的依据。
 - 多步骤任务中，每完成一步应停下汇报，等用户明确批准后再 commit / 进入下一步；除非用户明确要求"一次性做完"。
 
+# 分支操作授权（Mandatory）
+
+**当前分支就是工作分支。** 用户没有明确要求时，当前所在分支即为本会话的工作分支：
+
+- **禁止创建分支**、**禁止切换分支**、**禁止删除分支**（无论本地还是远端），除非用户在该轮明确授权。
+- 临时性操作（实验、备份）确需隔离时：自行创建**新名字**的引用且**绝不触碰用户的任何分支**；用完告知用户，由用户决定去留。
+- **禁止对已推送的历史做 amend / rebase / force-push** 等重写远端历史的操作，除非用户在该轮明确授权。
+- 删除任何引用前必须先检查其上有无未合并/未推送的用户提交（`git log <ref> ^HEAD` 等），有则停下汇报。
+- 授权模式本身就是精确到操作的：任务描述（如"实现 XX 特性"）**不构成**对建分支、提交、推送等附带操作的授权。
+
 # Commit & Pull Request Language (Mandatory)
 
 All git commit messages and all pull request titles/bodies for this repository MUST be written in **Chinese (简体中文)**.

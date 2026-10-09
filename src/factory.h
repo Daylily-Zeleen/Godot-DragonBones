@@ -89,6 +89,8 @@ public:
 	Error load_dragon_bones_ske_file_list(PackedStringArray p_files);
 	Error load_texture_atlas_json_file_list(PackedStringArray p_files);
 
+	Error set_scattered_texture_dirs(const String &p_data_name, PackedStringArray p_dirs);
+
 	bool can_create_dragon_bones_instance() const;
 
 	DragonBonesArmature *create_armature(DragonBonesArmatureView *p_owner, const String &p_dragon_bones_data_name = "", const String &p_armature_name = "", const String &p_skin_name = "");
@@ -97,6 +99,8 @@ private:
 	//  Binding
 	PackedStringArray dragon_bones_ske_file_list;
 	PackedStringArray texture_atlas_json_file_list;
+	PackedStringArray scattered_texture_dir_list;
+	std::map<std::string, std::vector<dragonBones::TextureAtlasData *>> _scattered_atlases;
 
 public:
 	// Binding
@@ -105,6 +109,9 @@ public:
 
 	PackedStringArray get_texture_atlas_json_file_list() const { return texture_atlas_json_file_list; }
 	void set_texture_atlas_json_file_list(PackedStringArray p_files);
+
+	PackedStringArray get_scattered_texture_dir_list() const { return scattered_texture_dir_list; }
+	void set_scattered_texture_dir_list(PackedStringArray p_dirs);
 
 	PackedStringArray get_loaded_dragon_bones_data_name_list() const;
 	PackedStringArray get_loaded_dragon_bones_armature_name_list(const String &p_dragon_bones_data_name) const;

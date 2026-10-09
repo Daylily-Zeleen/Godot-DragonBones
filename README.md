@@ -68,6 +68,13 @@ To run "demo" project, here have 3 way:
 2. Download appropriate archive from [release page](https://github.com/Daylily-Zeleen/Godot-DragonBones/releases), and plug it into "demo" project.
 3. Open "demo" project directly, ignore errors and warnings, goto "Asset Library", use "Godot-DragonBones" as keyword to search this plugin and install it, than reboot the editor.
 
+## Texture import modes
+
+Both DragonBones export modes are supported:
+
+- **Texture atlas** (default): `<name>_ske.json` + `<name>_tex.json` + `<name>_tex.png`.
+- **Images (scattered)**: `<name>_ske.json` + a `<name>_texture/` folder with one standalone PNG per part (no `*_tex.json`). The importer detects this layout automatically and generates the `.dbfactory` the same way; each part is rendered with its own texture at runtime.
+
 ## Export
 
 1. Web: "Extensions Support" is required; "Thread Support" is requred if you use the precompiled plugin.

@@ -434,14 +434,14 @@ bool DragonBonesArmatureView::is_debug_draw_visible_bone_name() const {
 
 void DragonBonesArmatureView::set_debug_draw_color_bone(const Color &p_color) {
 #ifdef DEBUG_ENABLED
-	DebugDraw::color_bone = p_color;
+	DebugDraw::set_color_bone(p_color);
 	queue_redraw();
 #endif
 }
 
 Color DragonBonesArmatureView::get_debug_draw_color_bone() const {
 #ifdef DEBUG_ENABLED
-	return DebugDraw::color_bone;
+	return DebugDraw::get_color_bone();
 #else
 	return {};
 #endif
@@ -449,14 +449,14 @@ Color DragonBonesArmatureView::get_debug_draw_color_bone() const {
 
 void DragonBonesArmatureView::set_debug_draw_color_ik_target(const Color &p_color) {
 #ifdef DEBUG_ENABLED
-	DebugDraw::color_ik_target = p_color;
+	DebugDraw::set_color_ik_target(p_color);
 	queue_redraw();
 #endif
 }
 
 Color DragonBonesArmatureView::get_debug_draw_color_ik_target() const {
 #ifdef DEBUG_ENABLED
-	return DebugDraw::color_ik_target;
+	return DebugDraw::get_color_ik_target();
 #else
 	return {};
 #endif

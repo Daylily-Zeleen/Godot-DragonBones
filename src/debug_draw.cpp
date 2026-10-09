@@ -88,6 +88,29 @@ constexpr int DEBUG_BONE_NAME_FONT_SIZE = 14;
 // 直接作为 uniform 交给着色器，由 fwidth 换算，不经 CPU 几何。
 static constexpr float DEBUG_OUTLINE_PX = 1.25f;
 
+// 骨骼填充色板：顶点只携带索引，颜色在片元里查表。
+// 只读索引（写在 R 分量）的原因见 get_bone_material 的注释。
+enum class BonePalette : uint8_t {
+	PLAIN = 0, // 普通骨骼（DebugDraw::color_bone）
+	IK_TARGET, // IK 目标（DebugDraw::color_ik_target）
+	IK_DISC, // IK 粗环内的淡化圆盘（color_ik_target × IK_DISC_ALPHA）
+	MAX,
+};
+
+static void update_bone_palette(Ref<ShaderMaterial> &p_material) {
+	if (p_material.is_null()) {
+		return;
+	}
+	PackedColorArray palette;
+	palette.resize((uint8_t)BonePalette::MAX);
+	palette.set((uint8_t)BonePalette::PLAIN, DebugDraw::get_color_bone());
+	palette.set((uint8_t)BonePalette::IK_TARGET, DebugDraw::get_color_ik_target());
+	Color ik_disc = DebugDraw::get_color_ik_target();
+	ik_disc.a *= IK_DISC_ALPHA;
+	palette.set((uint8_t)BonePalette::IK_DISC, ik_disc);
+	p_material->set_shader_parameter("palette", palette);
+}
+
 // ---------------------------------------------------------------------------
 // 骨骼材质：一张网格、一个材质、一次绘制。
 // 每个顶点的 UV = (到形状中线的横向偏移, ±该处半宽)，
@@ -105,13 +128,19 @@ shader_type canvas_item;
 
 uniform vec4 outline_color_plain : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform vec4 outline_color_ik : source_color = vec4(1.0, 0.6, 0.1, 0.8);
+uniform vec4 palette[%d] : source_color;
 
 const float outline_px = %.2f;
 
-// 填充色来自 ARRAY_CUSTOM0（RGBA8），不是 ARRAY_COLOR：
-// mesh 的 ARRAY_COLOR 必须是 R32G32B32A32_SFLOAT（16 B/顶点）且不支持广播，
-// 而自定义通道允许 RGBA8（4 B/顶点）。canvas 的片元着色器读不到 CUSTOM0，
-// 故在顶点阶段把它转交给 COLOR，由光栅化插值给片元（顶点色逐顶点相同，插值无影响）。
+// 填充色走 ARRAY_CUSTOM0(RGBA8) 的 R 分量当调色板索引，故顶点侧只占 4 B/顶点
+// （ARRAY_COLOR 需 16 B/顶点）。
+//
+// 为什么只用 R 分量：Godot 4.8 之前的 gl_compatibility 后端有 bug —— RGBA8 自定义
+// 属性按 sizeof(float) 计算分量数（4/4=1），glVertexAttribPointer 只声明 1 个分量，
+// 按 GL 规范其余分量取默认值 (0,0,0,1)，即片元侧收到 (R, 0, 0, 1)：G/B 恒为 0、A 恒为 1。
+// 引擎 PR #121530（提交 b673acddeb）修正为按 gl_size 计算，但尚未进入任何 4.x stable。
+// 只读 R 使两种引擎行为一致：(idx,0,0,1) 与 (idx,idx,idx,idx) 的 .r 都是 idx；
+// 又因 A 不可靠（旧引擎恒为 1），透明度必须放在调色板里，不能靠顶点 alpha。
 void vertex() {
 	COLOR = CUSTOM0;
 }
@@ -123,9 +152,11 @@ void fragment() {
 	float dist_px = d / max(per_px, 1e-6);
 	float edge = max(fwidth(dist_px), 1e-3);
 	float m = smoothstep(outline_px - edge, outline_px + edge, dist_px);
-	vec4 oc = UV.y < 0.0 ? outline_color_ik : outline_color_plain;      
-	COLOR = mix(vec4(oc.rgb, oc.a * COLOR.a), COLOR, m);
+	vec4 oc = UV.y < 0.0 ? outline_color_ik : outline_color_plain;
+	vec4 body = palette[int(COLOR.r * 255.0 + 0.5)];
+	COLOR = mix(vec4(oc.rgb, oc.a * body.a), body, m);
 })",
+										   (uint8_t)BonePalette::MAX,
 										   DEBUG_OUTLINE_PX);
 
 		Ref<Shader> shader;
@@ -136,8 +167,8 @@ void fragment() {
 		ret.instantiate();
 		ret->set_shader(shader);
 
-		// 设置初始这
 		ret->set_shader_parameter("outline_color_ik", Color(1.0, 0.6, 0.1, 0.8));
+		update_bone_palette(ret);
 
 		DragonBones::add_clean_static_callback(release_bone_material); // 添加清理回调
 		return ret;
@@ -166,10 +197,6 @@ struct DebugBone {
 	Kind kind = KIND_PLAIN;
 };
 
-Color faded(const Color &p_color, float p_factor) {
-	return Color(p_color.r, p_color.g, p_color.b, p_color.a * p_factor);
-}
-
 // 描边颜色：黑色，不透明度跟随主体。
 Color rim_color(const Color &p_body) {
 	return Color(0.0f, 0.0f, 0.0f, p_body.a);
@@ -180,10 +207,9 @@ Color rim_color(const Color &p_body) {
 struct DebugDrawGeometry {
 	// 顶点。
 	LocalVector<Vector2> vertices;
-	// 逐顶点颜色，打包成 RGBA8（每分量 1 字节），提交时走 ARRAY_CUSTOM0。
-	// mesh 的 ARRAY_COLOR 必须是 R32G32B32A32_SFLOAT（16 B/顶点）且不支持广播，
-	// 故改用 ARRAY_CUSTOM0 的 RGBA8 格式：内存 1/4，且仍是单次提交、绘制顺序不变。
-	LocalVector<uint32_t> colors;
+	// 逐顶点调色板索引。提交时展开成 ARRAY_CUSTOM0 的 RGBA8，颜色在片元里查 palette uniform，
+	// 详见 get_bone_material 的注释。用索引而非逐顶点颜色：ARRAY_COLOR 需 16 B/顶点，索引只要 4 B。
+	LocalVector<BonePalette> colors;
 	LocalVector<int32_t> indices;
 
 	// 轮廓编码 UV=(到中线横向偏移, ±半宽) 见 get_bone_material 的说明。
@@ -212,17 +238,16 @@ struct DebugDrawGeometry {
 	_FORCE_INLINE_ size_t get_capacity_bytes() const {
 		return vertices.get_capacity() * sizeof(Vector2) +
 				vertex_uv.get_capacity() * sizeof(Vector2) +
-				colors.get_capacity() * sizeof(uint32_t) +
+				colors.get_capacity() * sizeof(uint8_t) +
 				indices.get_capacity() * sizeof(int32_t);
 	}
 
 	// ---- 写入底座 ----
-	// 颜色以 RGBA8 打包好的 uint32_t 传入（由调用方用 Color::to_abgr32() 算好），
-	// 这里只做写入，不再做任何颜色转换。
+	// 颜色以调色板索引（BonePalette）传入，真实颜色在片元里查 uniform 调色板。
 
 	_FORCE_INLINE_ void body_tri(const Vector2 &a, const Vector2 &b, const Vector2 &c,
 								 const Vector2 &p_uv_a, const Vector2 &p_uv_b, const Vector2 &p_uv_c,
-								 uint32_t p_rgba8_color) {
+								 BonePalette p_palette_idx) {
 		const int32_t base = vertices.size();
 		// 统一绕序。
 		const bool flip = (b - a).cross(c - a) < 0.0f;
@@ -232,9 +257,9 @@ struct DebugDrawGeometry {
 		vertex_uv.push_back(flip ? Vector2(p_uv_c.x, p_uv_c.y * uv_sign) : Vector2(p_uv_b.x, p_uv_b.y * uv_sign));
 		vertices.push_back(flip ? b : c);
 		vertex_uv.push_back(flip ? Vector2(p_uv_b.x, p_uv_b.y * uv_sign) : Vector2(p_uv_c.x, p_uv_c.y * uv_sign));
-		colors.push_back(p_rgba8_color);
-		colors.push_back(p_rgba8_color);
-		colors.push_back(p_rgba8_color);
+		colors.push_back(p_palette_idx);
+		colors.push_back(p_palette_idx);
+		colors.push_back(p_palette_idx);
 		indices.push_back(base);
 		indices.push_back(base + 1);
 		indices.push_back(base + 2);
@@ -242,9 +267,9 @@ struct DebugDrawGeometry {
 
 	_FORCE_INLINE_ void body_quad(const Vector2 &a, const Vector2 &b, const Vector2 &c, const Vector2 &d,
 								  const Vector2 &p_uv_a, const Vector2 &p_uv_b, const Vector2 &p_uv_c, const Vector2 &p_uv_d,
-								  uint32_t p_rgba8_color) {
-		body_tri(a, b, c, p_uv_a, p_uv_b, p_uv_c, p_rgba8_color);
-		body_tri(a, c, d, p_uv_a, p_uv_c, p_uv_d, p_rgba8_color);
+								  BonePalette p_palette_idx) {
+		body_tri(a, b, c, p_uv_a, p_uv_b, p_uv_c, p_palette_idx);
+		body_tri(a, c, d, p_uv_a, p_uv_c, p_uv_d, p_palette_idx);
 	}
 
 public:
@@ -263,20 +288,20 @@ public:
 
 	// ---- 填充 ----
 
-	void body_circle(const Vector2 &p_c, float p_r, uint32_t p_rgba8_color) {
+	void body_circle(const Vector2 &p_c, float p_r, BonePalette p_palette_idx) {
 		// 实心圆盘不自带描边：所有顶点 UV 相同 → d 恒定 → 片元判定为纯填充。
 		const Vector2 uv(0.0f, p_r);
 		for (int i = 0; i < DISC_SEGMENTS; ++i) {
 			const Vector2 p0 = p_c + disc_unit_circle.pts[i] * p_r;
 			const Vector2 p1 = p_c + disc_unit_circle.pts[i + 1] * p_r;
-			body_tri(p_c, p0, p1, uv, uv, uv, p_rgba8_color);
+			body_tri(p_c, p0, p1, uv, uv, uv, p_palette_idx);
 		}
 	}
 
-	void body_annulus(const Vector2 &p_c, float p_outer, float p_inner, uint32_t p_rgba8_color) {
+	void body_annulus(const Vector2 &p_c, float p_outer, float p_inner, BonePalette p_palette_idx) {
 		// 内半径塌缩时不能构造：负半径会把点镜像到对侧，四边形退化成贯穿整个圆的长刺。
 		if (p_inner <= 0.0f) {
-			body_circle(p_c, p_outer, p_rgba8_color);
+			body_circle(p_c, p_outer, p_palette_idx);
 			return;
 		}
 
@@ -293,11 +318,11 @@ public:
 			// UV.x = 到中线的偏移：外沿 +hw、内沿 -hw，两侧 |offset| 都等于 hw，
 			// 于是 d = hw - |offset| = 0，外沿与内沿同时被描边。
 			body_quad(p_c + d0 * p_inner, p_c + d0 * p_outer, p_c + d1 * p_outer, p_c + d1 * p_inner,
-					  uv_inner, uv_outer, uv_outer, uv_inner, p_rgba8_color);
+					  uv_inner, uv_outer, uv_outer, uv_inner, p_palette_idx);
 		}
 	}
 
-	void body_segment(const Vector2 &p_a, const Vector2 &p_b, float p_width, uint32_t p_rgba8_color) {
+	void body_segment(const Vector2 &p_a, const Vector2 &p_b, float p_width, BonePalette p_palette_idx) {
 		const Vector2 axis = p_b - p_a;
 		const float len = axis.length();
 		if (len <= 0.0f) {
@@ -314,16 +339,16 @@ public:
 		const Vector2 uv_side_a(hw, hw);
 		const Vector2 uv_side_b(-hw, hw);
 		body_quad(p_a + n, p_b + n, p_b - n, p_a - n,
-				  uv_side_a, uv_side_a, uv_side_b, uv_side_b, p_rgba8_color);
+				  uv_side_a, uv_side_a, uv_side_b, uv_side_b, p_palette_idx);
 		// 两端半圆帽。
-		body_cap(p_a, n, p_rgba8_color);
-		body_cap(p_b, -n, p_rgba8_color);
+		body_cap(p_a, n, p_palette_idx);
+		body_cap(p_b, -n, p_palette_idx);
 	}
 
 	// 线段端, 以 p_end 为心、半径 = |n|、按 p_n 指向扫半圈。
 	// UV.x 也取 radius：沿半径方向 |offset| 从 0（圆心）变到 radius（弧），
 	// 弧上 d = radius - radius = 0 被描边；圆心处 d = radius ≠ 0，只填充。
-	void body_cap(const Vector2 &p_end, const Vector2 &p_n, uint32_t p_rgba8_color) {
+	void body_cap(const Vector2 &p_end, const Vector2 &p_n, BonePalette p_palette_idx) {
 		constexpr float rad_per_seg = PI_F / float(CAP_SEGMENTS);
 
 		const float radius = p_n.length();
@@ -338,12 +363,12 @@ public:
 			const float a1 = begin_angle + rad_per_seg * (i + 1);
 			const Vector2 next(cos(a1), sin(a1));
 			body_tri(p_end, p_end + cur * radius, p_end + next * radius,
-					 uv_c, uv_arc, uv_arc, p_rgba8_color);
+					 uv_c, uv_arc, uv_arc, p_palette_idx);
 			cur = next;
 		}
 	}
 
-	void body_kite(const Vector2 &p_head, const Vector2 &p_dir, const Vector2 &p_perp, const float p_length, const float p_wide_half, const float p_tip_half, uint32_t p_rgba8_color) {
+	void body_kite(const Vector2 &p_head, const Vector2 &p_dir, const Vector2 &p_perp, const float p_length, const float p_wide_half, const float p_tip_half, BonePalette p_palette_idx) {
 		const float spring_ofs = p_wide_half * KITE_SPRINT_AT;
 		const Vector2 spring_pos = p_head + p_dir * spring_ofs;
 		const Vector2 tip_pos = p_head + p_dir * p_length;
@@ -367,9 +392,9 @@ public:
 		const Vector2 uv_ta(0.0f, 0.0f);
 		const Vector2 uv_tb(-p_tip_half, p_tip_half);
 
-		body_tri(p_head, spring_a, spring_b, uv_h, uv_sa, uv_sb, p_rgba8_color);
-		body_tri(spring_a, tip_a, tip_b, uv_sa, uv_ta, uv_tb, p_rgba8_color);
-		body_tri(spring_a, tip_b, spring_b, uv_sa, uv_tb, uv_sb, p_rgba8_color);
+		body_tri(p_head, spring_a, spring_b, uv_h, uv_sa, uv_sb, p_palette_idx);
+		body_tri(spring_a, tip_a, tip_b, uv_sa, uv_ta, uv_tb, p_palette_idx);
+		body_tri(spring_a, tip_b, spring_b, uv_sa, uv_tb, uv_sb, p_palette_idx);
 	}
 };
 
@@ -466,27 +491,25 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 	// 枢轴是「起点圆 + 筝形」合一的一个轮廓。
 	// ------------------------------------------------------------------
 	const bool has_kite = p_bone.length > PREFER_KITE_LENGTH_RATIO * radius;
-	const Color body_color = is_ik_target ? p_props.color_ik_target : p_props.color_bone;
-	// 用 to_abgr32()（= 0xAABBGGRR，小端内存字节序为 R,G,B,A）：
-	// ARRAY_CUSTOM0 的 RGBA8_UNORM 对应 DATA_FORMAT_R8G8B8A8_UNORM，按 byte0=R 读取。
-	const uint32_t body_rgba8 = body_color.to_abgr32();
+	// 颜色不再逐顶点写入，只写调色板索引；真实颜色由材质 uniform 提供。
+	const BonePalette body_idx = is_ik_target ? BonePalette::IK_TARGET : BonePalette::PLAIN;
 
 	if (has_kite) {
 		const Vector2 head = center + dir * radius;
 		const float kite_length = p_bone.length - radius;
 		const float width_half = radius * KITE_HALF_WIDTH;
 		const float tip_half = radius * KITE_TIP_HALF;
-		r_geometry.body_kite(head, dir, perp, kite_length, width_half, tip_half, body_rgba8);
+		r_geometry.body_kite(head, dir, perp, kite_length, width_half, tip_half, body_idx);
 	}
 
 	const float ring_w = radius * (is_ik_target ? IK_RING_W : PLAIN_RING_W);
 	const float ring_outer = radius + ring_w * 0.5;
 	const float ring_inner = radius - ring_w * 0.5;
-	r_geometry.body_annulus(center, ring_outer, ring_inner, body_rgba8);
+	r_geometry.body_annulus(center, ring_outer, ring_inner, body_idx);
 
 	if (is_ik_target) {
-		// 粗环内部的低不透明度深色圆盘。
-		r_geometry.body_circle(center, ring_inner, faded(body_color, IK_DISC_ALPHA).to_abgr32());
+		// 粗环内部的低不透明度深色圆盘：alpha 由调色板项自带（顶点 alpha 在旧引擎恒为 1）。
+		r_geometry.body_circle(center, ring_inner, BonePalette::IK_DISC);
 	}
 
 	// ------------------------------------------------------------------
@@ -499,14 +522,14 @@ void append_debug_bone_geometry(const DebugBone &p_bone, const DebugDraw &p_prop
 		const float arm_in = radius * 0.6f;
 
 		const float spoke_to = has_kite ? (radius - spoke_w * 0.5f) : (MAX(p_bone.length, arm_out));
-		r_geometry.body_segment(center, center + dir * spoke_to, spoke_w, body_rgba8);
+		r_geometry.body_segment(center, center + dir * spoke_to, spoke_w, body_idx);
 
-		r_geometry.body_segment(center - perp * arm_out, center - perp * arm_in, spoke_w, body_rgba8);
-		r_geometry.body_segment(center + perp * arm_out, center + perp * arm_in, spoke_w, body_rgba8);
-		r_geometry.body_segment(center - dir * arm_out, center - dir * arm_in, spoke_w, body_rgba8);
+		r_geometry.body_segment(center - perp * arm_out, center - perp * arm_in, spoke_w, body_idx);
+		r_geometry.body_segment(center + perp * arm_out, center + perp * arm_in, spoke_w, body_idx);
+		r_geometry.body_segment(center - dir * arm_out, center - dir * arm_in, spoke_w, body_idx);
 	} else {
 		const float spoke_to = has_kite ? (radius - spoke_w * 0.5f) : (MAX(p_bone.length, radius - spoke_w * 0.5f));
-		r_geometry.body_segment(center, center + dir * spoke_to, spoke_w, body_rgba8);
+		r_geometry.body_segment(center, center + dir * spoke_to, spoke_w, body_idx);
 	}
 }
 
@@ -523,8 +546,8 @@ void draw_debug_bone_names(CanvasItem *p_owner, const LocalVector<DebugBone> &p_
 		const Vector2 perp(-bone.dir.y, bone.dir.x);
 		const Vector2 pos = bone.start + perp * label_pad;
 		const Color name_color = bone.kind == DebugBone::KIND_IK_TARGET
-				? p_props.color_ik_target
-				: p_props.color_bone;
+				? p_props.get_color_ik_target()
+				: p_props.get_color_bone();
 
 		p_owner->draw_string(font, pos, bone.name, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, name_color);
 		p_owner->draw_string_outline(font, pos, bone.name, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 1, rim_color(name_color));
@@ -539,16 +562,34 @@ PackedArray to_packed_array(const LocalVector<Elem> &p_points) {
 	return out;
 }
 
-// 把 RGBA8（每项 4 字节，字节序 R,G,B,A）展开成 PackedByteArray，供 ARRAY_CUSTOM0 使用。
-PackedByteArray to_packed_byte_array_rgba8(const LocalVector<uint32_t> &p_rgba8_colors) {
+// 把调色板索引展开成 ARRAY_CUSTOM0 所需的 RGBA8（每顶点 4 字节），4 个字节都写索引值。
+// 每个字节都相同是有意为之，见 get_bone_material 的说明：这样无论引擎是否修复了
+// 「非 float 自定义属性丢分量」的 bug，R 分量（着色器唯一读取的分量）都等于索引。
+PackedByteArray to_packed_byte_array_palette_idx(const LocalVector<BonePalette> &p_indices) {
 	PackedByteArray out;
-	out.resize(p_rgba8_colors.size() * 4);
-	memcpy((uint8_t *)out.ptrw(), (uint8_t *)p_rgba8_colors.ptr(), p_rgba8_colors.size() * sizeof(uint32_t));
+	out.resize(p_indices.size() * 4);
+	uint8_t *w = (uint8_t *)out.ptrw();
+	for (size_t i = 0; i < p_indices.size(); ++i) {
+		const uint8_t idx = (uint8_t)p_indices[i];
+		w[i * 4 + 0] = idx;
+		w[i * 4 + 1] = idx;
+		w[i * 4 + 2] = idx;
+		w[i * 4 + 3] = idx;
+	}
 	return out;
 }
 
 void DebugDraw::set_color_ik_bone_outline(const Color &p_color) {
 	get_bone_material()->set_shader_parameter("outline_color_ik", p_color);
+}
+
+void DebugDraw::set_color_bone(const Color &p_color) {
+	color_bone = p_color;
+	update_bone_palette(get_bone_material());
+}
+void DebugDraw::set_color_ik_target(const Color &p_color) {
+	color_ik_target = p_color;
+	update_bone_palette(get_bone_material());
 }
 Color DebugDraw::get_color_ik_bone_outline() {
 	return get_bone_material()->get_shader_parameter("outline_color_ik");
@@ -727,7 +768,7 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const ArmatureDrawDat
 
 		if (has_flag(DRAW_BONE)) {
 			// 所有骨骼的填充几何收进同一个表面、一次提交：绘制顺序与逐骨写入顺序一致，
-			// 描边与填充都由材质在片元里按 UV 距离算，颜色来自 ARRAY_CUSTOM0（见提交处）。
+			// 描边与填充都由材质在片元里按 UV 距离算，填充色来自 ARRAY_CUSTOM0 里的调色板索引（见提交处）。
 			DebugDrawGeometry &geometry = bone_scratch.geometry;
 			for (const DebugBone &bone : bone_data) {
 				append_debug_bone_geometry(bone, *this, geometry);
@@ -739,7 +780,7 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const ArmatureDrawDat
 				arr[RenderingServer::ARRAY_INDEX] = to_packed_array<PackedInt32Array>(geometry.indices);
 				arr[RenderingServer::ARRAY_VERTEX] = to_packed_array<PackedVector2Array>(geometry.vertices);
 				arr[RenderingServer::ARRAY_TEX_UV] = to_packed_array<PackedVector2Array>(geometry.vertex_uv);
-				arr[RenderingServer::ARRAY_CUSTOM0] = to_packed_byte_array_rgba8(geometry.colors);
+				arr[RenderingServer::ARRAY_CUSTOM0] = to_packed_byte_array_palette_idx(geometry.colors);
 				RS->mesh_add_surface_from_arrays(mesh_bones, RenderingServer::PRIMITIVE_TRIANGLES, arr);
 			}
 

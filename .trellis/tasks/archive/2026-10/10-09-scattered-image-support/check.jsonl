@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/build/build-systems.md", "reason": "回归时确认双构建系统一致"}
+{"file": ".trellis/tasks/10-09-scattered-image-support/prd.md", "reason": "验收标准 AC1-AC5"}

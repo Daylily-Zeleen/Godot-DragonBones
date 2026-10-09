@@ -42,10 +42,8 @@ using namespace godot;
 using namespace dragonBones;
 
 Ref<Texture2D> Slot_GD::get_texture() const {
-	if (_textureData != nullptr) {
-		if (auto atlas = static_cast<const DragonBonesTextureAtlasData *>(_textureData->getParent())) {
-			return atlas->get_display_texture();
-		}
+	if (const auto texture_data = static_cast<const DragonBonesTextureData *>(_textureData)) {
+		return texture_data->get_texture();
 	}
 
 	return {};
@@ -132,15 +130,13 @@ void Slot_GD::_replaceDisplay(void *value, bool isArmatureDisplay) {
 void Slot_GD::_removeDisplay() {
 }
 
-void Slot_GD::__get_uv_pt(Point2 &pt, bool p_rotated, float p_u, float p_v, const Rectangle &p_rect, const TextureAtlasData *p_atlas) {
-	Size2 tex_size(p_atlas->width, p_atlas->height);
-
+void Slot_GD::__get_uv_pt(Point2 &pt, bool p_rotated, float p_u, float p_v, const Rectangle &p_rect, const Vector2 &p_tex_size) {
 	if (p_rotated) {
-		pt.x = (p_rect.x + (1.f - p_v) * p_rect.width) / tex_size.x;
-		pt.y = (p_rect.y + p_u * p_rect.height) / tex_size.y;
+		pt.x = (p_rect.x + (1.f - p_v) * p_rect.width) / p_tex_size.x;
+		pt.y = (p_rect.y + p_u * p_rect.height) / p_tex_size.y;
 	} else {
-		pt.x = (p_rect.x + p_u * p_rect.width) / tex_size.x;
-		pt.y = (p_rect.y + p_v * p_rect.height) / tex_size.y;
+		pt.x = (p_rect.x + p_u * p_rect.width) / p_tex_size.x;
+		pt.y = (p_rect.y + p_v * p_rect.height) / p_tex_size.y;
 	}
 }
 
@@ -159,8 +155,7 @@ void Slot_GD::_updateFrame() {
 	auto currentTextureData = static_cast<DragonBonesTextureData *>(_textureData);
 
 	if (currentTextureData != nullptr) {
-		// TODO: 支持独立散图
-		const auto atlas = currentTextureData->getParent();
+		const Size2 tex_size = currentTextureData->get_texture_size();
 		const auto &region = currentTextureData->region;
 
 		const auto currentVerticesData = (_deformVertices != nullptr && display == _meshDisplay) ? _deformVertices->verticesData : nullptr;
@@ -195,7 +190,7 @@ void Slot_GD::_updateFrame() {
 				float u = floatArray[uvOffset + i];
 				float v = floatArray[uvOffset + i + 1];
 				Point2 uv;
-				__get_uv_pt(uv, currentTextureData->rotated, u, v, region, atlas);
+				__get_uv_pt(uv, currentTextureData->rotated, u, v, region, tex_size);
 
 				verticesUV_ptr[iH] = uv;
 				verticesPos_ptr[iH] = Point2(floatArray[vertexOffset + i],
@@ -235,10 +230,10 @@ void Slot_GD::_updateFrame() {
 			verticesPos_ptr[1] = Vector2(width, height);
 			verticesPos_ptr[0] = Vector2(-width, height);
 
-			__get_uv_pt(verticesUV_ptr[0], currentTextureData->rotated, 0, 0, region, atlas);
-			__get_uv_pt(verticesUV_ptr[1], currentTextureData->rotated, 1.f, 0, region, atlas);
-			__get_uv_pt(verticesUV_ptr[2], currentTextureData->rotated, 1.f, 1.f, region, atlas);
-			__get_uv_pt(verticesUV_ptr[3], currentTextureData->rotated, 0, 1.f, region, atlas);
+			__get_uv_pt(verticesUV_ptr[0], currentTextureData->rotated, 0, 0, region, tex_size);
+			__get_uv_pt(verticesUV_ptr[1], currentTextureData->rotated, 1.f, 0, region, tex_size);
+			__get_uv_pt(verticesUV_ptr[2], currentTextureData->rotated, 1.f, 1.f, region, tex_size);
+			__get_uv_pt(verticesUV_ptr[3], currentTextureData->rotated, 0, 1.f, region, tex_size);
 
 			_pivotY = 0;
 			_pivotX = 0;
