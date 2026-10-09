@@ -141,7 +141,7 @@ bool DragonBonesImportPlugin::_get_option_visibility(const String &path, const S
 }
 
 Error DragonBonesImportPlugin::_import(const String &p_source_file, const String &p_save_path, const Dictionary &p_options,
-		const TypedArray<String> &r_platform_variants, const TypedArray<String> &r_gen_files) const {
+									   const TypedArray<String> &r_platform_variants, const TypedArray<String> &r_gen_files) const {
 	auto factory = try_import(p_source_file);
 
 	if (factory.is_null()) {
@@ -166,7 +166,14 @@ Ref<DragonBonesFactory> DragonBonesImportPlugin::try_import(const String &p_ske_
 	const String ske_file = p_ske_file;
 	const String tex_atlas_file = base_path + "_tex.json";
 
-	if (!FileAccess::file_exists(tex_atlas_file)) {
+	// 两种导出形态：
+	//   图集模式：<base>_tex.json + 整张图集；
+	//   散图模式（Images 导出）：无 _tex.json，<base>_texture/ 下每个部件一张独立 PNG。
+	const String scattered_texture_dir = base_path + "_texture";
+	const bool has_texture_atlas = FileAccess::file_exists(tex_atlas_file);
+	const bool has_scattered_textures = !has_texture_atlas && DirAccess::dir_exists_absolute(scattered_texture_dir);
+
+	if (!has_texture_atlas && !has_scattered_textures) {
 		return {};
 	}
 
@@ -178,11 +185,22 @@ Ref<DragonBonesFactory> DragonBonesImportPlugin::try_import(const String &p_ske_
 	}
 	ret->imported = true;
 
-	Error err = ret->load_texture_atlas_json_file_list(Array::make(tex_atlas_file));
-	ERR_FAIL_COND_V(err != OK, {});
+	Error err = OK;
+	if (has_texture_atlas) {
+		err = ret->load_texture_atlas_json_file_list(Array::make(tex_atlas_file));
+		ERR_FAIL_COND_V(err != OK, {});
+	}
 
 	err = ret->load_dragon_bones_ske_file_list(Array::make(ske_file));
 	ERR_FAIL_COND_V(err != OK, {});
+
+	// 散图图集需要注册到该资源的数据名下，故必须在 ske 之后加载。
+	if (has_scattered_textures) {
+		for (const auto &name : ret->get_loaded_dragon_bones_data_name_list()) {
+			err = ret->set_scattered_texture_dirs(name, Array::make(scattered_texture_dir));
+			ERR_FAIL_COND_V(err != OK, {});
+		}
+	}
 
 	return ret;
 }

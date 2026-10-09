@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/editor/editor-plugin.md", "reason": "导入器 try_import/_reimport 的现有约定，散图识别要改这里"}
+{"file": ".trellis/spec/build/build-systems.md", "reason": "双构建系统约定与产物/版本后处理（misc/post_build.py）"}
+{"file": ".trellis/spec/gdextension/quality-guidelines.md", "reason": "clang-format/质量门禁"}
+{"file": ".trellis/tasks/10-09-scattered-image-support/research/findings.md", "reason": "纹理管线/查找路径/方案比选的调研结论"}

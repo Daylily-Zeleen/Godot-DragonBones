@@ -43,6 +43,8 @@
 #include <godot_cpp/classes/resource_uid.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
+#include <set>
+
 #include "armature.h"
 #include "dragon_bones.h"
 #include "godot_cpp/classes/config_file.hpp"
@@ -325,6 +327,120 @@ void DragonBonesFactory::set_texture_atlas_json_file_list(PackedStringArray p_fi
 	emit_changed();
 }
 
+Error DragonBonesFactory::set_scattered_texture_dirs(const String &p_data_name, PackedStringArray p_dirs) {
+	const std::string key = to_std_str(p_data_name);
+
+	// 选择性清理：只移除该套此前注册的散图图集；
+	// 图集模式（texture_atlas_json_file_list）的注册不受影响。
+	auto scattered_it = _scattered_atlases.find(key);
+	if (scattered_it != _scattered_atlases.end()) {
+		auto *atlas_vec = getTextureAtlasData(key);
+		if (atlas_vec) {
+			if (auto dragon_bones_data = getDragonBonesData(key)) {
+				for (const auto atlas : scattered_it->second) {
+					make_dragon_bones_data_unref_texture_atlas_data(dragon_bones_data, atlas);
+				}
+			}
+			for (const auto atlas : scattered_it->second) {
+				const auto pos = std::find(atlas_vec->begin(), atlas_vec->end(), atlas);
+				if (pos != atlas_vec->end()) {
+					atlas_vec->erase(pos);
+				}
+				atlas->returnToPool();
+			}
+		}
+		_scattered_atlases.erase(scattered_it);
+	}
+
+	scattered_texture_dir_list = p_dirs;
+	if (p_dirs.is_empty()) {
+		return OK;
+	}
+
+	auto dragon_bones_data = getDragonBonesData(key);
+	ERR_FAIL_NULL_V_MSG(dragon_bones_data, ERR_DOES_NOT_EXIST,
+						vformat("Set scattered texture dirs failed: 龙骨数据 \"%s\" 尚未加载（需先加载 ske）。", p_data_name));
+
+	// 收集该套自己的显示对象路径（DisplayData::path，缺省 = name）。
+	// 散图的纹理名就是它 —— 不扫描目录、不猜文件，直接按该套骨架数据里引用到的取。
+	// 只遍历该套：多套资源并存时互不影响，也不会拿别的套的 path 来要求文件。
+	std::set<std::string> display_path_set;
+	for (const auto &armature_name : dragon_bones_data->getArmatureNames()) {
+		const auto armature_data = dragon_bones_data->getArmature(armature_name);
+
+		for (const auto &skin_kv : armature_data->skins) {
+			for (const auto &slot_kv : skin_kv.second->getSlotDisplays()) {
+				for (const auto display : slot_kv.second) {
+					if (display == nullptr || display->type == dragonBones::DisplayType::Armature) {
+						// 子骨架的 path 指向龙骨数据，不是纹理
+						continue;
+					}
+					display_path_set.insert(display->path);
+				}
+			}
+		}
+	}
+
+	// 每个目录一个图集容器：不加载整图（display_texture 为空），
+	// 每个显示对象对应一张独立纹理（region = 全图，纹理与尺寸挂在 TextureData 上）。
+	Error err = OK;
+	for (const String &dir_path : p_dirs) {
+		if (dir_path.is_empty()) {
+			continue;
+		}
+
+		const auto atlas = static_cast<DragonBonesTextureAtlasData *>(_buildTextureAtlasData(nullptr, nullptr));
+
+		std::vector<String> missing;
+		for (const auto &path : display_path_set) {
+			const String png_path = dir_path.path_join(to_gd_str(path) + ".png");
+			const Ref<Texture2D> texture = ResourceLoader::get_singleton()->load(png_path);
+			if (texture.is_null()) {
+				missing.push_back(png_path);
+				continue;
+			}
+
+			// 散图模式下每张 PNG 即完整纹理：region = 全图（槽位 UV 用
+			// DragonBonesTextureDataScatted::get_texture_size() 归一化）。
+			const Size2 size = texture->get_size();
+			auto texture_data = BaseObject::borrowObject<DragonBonesTextureDataScattered>();
+			texture_data->name = path;
+			texture_data->rotated = false;
+			texture_data->region.x = 0.0f;
+			texture_data->region.y = 0.0f;
+			texture_data->region.width = size.x;
+			texture_data->region.height = size.y;
+			texture_data->texture = texture;
+
+			atlas->addTexture(texture_data);
+		}
+
+		if (!missing.empty()) {
+			// 缺失 = 该套散图目录缺文件（美术漏导出/文件被删）。汇总一次报全，
+			// 不逐条 ERR_CONTINUE 毒化 err，也不影响其他套与其他部件。
+			for (const auto &png_path : missing) {
+				ERR_PRINT(vformat("Load scattered texture failed: \"%s\".", png_path));
+			}
+			err = ERR_PARSE_ERROR;
+		}
+
+		addTextureAtlasData(atlas, key);
+		_scattered_atlases[key].push_back(atlas);
+	}
+
+	return err;
+}
+
+void DragonBonesFactory::set_scattered_texture_dir_list(PackedStringArray p_dirs) {
+	// 扁平属性不带 data_name 归属：应用到当前已加载的全部数据名
+	// （单套散图场景；多套散图请走 set_scattered_texture_dirs 按套设置）。
+	scattered_texture_dir_list = p_dirs;
+	for (const auto &name : get_loaded_dragon_bones_data_name_list()) {
+		set_scattered_texture_dirs(name, p_dirs);
+	}
+	emit_changed();
+}
+
 PackedStringArray DragonBonesFactory::get_loaded_dragon_bones_data_name_list() const {
 	PackedStringArray ret;
 	for (auto kv : getAllDragonBonesData()) {
@@ -420,15 +536,21 @@ void DragonBonesFactory::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_texture_atlas_json_file_list", "texture_atlas_json_file_list"), &DragonBonesFactory::set_texture_atlas_json_file_list);
 	ClassDB::bind_method(D_METHOD("get_texture_atlas_json_file_list"), &DragonBonesFactory::get_texture_atlas_json_file_list);
+	ClassDB::bind_method(D_METHOD("set_scattered_texture_dir_list", "scattered_texture_dir_list"), &DragonBonesFactory::set_scattered_texture_dir_list);
+	ClassDB::bind_method(D_METHOD("get_scattered_texture_dir_list"), &DragonBonesFactory::get_scattered_texture_dir_list);
+	ClassDB::bind_method(D_METHOD("set_scattered_texture_dirs", "data_name", "scattered_texture_dir_list"), &DragonBonesFactory::set_scattered_texture_dirs);
 
 	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "dragon_bones_ske_file_list", PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:%s", Variant::STRING, PROPERTY_HINT_FILE, "*.dbjson,*.json,*.dbbin")), "set_dragon_bones_ske_file_list", "get_dragon_bones_ske_file_list");
 	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "texture_atlas_json_file_list", PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:%s", Variant::STRING, PROPERTY_HINT_FILE, "*.json")), "set_texture_atlas_json_file_list", "get_texture_atlas_json_file_list");
+	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "scattered_texture_dir_list", PROPERTY_HINT_TYPE_STRING, vformat("%d/%d:%s", Variant::STRING, PROPERTY_HINT_DIR, "")), "set_scattered_texture_dir_list", "get_scattered_texture_dir_list");
 }
 
 #ifdef DEBUG_ENABLED
 void DragonBonesFactory::_validate_property(PropertyInfo &p_property) const {
 	if (imported) {
-		if (p_property.name == StringName("dragon_bones_ske_file_list") || p_property.name == StringName("texture_atlas_json_file_list")) {
+		if (p_property.name == StringName("dragon_bones_ske_file_list") ||
+			p_property.name == StringName("texture_atlas_json_file_list") ||
+			p_property.name == StringName("scattered_texture_dir_list")) {
 			p_property.usage |= PROPERTY_USAGE_READ_ONLY;
 		}
 	}
@@ -490,28 +612,6 @@ Error DragonBonesFactoryFileProcessor::parse_factory_file_binary(const String &p
 	return OK;
 }
 
-/** 不再保存旧的二进制格式，方便版本管理
-Error DragonBonesFactoryFileProcessor::save_factory_file_binary(const String &p_path, const Ref<DragonBonesFactory> &p_factory, UID p_uid) const {
-	ERR_FAIL_NULL_V(p_factory, ERR_INVALID_PARAMETER);
-
-	Ref<FileAccess> file = FileAccess::open(p_path, FileAccess::WRITE);
-	ERR_FAIL_NULL_V_MSG(file, FileAccess::get_open_error(), vformat("Cannot save DragonBonesFactory '%s': %s.", p_path, UtilityFunctions::error_string(FileAccess::get_open_error())));
-
-	if (p_uid == ResourceUID::INVALID_ID) {
-		p_uid = ResourceUID::get_singleton()->create_id();
-		if (p_uid != ResourceUID::INVALID_ID) {
-			ResourceUID::get_singleton()->set_id(p_uid, p_path);
-		}
-	}
-
-	file->store_var(p_uid);
-	file->store_var(p_factory->get_dragon_bones_ske_file_list());
-	file->store_var(p_factory->get_texture_atlas_json_file_list());
-	file->store_var(p_factory->imported);
-	return OK;
-}
-*/
-
 constexpr const auto SECTION_PROPERTY = "properties";
 constexpr const auto SECTION_OTHER = "other";
 
@@ -537,6 +637,7 @@ Error DragonBonesFactoryFileProcessor::parse_factory_file_cfg(const String &p_pa
 
 	r_factory->set_dragon_bones_ske_file_list(cfg->get_value(SECTION_PROPERTY, "skeleton_files", PackedStringArray()));
 	r_factory->set_texture_atlas_json_file_list(cfg->get_value(SECTION_PROPERTY, "texture_atlas_files", PackedStringArray()));
+	r_factory->set_scattered_texture_dir_list(cfg->get_value(SECTION_PROPERTY, "scattered_texture_dirs", PackedStringArray()));
 	r_factory->imported = cfg->get_value(SECTION_OTHER, "imported", false);
 	r_uid = ResourceUID::get_singleton()->text_to_id(cfg->get_value("", KEY_UID, ResourceUID::get_singleton()->id_to_text(ResourceUID::INVALID_ID)));
 	return OK;
@@ -552,6 +653,7 @@ Error DragonBonesFactoryFileProcessor::save_factory_file_cfg(const String &p_pat
 
 	cfg->set_value(SECTION_PROPERTY, "skeleton_files", p_factory->get_dragon_bones_ske_file_list());
 	cfg->set_value(SECTION_PROPERTY, "texture_atlas_files", p_factory->get_texture_atlas_json_file_list());
+	cfg->set_value(SECTION_PROPERTY, "scattered_texture_dirs", p_factory->get_scattered_texture_dir_list());
 	cfg->set_value(SECTION_OTHER, "imported", p_factory->is_imported());
 	cfg->set_value("", KEY_UID, ResourceUID::get_singleton()->id_to_text(p_uid));
 	return cfg->save(p_path);

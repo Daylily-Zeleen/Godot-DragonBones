@@ -67,6 +67,13 @@ godot --headless --path demo --gddb-run-tests
 2. 从[发布页面](https://github.com/Daylily-Zeleen/Godot-DragonBones/releases)下载合适的发布版本，并安装到"demo"项目中。
 3. 打开"demo"文件夹中的工程，忽略错误与警告，到 Asset Library 中使用 "Godot-DragonBones" 作为关键词搜索该插件并安装，再重启编辑器即可。
 
+## 纹理导入模式
+
+支持 DragonBones 的两种导出模式：
+
+- **纹理集**（默认）：`<name>_ske.json` + `<name>_tex.json` + `<name>_tex.png`。
+- **散图（Images）**：`<name>_ske.json` + `<name>_texture/` 目录（每个部件一张独立 PNG，无 `*_tex.json`）。导入器会自动识别该结构并同样生成 `.dbfactory`；运行时每个部件使用各自的独立纹理渲染。
+
 ## 说明
 
 该仓库改进自[龙骨模块](https://github.com/sanja-sa/gddragonbones)。

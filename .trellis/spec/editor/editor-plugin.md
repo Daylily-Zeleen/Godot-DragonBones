@@ -42,23 +42,22 @@ Consequences to respect:
 
 ## Import Pipeline Contract
 
-`DragonBonesImportPlugin::try_import` is the single entry point for turning source files into a factory. Its contract (`src/editor/dragon_bones_editor_plugin.cpp:173-188`):
+`DragonBonesImportPlugin::try_import` is the single entry point for turning source files into a factory. It supports **both export modes** (`src/editor/dragon_bones_editor_plugin.cpp:160-204`):
+
+| Mode | Layout | Loading |
+|------|--------|---------|
+| Texture atlas (default) | `<base>_ske.json` + `<base>_tex.json` (+ `.png`) | atlas json first, then skeleton |
+| Images (scattered, issue #22) | `<base>_ske.json` + `<base>_texture/` folder of standalone PNGs, **no** `_tex.json` | skeleton first, then `set_scattered_texture_dirs(data_name, dirs)` per loaded data name |
+
+Shared contract steps:
 
 1. Reuse the caller-provided factory if given, otherwise `ret.instantiate()`.
 2. Mark it imported: `ret->imported = true;` — this flag makes the factory's file lists read-only in the inspector.
-3. Load the **texture atlas first** (`load_texture_atlas_json_file_list`), then the **skeleton** (`load_dragon_bones_ske_file_list`).
-4. Return `{}` on any `Error != OK`.
+3. Load textures and skeleton per the table above; return `{}` on any `Error != OK`.
 
-```cpp
-Error err = ret->load_texture_atlas_json_file_list(Array::make(tex_atlas_file));
-ERR_FAIL_COND_V(err != OK, {});
-
-err = ret->load_dragon_bones_ske_file_list(Array::make(ske_file));
-ERR_FAIL_COND_V(err != OK, {});
-```
-— `src/editor/dragon_bones_editor_plugin.cpp:181-185`
-
-> **Rule**: callers of `try_import` must check the returned `Ref` before dereferencing it. It returns an empty `Ref` on failure.
+> **Rule**: scattered textures are **per-DragonBonesData**. `set_scattered_texture_dirs` must be called **after** the skeleton is loaded (it collects display paths from, and registers atlases under, that data name only). Its cleanup is scoped to the atlases it registered itself — it never touches the packed-atlas registrations.
+>
+> `.dbfactory` serialization: `scattered_texture_dirs` is stored/loaded as a flat `PackedStringArray` — **temporary, single-set** (one scattered resource per factory). Multi-set needs a per-data-name mapping; the factory's internal `_scattered_atlases[data_name]` is already keyed per set for that migration.
 
 The loader/saver pair registered at SCENE level (`ResourceFormatLoaderDragonBones` / `ResourceFormatSaverDragonBones`, `src/dragon_bones_registration.cpp:75-76`) is the runtime half of this contract — the `.dbfactory` file format is defined by `DragonBonesFactoryFileProcessor` (`src/factory.h:138-148`).
 
