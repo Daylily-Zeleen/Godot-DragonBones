@@ -47,8 +47,10 @@ struct DebugDraw {
 	};
 
 	// 三种颜色和枢轴半径所有实例共用
-	inline static Color color_bone{ 0.8f, 0.8f, 0.8f, 0.8f };
-	inline static Color color_ik_target{ 1.0f, 0.2f, 0.1f, 0.9f };
+	static void set_color_bone(const Color &p_color);
+	static Color get_color_bone() { return color_bone; }
+	static void set_color_ik_target(const Color &p_color);
+	static Color get_color_ik_target() { return color_ik_target; }
 	static void set_color_ik_bone_outline(const Color &p_color);
 	static Color get_color_ik_bone_outline();
 	_FORCE_INLINE_ static void set_bone_pivot_radius(float p_radius) { bone_pivot_radius = Math::max(3.0f, p_radius); }
@@ -58,6 +60,8 @@ struct DebugDraw {
 	~DebugDraw();
 
 private:
+	inline static Color color_bone{ 0.8f, 0.8f, 0.8f, 0.8f };
+	inline static Color color_ik_target{ 1.0f, 0.2f, 0.1f, 0.9f };
 	inline static float bone_pivot_radius = 5.0f;
 
 public:
@@ -83,7 +87,6 @@ private:
 
 	// 线框专用网格：直接画在 owner 自身画布项上，不挂材质。
 	RID mesh_wireframe;
-
 
 	uint8_t draw_flags{ DRAW_MESH | DRAW_BONE | DRAW_BONE_NAME };
 };
