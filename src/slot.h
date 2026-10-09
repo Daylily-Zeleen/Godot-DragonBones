@@ -77,7 +77,7 @@ protected:
 
 	virtual void _onClear() override;
 
-	void __get_uv_pt(Point2 &_pt, bool _is_rot, float _u, float _v, const dragonBones::Rectangle &_reg, const dragonBones::TextureAtlasData *_p_atlas);
+	void __get_uv_pt(Point2 &_pt, bool _is_rot, float _u, float _v, const dragonBones::Rectangle &_reg, const Vector2 &_tex_size);
 };
 
 class DragonBonesSlot : public RefCounted {

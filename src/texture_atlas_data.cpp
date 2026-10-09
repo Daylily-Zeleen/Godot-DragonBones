@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  texture_atlas_data.h                                                  */
+/*  texture_atlas_data.cpp                                                */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                           Godot-DragonBones                            */
@@ -28,67 +28,21 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#pragma once
-
-#include <godot_dragon_bones.h>
-
-#include <dragonBones/model/TextureAtlasData.h>
-
-#include <godot_cpp/classes/texture2d.hpp>
-#include <godot_cpp/core/math.hpp>
+#include "texture_atlas_data.h"
 
 namespace godot {
-class DragonBonesTextureData : public dragonBones::TextureData {
-	BIND_CLASS_TYPE_B(DragonBonesTextureData);
+Ref<Texture2D> DragonBonesTextureData::get_texture() const {
+	return static_cast<DragonBonesTextureAtlasData *>(parent)->get_texture();
+}
+Size2 DragonBonesTextureData::get_texture_size() const {
+	return Size2(parent->width, parent->height);
+}
 
-public:
-	DragonBonesTextureData() { _onClear(); }
-	virtual ~DragonBonesTextureData() override { _onClear(); }
-
-	virtual Ref<Texture2D> get_texture() const;
-	virtual Size2 get_texture_size() const;
-};
-
-class DragonBonesTextureDataScattered : public dragonBones::TextureData {
-	BIND_CLASS_TYPE_B(DragonBonesTextureDataScattered);
-
-public:
-	DragonBonesTextureDataScattered() { _onClear(); }
-	virtual ~DragonBonesTextureDataScattered() override { _onClear(); }
-
-	// 散图模式：该显示对象自己的独立纹理与尺寸（图集模式为空，UV 使用图集宽高归一化）。
-	Ref<Texture2D> texture;
-
-	virtual Ref<Texture2D> get_texture() const;
-	virtual Size2 get_texture_size() const;
-
-	virtual void _onClear() override {
-		dragonBones::TextureData::_onClear();
-		texture.unref();
-	}
-};
-
-class DragonBonesTextureAtlasData : public dragonBones::TextureAtlasData {
-	BIND_CLASS_TYPE_B(DragonBonesTextureAtlasData);
-
-private:
-	Ref<Texture2D> texture;
-
-public:
-	DragonBonesTextureAtlasData() { _onClear(); }
-	virtual ~DragonBonesTextureAtlasData() override { _onClear(); }
-
-	virtual dragonBones::TextureData *createTexture() const override {
-		return BaseObject::borrowObject<DragonBonesTextureData>();
-	}
-
-	void init(const Ref<Texture2D> &p_texture) { texture = p_texture; }
-	const Ref<Texture2D> &get_texture() const { return texture; }
-
-	virtual void _onClear() override {
-		dragonBones::TextureAtlasData::_onClear();
-		texture.unref();
-	}
-};
+Ref<Texture2D> DragonBonesTextureDataScattered::get_texture() const {
+	return texture;
+}
+Size2 DragonBonesTextureDataScattered::get_texture_size() const {
+	return texture.is_valid() ? texture->get_size() : Size2{};
+}
 
 } //namespace godot
