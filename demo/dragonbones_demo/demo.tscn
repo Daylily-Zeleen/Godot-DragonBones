@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://dragonbones_demo/demo.gd" id="1_23ee0"]
 [ext_resource type="Texture2D" uid="uid://d06dx2nodlm4d" path="res://dragonbones_demo/icons/checked.png" id="2_2qlyd"]
 [ext_resource type="Texture2D" uid="uid://c0rdeewwswllv" path="res://dragonbones_demo/icons/unchecked.png" id="3_wpxxe"]
-[ext_resource type="DragonBonesFactory" uid="uid://cs5pavjfb6qxw" path="res://dragonbones_demo/assets/Dragon/Dragon_ske.dbfactory" id="4_uifn2"]
+[ext_resource type="DragonBonesData" uid="uid://cs5pavjfb6qxw" path="res://dragonbones_demo/assets/Dragon/Dragon_ske.dbdata" id="4_atos1"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_oa6ql"]
 bg_color = Color(0.0666667, 0.0901961, 0.054902, 0.807843)
@@ -155,8 +155,8 @@ text = "- Holing mouse [color=aqua]Middle Button[/color] to move camera.
 fit_content = true
 
 [node name="DragonBonesArmatureView" type="DragonBonesArmatureView" parent="."]
-factory = ExtResource("4_uifn2")
-instantiate_dragon_bones_data_name = "Dragon"
+data = ExtResource("4_atos1")
+debug_draw_enabled = true
 armature_settings = {
 "current_animation": "[none]",
 "sub_armatures": {}

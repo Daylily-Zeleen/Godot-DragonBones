@@ -318,8 +318,9 @@ void DragonBonesArmatureView::rebuild_armature() {
 		armature = nullptr;
 	}
 
-	if (factory.is_valid()) {
-		armature = factory->create_armature(this, instantiate_dragon_bones_data_name, instantiate_armature_name, instantiate_skin_name);
+	if (data.is_valid()) {
+		// 经资源桥接构建：View 不接触工厂。
+		armature = data->build_armature(this, instantiate_armature_name, instantiate_skin_name);
 		if (is_armature_valid()) {
 			armature->force_update();
 		}
@@ -330,20 +331,19 @@ void DragonBonesArmatureView::rebuild_armature() {
 	}
 }
 
-void DragonBonesArmatureView::set_factory(const Ref<DragonBonesFactory> &p_factory) {
-	using namespace dragonBones;
-	if (factory == p_factory) {
+void DragonBonesArmatureView::set_data(const Ref<DragonBonesData> &p_data) {
+	if (data == p_data) {
 		return;
 	}
 
-	factory = p_factory;
+	data = p_data;
 
 	rebuild_armature();
 	notify_property_list_changed();
 }
 
-Ref<DragonBonesFactory> DragonBonesArmatureView::get_factory() const {
-	return factory;
+Ref<DragonBonesData> DragonBonesArmatureView::get_data() const {
+	return data;
 }
 
 void DragonBonesArmatureView::set_active(bool p_active) {
@@ -485,25 +485,6 @@ float DragonBonesArmatureView::get_time_scale() const {
 	return time_scale;
 }
 
-void DragonBonesArmatureView::set_instantiate_dragon_bones_data_name(String p_name) {
-	if (p_name == "") {
-		p_name = "";
-	}
-	if (p_name == instantiate_dragon_bones_data_name) {
-		return;
-	}
-
-	instantiate_dragon_bones_data_name = p_name;
-	rebuild_armature();
-#ifdef TOOLS_ENABLED
-	notify_property_list_changed(); // 触发 _validate_property
-#endif //TOOLS_ENABLED
-}
-
-String DragonBonesArmatureView::get_instantiate_dragon_bones_data_name() const {
-	return instantiate_dragon_bones_data_name;
-}
-
 void DragonBonesArmatureView::set_instantiate_armature_name(String p_name) {
 	if (p_name == "") {
 		p_name = "";
@@ -575,7 +556,7 @@ void DragonBonesArmatureView::set_armature_settings(const Dictionary &p_settings
 		armature->set_settings(p_settings);
 	} else {
 #ifdef TOOLS_ENABLED
-		if (!factory->is_imported()) {
+		if (!data->is_imported()) {
 			// 只对非导入工厂打印错误信息，导入工厂将在后续重新导入
 			WARN_PRINT_ED("armature is invalid, can't set armature settings.");
 		}
@@ -646,17 +627,15 @@ void DragonBonesArmatureView::_get_property_list(List<PropertyInfo> *p_list) con
 
 #ifdef TOOLS_ENABLED
 void DragonBonesArmatureView::_validate_property(PropertyInfo &p_property) const {
-	if (!Engine::get_singleton()->is_editor_hint() || factory.is_null()) {
+	if (!Engine::get_singleton()->is_editor_hint() || data.is_null()) {
 		return;
 	}
-	if (p_property.name == SNAME("instantiate_dragon_bones_data_name")) {
-		auto dragon_bones_data_list = factory->get_loaded_dragon_bones_data_name_list();
-		p_property.hint_string = String(",").join(dragon_bones_data_list);
-	} else if (p_property.name == SNAME("instantiate_armature_name")) {
-		auto armatures = factory->get_loaded_dragon_bones_armature_name_list(instantiate_dragon_bones_data_name);
+	// 候选列表同样经资源桥接获取。
+	if (p_property.name == SNAME("instantiate_armature_name")) {
+		auto armatures = data->get_armature_names();
 		p_property.hint_string = String(",").join(armatures);
 	} else if (p_property.name == SNAME("instantiate_skin_name")) {
-		auto skins = factory->get_loaded_dragon_bones_skin_name_list(instantiate_dragon_bones_data_name, instantiate_armature_name);
+		auto skins = data->get_skin_names(instantiate_armature_name);
 		p_property.hint_string = String(",").join(skins);
 	} else if (p_property.name != StringName("debug_draw_enabled") && p_property.name.begins_with("debug_draw_")) {
 		p_property.usage = is_debug_draw_enabled() ? PROPERTY_USAGE_DEFAULT : PROPERTY_USAGE_INTERNAL;
@@ -755,8 +734,8 @@ RID DragonBonesArmatureView::get_draw_mesh(int p_index) {
 }
 
 void DragonBonesArmatureView::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("set_factory", "factory"), &DragonBonesArmatureView::set_factory);
-	ClassDB::bind_method(D_METHOD("get_factory"), &DragonBonesArmatureView::get_factory);
+	ClassDB::bind_method(D_METHOD("set_data", "data"), &DragonBonesArmatureView::set_data);
+	ClassDB::bind_method(D_METHOD("get_data"), &DragonBonesArmatureView::get_data);
 
 	ClassDB::bind_method(D_METHOD("advance", "delta"), &DragonBonesArmatureView::advance);
 
@@ -791,9 +770,6 @@ void DragonBonesArmatureView::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_callback_mode_process", "mode"), &DragonBonesArmatureView::set_callback_mode_process);
 	ClassDB::bind_method(D_METHOD("get_callback_mode_process"), &DragonBonesArmatureView::get_callback_mode_process);
-
-	ClassDB::bind_method(D_METHOD("set_instantiate_dragon_bones_data_name", "instantiate_dragon_bones_data_name"), &DragonBonesArmatureView::set_instantiate_dragon_bones_data_name);
-	ClassDB::bind_method(D_METHOD("get_instantiate_dragon_bones_data_name"), &DragonBonesArmatureView::get_instantiate_dragon_bones_data_name);
 
 	ClassDB::bind_method(D_METHOD("set_instantiate_armature_name", "instantiate_armature_name"), &DragonBonesArmatureView::set_instantiate_armature_name);
 	ClassDB::bind_method(D_METHOD("get_instantiate_armature_name"), &DragonBonesArmatureView::get_instantiate_armature_name);
@@ -856,7 +832,7 @@ void DragonBonesArmatureView::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "texture_override", PROPERTY_HINT_RESOURCE_TYPE, Texture2D::get_class_static(), PROPERTY_USAGE_NONE), "set_texture_override", "get_texture_override");
 	// ================================
 
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "factory", PROPERTY_HINT_RESOURCE_TYPE, DragonBonesFactory::get_class_static()), "set_factory", "get_factory");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "data", PROPERTY_HINT_RESOURCE_TYPE, DragonBonesData::get_class_static()), "set_data", "get_data");
 
 	// This is how we set top level properties
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "active"), "set_active", "is_active");
@@ -880,7 +856,6 @@ void DragonBonesArmatureView::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "animation_callback_mode_process", PROPERTY_HINT_ENUM, "Physics,Idle,Manual"), "set_callback_mode_process", "get_callback_mode_process");
 
 	ADD_GROUP("Instantiate Settings", "instantiate_");
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "instantiate_dragon_bones_data_name", PROPERTY_HINT_ENUM_SUGGESTION, ""), "set_instantiate_dragon_bones_data_name", "get_instantiate_dragon_bones_data_name");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "instantiate_armature_name", PROPERTY_HINT_ENUM_SUGGESTION, ""), "set_instantiate_armature_name", "get_instantiate_armature_name");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "instantiate_skin_name", PROPERTY_HINT_ENUM_SUGGESTION, ""), "set_instantiate_skin_name", "get_instantiate_skin_name");
 

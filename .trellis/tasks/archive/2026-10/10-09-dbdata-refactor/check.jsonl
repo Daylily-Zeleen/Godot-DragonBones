@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/gdextension/quality-guidelines.md", "reason": "代码审查清单与格式要求；确认无 new/delete、无 assert、无平台手工分支"}
+{"file": ".trellis/spec/gdextension/class-binding.md", "reason": "校验绑定三处一致：header 声明、_bind_methods、doc_classes/DragonBonesData.xml"}
+{"file": ".trellis/spec/gdextension/memory-and-lifetime.md", "reason": "校验单例销毁顺序、RID/Ref 释放、池清空顺序"}
+{"file": ".trellis/spec/editor/editor-plugin.md", "reason": "校验 TOOLS_ENABLED 双向门控、导入/导出契约、注册与反注册对称"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "校验序列化读写同步、导出打包链路、编辑器/运行时边界"}

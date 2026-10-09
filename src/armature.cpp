@@ -30,6 +30,8 @@
 
 #include "armature.h"
 
+#include <dragonBones/animation/Animation.h>
+#include <dragonBones/armature/Constraint.h>
 #include <dragonBones/event/EventObject.h>
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/global_constants.hpp>
