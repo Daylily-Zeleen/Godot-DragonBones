@@ -1013,6 +1013,40 @@ Rect2 DragonBonesArmatureView::get_global_rect() const {
 	return get_global_transform().inverse().xform(rect);
 }
 
+#ifdef TOOLS_ENABLED
+Rect2 DragonBonesArmatureView::get_editor_selection_rect() const {
+	if (!is_armature_valid()) {
+		return {};
+	}
+
+	draw_scratch.draw_data.begin_frame();
+	armature->append_draw_data(draw_scratch.draw_data);
+	draw_scratch.draw_data.end_frame();
+
+	if (draw_scratch.draw_data.is_empty()) {
+		return {};
+	}
+
+	Rect2 bounds{};
+	for (const ArmatureDrawData::Layer &layer : draw_scratch.draw_data) {
+		for (const ArmatureDrawData::Data &data : layer.get_data()) {
+			if (data.indices->size() < 3) {
+				continue; // 不足一个三角形，没有可命中的显示内容
+			}
+
+			// 顶点变换到节点本地空间（与 _draw() 提交网格所用的 data.transform 一致），并累计包围盒。
+			const uint32_t vertex_count = data.vertices->size();
+			const Vector2 *src_vertices = data.vertices->ptr();
+			for (uint32_t i = 0; i < vertex_count; ++i) {
+				bounds.expand_to(data.transform.xform(src_vertices[i]));
+			}
+		}
+	}
+
+	return bounds;
+}
+#endif // TOOLS_ENABLED
+
 // setget
 void DragonBonesArmatureView::set_current_animation(const String &p_animation) {
 	ERR_FAIL_NULL(armature);

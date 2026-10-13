@@ -32,10 +32,15 @@
 
 #include "../db_data.h"
 #include "../factory.h"
+#include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/classes/editor_export_plugin.hpp>
 #include <godot_cpp/classes/editor_import_plugin.hpp>
 #include <godot_cpp/classes/editor_plugin.hpp>
+#include <godot_cpp/classes/input_event.hpp>
+#include <godot_cpp/classes/node2d.hpp>
+#include <godot_cpp/core/object_id.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
+#include <godot_cpp/variant/callable.hpp>
 
 namespace godot {
 // TODO 实现运行时用的 ResourceFormatLoader
@@ -88,6 +93,27 @@ class DragonBonesEditorPlugin : public EditorPlugin {
 	Ref<DragonBonesExportPlugin> export_plugin;
 	Ref<DragonBonesImportPlugin> import_plugin;
 
+	// ---- 2D 画布叠加层：为选中的 DragonBonesArmatureView 绘制贴合实际显示内容的选中范围 ----
+	// 以 ObjectID 追踪选中集合（节点释放后不留悬垂指针）；连接到节点 draw 信号的 Callable 随值保存，
+	// 断开时用同一实例。
+	HashMap<ObjectID, Callable> selected_views;
+
+	// 与 _input 中被消费的按下事件配对的释放事件也一并消费。
+	bool body_click_consumed{ false };
+
+	// Sprite2D 式拖动：按住显示内容即可整体拖动选中实例，释放时整段提交撤销。
+	bool drag_active{ false };
+	Vector2 drag_start_mouse;
+	Vector<Node2D *> drag_nodes;
+	Vector<Vector2> drag_start_global;
+	Vector<Vector2> drag_start_local;
+
+	void _disconnect_selected_views();
+	void _on_selection_changed();
+	void _drag_commit();
+	// 注意：经 Callable 绑定传参，用 uint64_t（ObjectID 缺少 GetTypeInfo 特化，无法作为绑定参数）。
+	void _on_selected_view_redraw(uint64_t p_view_id);
+
 	void _on_filesystem_changed();
 	void _reimport_dbdata_recursively(class EditorFileSystemDirectory *p_dir, HashMap<String, Ref<DragonBonesData>> &r_datas) const;
 
@@ -100,6 +126,21 @@ protected:
 	static bool reimporting;
 
 public:
+	// 2D 画布叠加层绘制：为选中的 DragonBonesArmatureView 画出贴合实际显示内容的选中范围。
+	// 注意：register_virtuals 需经 decltype 访问该虚函数，必须声明在 public 段。
+	virtual void _forward_canvas_draw_over_viewport(Control *p_viewport_control) override;
+
+	// 4.4+ 编辑器只为「_handles() 命中当前被编辑对象」的插件投递 _forward_canvas_draw_over_viewport
+	//（EditorNode::_edit_current -> get_handling_sub_editors -> _plugin_over_edit -> editor_plugins_over），
+	// 因此必须对本类节点声明接管，否则叠加层永远不会被调用。
+	virtual bool _handles(Object *p_object) const override;
+	virtual void _edit(Object *p_object) override;
+
+	// 点击命中选择：引擎对 use_rect()==false 的节点只在原点附近命中（CanvasItem::
+	// _edit_is_selected_on_click 默认实现，且不可覆盖），在显示内容上点击会被当作空白处点击。
+	// 这里在 GUI 分发前拦截画布左键：落在「当前实际显示内容包围盒」内即选中该节点并消费事件。
+	virtual void _input(const Ref<InputEvent> &p_event) override;
+
 	virtual void _enter_tree() override;
 	virtual void _exit_tree() override;
 };
