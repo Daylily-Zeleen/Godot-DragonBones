@@ -34,14 +34,24 @@
 #include "armature_view.h"
 #include "factory.h"
 
+#ifdef TOOLS_ENABLED
+#include <godot_cpp/classes/file_access.hpp>
+#endif // TOOLS_ENABLED
 #include <godot_cpp/classes/project_settings.hpp>
 
 namespace godot {
 
 DragonBonesData::DragonBonesData() {
+#ifdef TOOLS_ENABLED
+	add_user_signal(sgn_refresh_requested);
+	instants.insert(this);
+#endif // TOOLS_ENABLED
 }
 
 DragonBonesData::~DragonBonesData() {
+#ifdef TOOLS_ENABLED
+	instants.erase(this);
+#endif // TOOLS_ENABLED
 	// 可能的潜在风险：若工厂先于本资源析构，这里会访问已销毁的单例。
 	// 待实测出现再处理。
 	DragonBonesFactory::get_singleton()->release_data(cache_name);
@@ -54,6 +64,10 @@ DragonBonesArmature *DragonBonesData::build_armature(DragonBonesArmatureView *p_
 	if (factory->ensure_data_loaded(this) != OK) {
 		return nullptr;
 	}
+
+#ifdef TOOLS_ENABLED
+	record_dependency_files_mtime();
+#endif // TOOLS_ENABLED
 	return factory->create_armature(p_owner, cache_name, p_armature_name, p_skin_name);
 }
 
@@ -64,6 +78,10 @@ PackedStringArray DragonBonesData::get_armature_names() const {
 	if (factory->ensure_data_loaded(this) != OK) {
 		return {};
 	}
+
+#ifdef TOOLS_ENABLED
+	record_dependency_files_mtime();
+#endif // TOOLS_ENABLED
 	return factory->get_armature_names(cache_name);
 }
 
@@ -72,6 +90,10 @@ PackedStringArray DragonBonesData::get_skin_names(const String &p_armature_name)
 	if (factory->ensure_data_loaded(this) != OK) {
 		return {};
 	}
+
+#ifdef TOOLS_ENABLED
+	record_dependency_files_mtime();
+#endif // TOOLS_ENABLED
 	return factory->get_skin_names(cache_name, p_armature_name);
 }
 
@@ -89,6 +111,14 @@ String DragonBonesData::resolve_texture_source_path() const {
 	return texture_source;
 }
 
+void DragonBonesData::set_ske_file(const String &p_file) {
+	if (ske_file == p_file) {
+		return;
+	}
+	ske_file = p_file;
+	emit_changed();
+}
+
 void DragonBonesData::set_texture_source_type(TextureSourceType p_type) {
 	if (texture_source_type == p_type) {
 		return;
@@ -97,7 +127,48 @@ void DragonBonesData::set_texture_source_type(TextureSourceType p_type) {
 #ifdef TOOLS_ENABLED
 	notify_property_list_changed();
 #endif // TOOLS_ENABLED
+	emit_changed();
 }
+
+void DragonBonesData::set_texture_source(const String &p_source) {
+	if (texture_source == p_source) {
+		return;
+	}
+	texture_source = p_source;
+	emit_changed();
+}
+
+#ifdef TOOLS_ENABLED
+void DragonBonesData::try_refresh_data() {
+	if (ske_mtime == 0 && tex_source_mtime == 0) {
+		return;
+	}
+
+	const String resolved_ske_file = resolve_ske_path();
+	const String resolved_tex_src_file = resolve_texture_source_path();
+	bool ske_changed = (ske_mtime > 0 && !FileAccess::file_exists(resolved_ske_file)) || ske_mtime != FileAccess::get_modified_time(resolved_ske_file);
+	bool tex_source_changed = (tex_source_mtime > 0 && !FileAccess::file_exists(resolved_tex_src_file)) || tex_source_mtime != FileAccess::get_modified_time(resolved_tex_src_file);
+	if (ske_changed || tex_source_changed) {
+		ske_mtime = 0;
+		tex_source_mtime = 0;
+		DragonBonesFactory::get_singleton()->release_data(cache_name);
+		emit_signal(sgn_refresh_requested);
+	}
+}
+
+void DragonBonesData::record_dependency_files_mtime() const {
+	const String resolved_ske_file = resolve_ske_path();
+	if (ske_mtime == 0 && FileAccess::file_exists(resolved_ske_file)) {
+		ske_mtime = FileAccess::get_modified_time(resolved_ske_file);
+	}
+	const String resolved_tex_src_file = resolve_texture_source_path();
+	if (tex_source_mtime == 0 && FileAccess::file_exists(resolved_tex_src_file)) {
+		tex_source_mtime = FileAccess::get_modified_time(resolved_tex_src_file);
+	}
+}
+
+HashSet<DragonBonesData *> DragonBonesData::instants{};
+#endif // TOOLS_ENABLED
 
 void DragonBonesData::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("build_armature", "owner", "armature_name", "skin_name"), &DragonBonesData::build_armature);

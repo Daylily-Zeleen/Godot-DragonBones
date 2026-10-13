@@ -254,6 +254,9 @@ void DragonBonesEditorPlugin::_on_filesystem_changed() {
 		}
 	}
 
+	for (DragonBonesData *data : DragonBonesData::get_instants()) {
+		data->try_refresh_data();
+	}
 	callable_mp(this, &DragonBonesEditorPlugin::clear_reimporting_flag).call_deferred();
 }
 

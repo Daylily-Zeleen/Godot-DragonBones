@@ -329,6 +329,10 @@ void DragonBonesArmatureView::rebuild_armature() {
 	if (is_inside_tree()) {
 		queue_redraw();
 	}
+
+#ifdef TOOLS_ENABLED
+	notify_property_list_changed(); // 触发 _validate_property
+#endif //TOOLS_ENABLED
 }
 
 void DragonBonesArmatureView::set_data(const Ref<DragonBonesData> &p_data) {
@@ -336,10 +340,21 @@ void DragonBonesArmatureView::set_data(const Ref<DragonBonesData> &p_data) {
 		return;
 	}
 
+#ifdef TOOLS_ENABLED
+	if (data.is_valid()) {
+		data->disconnect(DragonBonesData::sgn_refresh_requested, callable_mp(this, &DragonBonesArmatureView::rebuild_armature));
+	}
+#endif // TOOLS_ENABLED
+
 	data = p_data;
 
+#ifdef TOOLS_ENABLED
+	if (data.is_valid()) {
+		data->connect(DragonBonesData::sgn_refresh_requested, callable_mp(this, &DragonBonesArmatureView::rebuild_armature));
+	}
+#endif // TOOLS_ENABLED
+
 	rebuild_armature();
-	notify_property_list_changed();
 }
 
 Ref<DragonBonesData> DragonBonesArmatureView::get_data() const {
@@ -495,9 +510,6 @@ void DragonBonesArmatureView::set_instantiate_armature_name(String p_name) {
 
 	instantiate_armature_name = p_name;
 	rebuild_armature();
-#ifdef TOOLS_ENABLED
-	notify_property_list_changed(); // 触发 _validate_property
-#endif //TOOLS_ENABLED
 }
 
 String DragonBonesArmatureView::get_instantiate_armature_name() const {

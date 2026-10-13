@@ -45,6 +45,10 @@ class DragonBonesData : public Resource {
 	GDCLASS(DragonBonesData, Resource)
 
 public:
+#ifdef TOOLS_ENABLED
+	static constexpr char sgn_refresh_requested[] = "_@sgn_refresh_requested_";
+#endif // TOOLS_ENABLED
+
 	_FORCE_INLINE_ const std::string &get_cache_name() const { return cache_name; }
 
 	// 资源文件扩展名。引擎按扩展名选择 loader/saver，故必须注册对应的
@@ -80,7 +84,7 @@ protected:
 public:
 	DragonBonesData();
 	~DragonBonesData() override;
- 
+
 	// 用本资源构建一个骨架实例（内部先确保数据已加载）。
 	DragonBonesArmature *build_armature(DragonBonesArmatureView *p_owner, const String &p_armature_name, const String &p_skin_name);
 
@@ -91,16 +95,31 @@ public:
 	String resolve_texture_source_path() const;
 	// ---- 属性 ----
 
-	void set_ske_file(const String &p_file) { ske_file = p_file; }
+	void set_ske_file(const String &p_file);
 	String get_ske_file() const { return ske_file; }
 
 	void set_texture_source_type(TextureSourceType p_type);
 	TextureSourceType get_texture_source_type() const { return texture_source_type; }
 
-	void set_texture_source(const String &p_source) { texture_source = p_source; }
+	void set_texture_source(const String &p_source);
 	String get_texture_source() const { return texture_source; }
 
 	bool is_imported() const { return imported; }
+
+#ifdef TOOLS_ENABLED
+	void try_refresh_data();
+	static const HashSet<DragonBonesData *> &get_instants() { return instants; }
+
+private:
+	// 仅用于追踪文件变化，不用 md5 而用 modifed time 主要是省一点计算和内存。
+	// 真实情况下内容变化而不改 mtime 的情况很少，而内容不变只改mtime导致重载也可接受。
+	// 该功能只在包含编辑器功能的调试构建下有效。
+	void record_dependency_files_mtime() const;
+	mutable uint64_t ske_mtime{ 0 };
+	mutable uint64_t tex_source_mtime{ 0 };
+
+	static HashSet<DragonBonesData *> instants;
+#endif // TOOLS_ENABLED
 
 private:
 	friend class DragonBonesDataFileProcessor;
