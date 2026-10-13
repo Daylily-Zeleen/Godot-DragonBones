@@ -179,6 +179,10 @@ public:
 	Rect2 get_rect() const;
 	Rect2 get_global_rect() const;
 
+#ifdef TOOLS_ENABLED
+	Rect2 get_editor_selection_rect() const;
+#endif // TOOLS_ENABLED
+
 	// setget
 	void set_current_animation(const String &p_animation);
 	String get_current_animation() const;

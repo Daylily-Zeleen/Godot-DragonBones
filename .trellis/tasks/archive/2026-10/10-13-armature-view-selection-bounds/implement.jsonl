@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/editor/index.md", "reason": "编辑器层：TOOLS_ENABLED 门控、注册对称、构建矩阵约定"}
+{"file": ".trellis/spec/editor/editor-plugin.md", "reason": "插件类角色/注册契约/既有缺陷清单（避免仿写）"}
+{"file": ".trellis/spec/gdextension/index.md", "reason": "质量门：新增成员绑定与 doc_classes XML 约定"}
+{"file": ".trellis/spec/gdextension/quality-guidelines.md", "reason": "4.3+ 支持范围、验证方式（编译+手动）、格式与 PR 约定"}
+{"file": ".trellis/tasks/10-13-armature-view-selection-bounds/research/selection-bounds.md", "reason": "aabb 语义、坐标链、draw data 可得性、编辑器规范约束"}
+{"file": ".trellis/tasks/10-13-armature-view-selection-bounds/research/edit-rect-hooks.md", "reason": "引擎钩子不可覆盖的机制证据与可选机制枚举"}

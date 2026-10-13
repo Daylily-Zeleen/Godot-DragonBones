@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/gdextension/quality-guidelines.md", "reason": "验证门：编译+手测清单、无自动化测试"}
+{"file": ".trellis/spec/editor/index.md", "reason": "编辑器层门控与对称性检查"}
+{"file": ".trellis/tasks/10-13-armature-view-selection-bounds/research/edit-rect-hooks.md", "reason": "核对实现未越权依赖不可覆盖钩子"}
+{"file": ".trellis/tasks/10-13-armature-view-selection-bounds/research/selection-bounds.md", "reason": "核对坐标空间与数据源契约"}
