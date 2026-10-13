@@ -42,7 +42,9 @@
 #include "dragon_bones.h"
 
 #include "armature_view.h"
+#include "db_data.h"
 #include "event_object.h"
+#include "factory.h"
 
 #ifdef GDDB_TESTS_ENABLED
 #include "test_runner.h"
@@ -51,8 +53,9 @@
 using namespace godot;
 
 static DragonBones *dragon_bones{ nullptr };
-static Ref<ResourceFormatSaverDragonBones> saver;
-static Ref<ResourceFormatLoaderDragonBones> loader;
+static DragonBonesFactory *dragon_bones_factory{ nullptr };
+static Ref<ResourceFormatSaverDragonBonesData> saver;
+static Ref<ResourceFormatLoaderDragonBonesData> loader;
 
 void initialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_level) {
 #ifdef TOOLS_ENABLED
@@ -67,7 +70,8 @@ void initialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_lev
 #endif // TOOLS_ENABLED
 
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
-		GDREGISTER_CLASS(DragonBonesFactory);
+		// DragonBonesFactory 是内部单例，不注册（不暴露给脚本）。
+		GDREGISTER_CLASS(DragonBonesData);
 		GDREGISTER_CLASS(DragonBonesArmatureView);
 
 		GDREGISTER_ABSTRACT_CLASS(DragonBonesBone);
@@ -76,9 +80,11 @@ void initialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_lev
 		GDREGISTER_ABSTRACT_CLASS(DragonBonesUserData);
 		GDREGISTER_ABSTRACT_CLASS(DragonBonesEventObject);
 
-		GDREGISTER_INTERNAL_CLASS(ResourceFormatSaverDragonBones);
-		GDREGISTER_INTERNAL_CLASS(ResourceFormatLoaderDragonBones);
+		GDREGISTER_INTERNAL_CLASS(ResourceFormatSaverDragonBonesData);
+		GDREGISTER_INTERNAL_CLASS(ResourceFormatLoaderDragonBonesData);
 
+		// 销毁顺序：工厂先把运行时数据 returnToPool，再清对象池。
+		dragon_bones_factory = memnew(DragonBonesFactory);
 		dragon_bones = memnew(DragonBones);
 
 		saver.instantiate();
@@ -101,6 +107,11 @@ void uninitialize_godot_dragon_bones_module(godot::ModuleInitializationLevel p_l
 	}
 #endif // TOOLS_ENABLED
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
+		// 先销毁工厂（其析构会 returnToPool 运行时数据），再清空对象池。
+		// 顺序反了会导致池被清空后工厂二次释放。
+		memdelete(dragon_bones_factory);
+		dragon_bones_factory = nullptr;
+
 		// 清空对象池
 		dragonBones::BaseObject::clearPool();
 		DragonBonesMeshDisplay::clear_pool();

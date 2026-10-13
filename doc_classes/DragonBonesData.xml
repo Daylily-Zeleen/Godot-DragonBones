@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DragonBonesData" inherits="Resource" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Describes the data source of one DragonBones data set.
+	</brief_description>
+	<description>
+		One resource per DragonBones data set. It only describes the data source (a skeleton file plus one texture source) and acts as the bridge between [DragonBonesArmatureView] and the internal factory. It does not parse data, build armatures, or cache runtime objects.
+		There are two ways a resource is managed. When imported automatically by the editor, [member ske_file] and [member texture_source] only store a file or folder name which is resolved relative to the resource file, and the fields are read-only. When created by the user, they store full paths and are freely editable.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="build_armature">
+			<return type="DragonBonesArmature" />
+			<param index="0" name="owner" type="DragonBonesArmatureView" />
+			<param index="1" name="armature_name" type="String" />
+			<param index="2" name="skin_name" type="String" />
+			<description>
+				Builds an armature instance from this data set (the data is loaded on demand). This is the bridge entry point used by [DragonBonesArmatureView]; the view does not access the internal factory directly.
+			</description>
+		</method>
+		<method name="get_armature_names" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+				The armature names contained in this data set.
+			</description>
+		</method>
+		<method name="get_skin_names" qualifiers="const">
+			<return type="PackedStringArray" />
+			<param index="0" name="armature_name" type="String" />
+			<description>
+				The skin names of the given armature in this data set.
+			</description>
+		</method>
+		<method name="get_effective_cache_name" qualifiers="const">
+			<return type="String" />
+			<description>
+				The cache key of this data set in the (global) factory, derived from a per-resource auto-incrementing id. Because all resources share one factory, the key must be unique per set — the name embedded in the skeleton JSON can collide between different armatures, and a resource created in code has no path to use as a key.
+			</description>
+		</method>
+		<method name="resolve_ske_path" qualifiers="const">
+			<return type="String" />
+			<description>
+				The resolved skeleton file path. When imported automatically this is the resource's own directory joined with [member ske_file]; otherwise it is [member ske_file] as-is.
+			</description>
+		</method>
+		<method name="resolve_texture_source_path" qualifiers="const">
+			<return type="String" />
+			<description>
+				The resolved texture source path. Resolution follows the same rule as [method resolve_ske_path].
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="ske_file" type="String" setter="set_ske_file" getter="get_ske_file" default="&quot;&quot;">
+			The skeleton file ([code]*_ske.json[/code] or [code]*_ske.dbbin[/code]).
+		</member>
+		<member name="texture_source" type="String" setter="set_texture_source" getter="get_texture_source" default="&quot;&quot;">
+			The texture source. It is a [code]*_tex.json[/code] file, or a [code]*_texture/[/code] folder, depending on [member texture_source_type].
+		</member>
+		<member name="texture_source_type" type="int" setter="set_texture_source_type" getter="get_texture_source_type" enum="DragonBonesData.TextureSourceType" default="0">
+			Whether [member texture_source] points to a packed texture atlas or to a folder of standalone images.
+		</member>
+	</members>
+	<constants>
+		<constant name="TEXTURE_SOURCE_ATLAS" value="0" enum="TextureSourceType">
+			[member texture_source] is a packed texture atlas json file.
+		</constant>
+		<constant name="TEXTURE_SOURCE_SCATTERED" value="1" enum="TextureSourceType">
+			[member texture_source] is a folder of standalone images (Images export mode).
+		</constant>
+	</constants>
+</class>

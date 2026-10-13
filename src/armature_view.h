@@ -41,7 +41,7 @@
 #endif // DEBUG_ENABLED
 
 #include "armature.h"
-#include "factory.h"
+#include "db_data.h"
 
 namespace godot {
 class DragonBonesArmatureView : public Node2D {
@@ -57,11 +57,10 @@ public:
 	using AnimFadeOutMode = DragonBonesArmature::AnimFadeOutMode;
 
 private:
-	Ref<DragonBonesFactory> factory;
+	Ref<DragonBonesData> data;
 	DragonBonesArmature *armature{ nullptr };
 	AnimationCallbackModeProcess callback_mode_process{ ANIMATION_CALLBACK_MODE_PROCESS_IDLE };
 
-	String instantiate_dragon_bones_data_name{ "" };
 	String instantiate_armature_name{ "" };
 	String instantiate_skin_name{ "" };
 
@@ -96,17 +95,14 @@ public:
 	virtual void _draw() override;
 
 	// setters/getters
-	void set_factory(const Ref<DragonBonesFactory> &p_factory);
-	Ref<DragonBonesFactory> get_factory() const;
+	void set_data(const Ref<DragonBonesData> &p_data);
+	Ref<DragonBonesData> get_data() const;
 
 	void set_active(bool p_active);
 	bool is_active() const;
 
 	void set_time_scale(float p_time_scale);
 	float get_time_scale() const;
-
-	void set_instantiate_dragon_bones_data_name(String p_name);
-	String get_instantiate_dragon_bones_data_name() const;
 
 	void set_instantiate_armature_name(String p_name);
 	String get_instantiate_armature_name() const;

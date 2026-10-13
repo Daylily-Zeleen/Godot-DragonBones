@@ -73,7 +73,7 @@ To run "demo" project, here have 3 way:
 Both DragonBones export modes are supported:
 
 - **Texture atlas** (default): `<name>_ske.json` + `<name>_tex.json` + `<name>_tex.png`.
-- **Images (scattered)**: `<name>_ske.json` + a `<name>_texture/` folder with one standalone PNG per part (no `*_tex.json`). The importer detects this layout automatically and generates the `.dbfactory` the same way; each part is rendered with its own texture at runtime.
+- **Images (scattered)**: `<name>_ske.json` + a `<name>_texture/` folder with one standalone PNG per part (no `*_tex.json`).
 
 ## Export
 
@@ -85,15 +85,16 @@ This repository is improved from [gddragonbones](https://github.com/sanja-sa/gdd
 
 1. Change to GDExtension for Godot 4.x.
 2. Implement a import plugin to import DragonBones files automatically.
-3. Imported Resource is `DragonBonesFactory`![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesFactory.png):
-   1. One factory can contain multi DragonBones data and Atlas data files.
-   2. Can select DragonBones data and skin which are in factory to instantiate in `DragonBones` node.
-   3. If detect DragonBones assets (for example, xxx_ske.json/dbbin and xxx_tex.json) in editor, it will generate a factory resource(xxx_ske.dbfactory) at the same folder (this is disabled by default, you can turn it on in project settings by setting `Godot Dragon Bones/auto_generate_dbfactory` to true).
+3. Imported Resource is `DragonBonesData`![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesData.png):
+   1. One resource describes **one** DragonBones data set: a skeleton file plus one texture source (a packed atlas json, or a folder of standalone images for the Images export mode).
+   2. Can select the armature and skin to instantiate in the `DragonBonesArmatureView` node.
+   3. If DragonBones assets are detected (for example xxx_ske.json/dbbin plus xxx_tex.json, or xxx_texture/) in the editor, a resource (xxx_ske.dbdata) is generated at the same folder (disabled by default; enable it in project settings via `Godot Dragon Bones/auto_generate_dbdata`).
+   4. A resource created this way stores only file/folder names and resolves them relative to itself, so moving the folder together with its data files is enough. You may also create one by hand and pick paths freely.
 4. `DragonBonesArmatureView` ![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesBlue.png) node:
    * The display node of DragonBones armature.
    * You can get its `DragonBonesArmature` instance by `get_armature()`.
 5. `DragonBonesArmature` ![image](demo/addons/godot_dragon_bones.daylily-zeleen/icons/DragonBonesArmature.png) node:
-   * **Instantiated by `DragonBonesArmatureView` node which according to `DragonBonesFactory`, don't instantiate it by yourself.**
+   * **Instantiated by `DragonBonesArmatureView` node which according to `DragonBonesData`, don't instantiate it by yourself.**
    * **Don't free by yourself, it will lead to crash!!**
    * In editor, a proxy property in `DragonBonesArmatureView` node, which it's type is `DragonBonesArmatureProxy`, name is "armature", will be indicated as the `DragonBonesArmature` node. If the armature have child armatures, it will have a "sub_armatures" property in `DragonBonesArmatureProxy`.
 6. `DragonBonesArmatureProxy` **is editor use only!! Don't instantiate by yourself, and don't access relevant objects/properties, They are unavailable in release build.**

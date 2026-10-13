@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include "../db_data.h"
 #include "../factory.h"
 #include <godot_cpp/classes/editor_export_plugin.hpp>
 #include <godot_cpp/classes/editor_import_plugin.hpp>
@@ -73,29 +74,30 @@ public:
 	virtual int32_t _get_import_order() const override;
 	virtual bool _get_option_visibility(const String &path, const StringName &option_name, const Dictionary &options) const override;
 	virtual Error _import(const String &p_source_file, const String &p_save_path, const Dictionary &p_options,
-			const TypedArray<String> &r_platform_variants, const TypedArray<String> &r_gen_files) const override;
+						  const TypedArray<String> &r_platform_variants, const TypedArray<String> &r_gen_files) const override;
 
 public:
-	Ref<DragonBonesFactory> try_import(const String &p_ske_file, DragonBonesFactory *p_factory = nullptr) const;
+	Ref<DragonBonesData> try_import(const String &p_ske_file) const;
 };
 
 class DragonBonesEditorPlugin : public EditorPlugin {
 	GDCLASS(DragonBonesEditorPlugin, EditorPlugin)
 
+	friend class DragonBonesFactory;
+
 	Ref<DragonBonesExportPlugin> export_plugin;
 	Ref<DragonBonesImportPlugin> import_plugin;
 
-	HashMap<String, String> moved_factory_files;
-
-	void _on_file_system_dock_files_moved(const String &p_old_file, const String &p_new_file);
 	void _on_filesystem_changed();
-	void _reimport_dbfactory_recursively(class EditorFileSystemDirectory *p_dir, HashMap<String, Ref<DragonBonesFactory>> &r_factories) const;
-	void _reimport_moved_factory_files();
+	void _reimport_dbdata_recursively(class EditorFileSystemDirectory *p_dir, HashMap<String, Ref<DragonBonesData>> &r_datas) const;
 
 	void clear_reimporting_flag();
 
 protected:
 	static void _bind_methods() {}
+
+	// 重新导入期间抑制「文件不存在」等预期报错（工厂的 get_file_data 会查询）。
+	static bool reimporting;
 
 public:
 	virtual void _enter_tree() override;

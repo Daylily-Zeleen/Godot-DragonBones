@@ -4,7 +4,7 @@
 		The visual node of [DragonBonesArmature].
 	</brief_description>
 	<description>
-		The visual node of [DragonBonesArmature], instantiate from [DragonBonesFactory].
+		The visual node of [DragonBonesArmature], instantiated from [DragonBonesData].
 	</description>
 	<tutorials>
 	</tutorials>
@@ -202,8 +202,8 @@
 			Draw debug mesh if [code true].
 			NOTE: only available in debug build.
 		</member>
-		<member name="factory" type="DragonBonesFactory" setter="set_factory" getter="get_factory">
-			The factory to create armature.
+		<member name="data" type="DragonBonesData" setter="set_data" getter="get_data">
+			The data source used to create the armature.
 		</member>
 		<member name="flip_x" type="bool" setter="set_flip_x_" getter="is_flipped_x">
 			Wrapper of [member DragonBonesArmature.flip_x].
@@ -212,13 +212,10 @@
 			Wrapper of [member DragonBonesArmature.flip_y].
 		</member>
 		<member name="instantiate_armature_name" type="String" setter="set_instantiate_armature_name" getter="get_instantiate_armature_name" default="&quot;&quot;">
-			The armature name to instantiate. Set [member factory] first, available armature names can be gotten can be gotten from [member factory] in inspector if [member instantiate_dragon_bones_data_name] is available in [member factory].
-		</member>
-		<member name="instantiate_dragon_bones_data_name" type="String" setter="set_instantiate_dragon_bones_data_name" getter="get_instantiate_dragon_bones_data_name" default="&quot;&quot;">
-			The dragon bones data name to instantiate. Set [member factory] first, available dragon bones data names can be gotten from [member factory] in inspector.
+			The armature name to instantiate. Set [member data] first; available armature names can be picked in the inspector.
 		</member>
 		<member name="instantiate_skin_name" type="String" setter="set_instantiate_skin_name" getter="get_instantiate_skin_name" default="&quot;&quot;">
-			The skin name to instantiate. Set [member factory] first, available skin names can be gotten from [member factory] in inspector if [member instantiate_dragon_bones_data_name] and [member instantiate_dragon_bones_data_name] area available in [member factory].
+			The skin name to instantiate. Set [member data] first; available skin names can be picked in the inspector.
 		</member>
 		<member name="texture_override" type="Texture2D" setter="set_texture_override" getter="get_texture_override">
 			Wrapper of [member DragonBonesArmature.texture_override].
