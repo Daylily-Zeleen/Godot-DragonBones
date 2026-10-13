@@ -313,6 +313,10 @@ public:
 static thread_local DrawScratch draw_scratch;
 
 void DragonBonesArmatureView::rebuild_armature() {
+	if (is_inside_tree()) {
+		queue_redraw();
+	}
+
 	if (armature) {
 		armature->release(); // 已经处理内存的释放
 		armature = nullptr;
@@ -324,10 +328,6 @@ void DragonBonesArmatureView::rebuild_armature() {
 		if (is_armature_valid()) {
 			armature->force_update();
 		}
-	}
-
-	if (is_inside_tree()) {
-		queue_redraw();
 	}
 
 #ifdef TOOLS_ENABLED
@@ -675,6 +675,9 @@ void DragonBonesArmatureView::_notification(int p_what) {
 
 void DragonBonesArmatureView::_draw() {
 	if (!is_armature_valid()) {
+#ifdef DEBUG_ENABLED
+		if (debug_draw.is_enabled()) debug_draw.clear();
+#endif // DEBUG_ENABLED
 		return;
 	}
 
