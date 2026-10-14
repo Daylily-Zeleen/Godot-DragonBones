@@ -273,7 +273,10 @@ void Slot_GD::_updateMesh() {
 		const auto intArray = data->intArray;
 		const auto floatArray = data->floatArray;
 		const auto vertexCount = (std::size_t)intArray[verticesData->offset + (unsigned)BinaryOffset::MeshVertexCount];
-		auto weightFloatOffset = intArray[weightData->offset + (unsigned)BinaryOffset::WeightFloatOffset];
+		// 注意：intArray 是 int16_t*，而权重浮点偏移按无符号 16 位存放，
+		// 超过 32767 会被读成负数。必须先提升为 int32_t 再回绕，否则
+		// (size_t) 强转会得到巨大偏移，越界读到堆垃圾（表现为部件聚集原点或爆炸式拉伸）。
+		int32_t weightFloatOffset = intArray[weightData->offset + (unsigned)BinaryOffset::WeightFloatOffset];
 
 		if (weightFloatOffset < 0) {
 			weightFloatOffset += 65536;
@@ -312,7 +315,7 @@ void Slot_GD::_updateMesh() {
 		const auto intArray = data->intArray;
 		const auto floatArray = data->floatArray;
 		const auto vertexCount = (std::size_t)intArray[verticesData->offset + (unsigned)BinaryOffset::MeshVertexCount];
-		int vertexOffset = (std::size_t)intArray[verticesData->offset + (unsigned)BinaryOffset::MeshFloatOffset];
+		int32_t vertexOffset = intArray[verticesData->offset + (unsigned)BinaryOffset::MeshFloatOffset];
 
 		if (vertexOffset < 0) {
 			vertexOffset += 65536;
