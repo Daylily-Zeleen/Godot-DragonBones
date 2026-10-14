@@ -73,6 +73,7 @@ public:
 
 	// 只能在 CanvasItem::_draw 阶段调用。
 	void draw(DragonBonesArmature *p_root_armature, const ArmatureDrawData &p_draw_data);
+	void clear();
 
 private:
 	CanvasItem *owner;

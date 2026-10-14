@@ -809,5 +809,18 @@ void DebugDraw::draw(DragonBonesArmature *p_root_armature, const ArmatureDrawDat
 	}
 }
 
+void DebugDraw::clear() {
+	const auto RS = RenderingServer::get_singleton();
+	if (mesh_wireframe.is_valid()) {
+		RS->mesh_clear(mesh_wireframe);
+	}
+	if (mesh_bones.is_valid()) {
+		RS->mesh_clear(mesh_bones);
+	}
+	if (canvas_bones.is_valid()) {
+		RS->canvas_item_clear(canvas_bones);
+	}
+}
+
 #endif // DEBUG_ENABLED
 } //namespace godot
