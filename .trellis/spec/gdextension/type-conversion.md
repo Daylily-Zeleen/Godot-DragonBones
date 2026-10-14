@@ -1,6 +1,6 @@
 # Type Conversion
 
-> 本文件记述 Godot ↔ DragonBones 类型转换约定：字符串、数学类型、版本门控容器、字符串常量缓存。
+> 本文件记述 Godot ↔ DragonBones 类型转换约定：字符串、数学类型、版本门控容器、字符串常量缓存，以及运行时的 16 位窄缓冲区（`intArray` / `frameIntArray`）偏移读取契约。
 
 ## Overview
 
@@ -80,6 +80,61 @@ The real names — `Glyph`, `RID`, `safe_ref`, and the `RenderingServer`/`Resour
 
 > **Rule**: a new API must compile against the whole supported range. Update the declared minimum in `demo/addons/godot_dragon_bones.daylily-zeleen/godot_dragon_bones.gdextension:26` (`compatibility_minimum = 4.3`) if you raise the floor; do not silently drop support for a version you did not intend to drop.
 
+## Narrow Runtime Buffers (`int16_t *`)
+
+The vendored runtime stores every per-data offset in **16-bit** buffers, but the offsets themselves are 16-bit *unsigned* counters squeezed into `int16_t` elements:
+
+| Buffer | Declaration | Written by |
+|--------|-------------|------------|
+| `DragonBonesData::intArray` | `const int16_t *` — `thirdparty/dragonBones/model/DragonBonesData.h:120` | `JSONDataParser::_intArray` (`std::vector<std::int16_t>`, `parser/JSONDataParser.h:185`) |
+| `DragonBonesData::frameIntArray` | `const int16_t *` — `DragonBonesData.h:128` | `JSONDataParser::_frameIntArray` (`JSONDataParser.h:187`) |
+
+A value above 32767 therefore lands as a **negative** `int16_t`, and the runtime compensates with a manual wrap. That wrap only works if the receiving variable is ≥ 32-bit wide:
+
+```cpp
+// Don't — `auto` deduces int16_t, so `+= 65536` overflows back to negative.
+// The later (size_t) cast then yields a ~4e9 offset and reads heap garbage.
+auto weightFloatOffset = intArray[weightData->offset + (unsigned)BinaryOffset::WeightFloatOffset];
+if (weightFloatOffset < 0) {
+	weightFloatOffset += 65536;
+}
+
+// Do — widen first, then wrap.
+int32_t weightFloatOffset = intArray[weightData->offset + (unsigned)BinaryOffset::WeightFloatOffset];
+if (weightFloatOffset < 0) {
+	weightFloatOffset += 65536;
+}
+```
+— `src/slot.cpp:279` (fixed), the wrap at `:282`.
+
+> **Warning**: the failure is **non-deterministic** — the bogus index reads whatever the heap happens to hold. Symptom is either "part collapsed onto the armature origin" (garbage reads as 0) or "explosive stretching" (garbage reads as ~1e5). Do not dismiss a mesh-rendering bug just because a rerun looks fine.
+
+### Every wrap site must be ≥ 32-bit
+
+Audit these whenever a buffer layout changes. All current sites are correct — the list is the contract, not a to-do:
+
+| Site | Variable | Width |
+|------|----------|-------|
+| `src/slot.cpp:172` | `int vertexOffset` | 32 — OK |
+| `src/slot.cpp:279` | `int32_t weightFloatOffset` | 32 — **regression fixed** |
+| `src/slot.cpp:318` | `int vertexOffset` | 32 — OK |
+| `thirdparty/dragonBones/animation/TimelineState.cpp:624,648` | `int colorOffset` | 32 — OK |
+| `thirdparty/dragonBones/animation/TimelineState.cpp:851` | `unsigned vertexOffset` | 32 — OK |
+
+`int16_t`-valued fields that need **no** wrap are counts and indices, not offsets (`MeshVertexCount`, `MeshTriangleCount`, per-vertex `boneCount`, `boneIndex`, `MeshVertexIndices`) — their ranges are bounded by the mesh itself.
+
+### When it triggers
+
+An offset exceeds 32767 once the shared `floatArray` crosses ~32 K floats — roughly 4 000 plain-mesh vertices, or ~3 400 skinned vertices. `demo/dragonbones_demo/assets/test/idle_ske.json` is past that line: 3 of its 37 skinned slots (`arm_L`=35288, `front_hair`=33112, `headwear`=37966) and 2 `MeshFloatOffset`s (`arm_L`=33832, `headwear`=37118) are over the limit. `Sheep_ske.json` (~1 600 floats) and `龙_ske.json` (~1 900) stay under it, which is why the bug stayed invisible on the smaller assets.
+
+### Verifying a data set
+
+Replay the parser's write order offline instead of guessing from file size — offsets are cumulative across every preceding slot in the same skin:
+
+- `JSONDataParser::_parseMesh` (`parser/JSONDataParser.cpp:609-620`) grows `_intArray` by `4 + 3 * triangleCount` per mesh, and `_floatArray` by `vertexCount * 2` (vertices) plus `vertexCount * 2` (uvs).
+- When `weights` is present, `_parseMesh` (`:639-716`) additionally grows `_intArray` by `1 + 1 + weightBoneCount + vertexCount + weightCount`, and `_floatArray` by `weightCount * 3`.
+- `MeshFloatOffset` / `WeightFloatOffset` are snapshots of the respective buffer size **at that moment**, so any later slot inherits every earlier slot's growth. Sum them in slot order and flag anything above 32767.
+
 ## Cached String Constants
 
 Use `SNAME(...)` for any `StringName` built from a literal at runtime — it caches the `StringName` in a function-local static:
@@ -101,3 +156,4 @@ Do **not** construct `StringName("literal")` inline in these paths — it defeat
 - [ ] New container APIs use a version guard + alias, not a hand-rolled branch per call site.
 - [ ] Literal `StringName`s use `SNAME(...)`.
 - [ ] Supported Godot range declared in `.gdextension` still matches reality.
+- [ ] Every `intArray` / `frameIntArray` offset read is ≥ 32-bit before its `+= 65536` wrap — never `auto`.

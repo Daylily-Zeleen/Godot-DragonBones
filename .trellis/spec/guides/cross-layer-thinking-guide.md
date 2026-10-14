@@ -61,6 +61,7 @@ At each arrow ask: who owns the object, what type is it on each side, and what h
 - [ ] Traced which side owns every pointer involved.
 - [ ] Confirmed type conversion goes through `to_gd_str`/`to_std_str` (not ad-hoc).
 - [ ] Confirmed runtime parser input is NUL-terminated (`length + 1`, `src/factory.cpp:72-75`).
+- [ ] Reading a runtime *buffer* (`intArray`, `frameIntArray`)? Those are `const int16_t *` holding **unsigned** offsets — widen to 32-bit before the `+= 65536` wrap, or the wrap silently inverts. See [type-conversion.md § Narrow Runtime Buffers](../gdextension/type-conversion.md).
 - [ ] Confirmed failure paths return a type-correct default or `Error`, not a crash.
 - [ ] Checked the pointer handed to scripts is long-lived and not pooled.
 - [ ] Checked `is_editor_hint()` guards where the runtime must not run in the editor.
