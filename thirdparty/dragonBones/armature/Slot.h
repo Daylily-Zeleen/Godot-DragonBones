@@ -357,7 +357,7 @@ public:
      * @version DragonBones 3.0
      * @language zh_CN
      */
-    inline std::vector<std::pair<void*, DisplayType>> getDisplayList() const
+    inline const std::vector<std::pair<void*, DisplayType>> &getDisplayList() const
     {
         return _displayList;
     }

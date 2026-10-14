@@ -131,7 +131,7 @@ DragonBonesArmature *DragonBonesFactory::buildArmatureDisplay(const std::string 
 	const auto armature = buildArmature(p_armature_name, p_dragon_bones_name, p_skin_name, p_texture_atlas_name);
 	if (armature != nullptr) {
 		_dragonBones->getClock()->add(armature);
-		return static_cast<DragonBonesArmature *>(armature->getDisplay());
+		return static_cast<DragonBonesArmature *>(armature->getProxy());
 	}
 	return nullptr;
 }
@@ -155,28 +155,30 @@ Armature *DragonBonesFactory::_buildArmature(const BuildArmaturePackage &dataPac
 	DragonBonesArmature *armatureDisplay{ memnew(DragonBonesArmature) };
 	armatureDisplay->armature_view = building_armature; // 该插件里 _dragonBones->getEventManager() 就是 DragonBones 节点
 
-	armature->init(dataPackage.armature, armatureDisplay, armatureDisplay, _dragonBones);
+	armature->init(
+			dataPackage.armature,
+			static_cast<IArmatureProxy *>(armatureDisplay),
+			static_cast<Display *>(armatureDisplay), /** NOTE: DragonBonesArmature 是多继承类，确保取到的是 Display* 指针 */
+			_dragonBones);
 	return armature;
 }
 
 Slot *DragonBonesFactory::_buildSlot(const BuildArmaturePackage &dataPackage, const SlotData *slotData, Armature *armature) const {
 	auto slot = BaseObject::borrowObject<Slot_GD>();
-	auto mesh_display{ DragonBonesMeshDisplay::from_pool() };
+	Display *mesh_display = static_cast<Display *>(DragonBonesMeshDisplay::from_pool()); /** NOTE: 确保取到的是 Display* 指针 */
 
 	Ref<DragonBonesSlot> tree_slot{ memnew(DragonBonesSlot(slot)) };
 	slot->wrapper = tree_slot;
 	slot->init(slotData, armature, mesh_display, mesh_display);
 	slot->update(0);
 
-	const auto proxy = static_cast<DragonBonesArmature *>(slot->getArmature()->getDisplay());
+	const auto proxy = static_cast<DragonBonesArmature *>(slot->getArmature()->getProxy());
 	proxy->add_slot(to_gd_str(slot->getName()), tree_slot);
 
 	return slot;
 }
 
 Armature *DragonBonesFactory::_buildChildArmature(const BuildArmaturePackage *dataPackage, Slot *slot, DisplayData *displayData) const {
-	const auto proxy = static_cast<DragonBonesArmature *>(slot->getArmature()->getDisplay());
-
 	DragonBonesArmature *childArmature = nullptr;
 
 	if (dataPackage != nullptr) {
@@ -194,7 +196,7 @@ void DragonBonesFactory::_buildBones(const BuildArmaturePackage &dataPackage, Ar
 		const auto bone = BaseObject::borrowObject<Bone>();
 		bone->init(boneData, armature);
 
-		DragonBonesArmature *display = static_cast<DragonBonesArmature *>(armature->getDisplay());
+		DragonBonesArmature *display = static_cast<DragonBonesArmature *>(armature->getProxy());
 		Ref<DragonBonesBone> new_bone{ memnew(DragonBonesBone(bone, display)) };
 		display->add_bone(to_gd_str(bone->getName()), new_bone);
 	}

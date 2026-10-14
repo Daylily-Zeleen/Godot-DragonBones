@@ -112,28 +112,16 @@ public:
 	auto for_each_child_armature(Func &&p_action) {
 		const constexpr bool return_bool = std::is_invocable_r_v<bool, Func, DragonBonesArmature *>;
 		for (auto raw_slot : getArmature()->getSlots()) {
-			/**
-			 *  TODO:该项目使用 Slot_GD 来实现 dragonBones::Slot 这个抽象类。
-			 * 		Slot_GD *slot = static_cast<Slot_GD*>(raw_slot);
-			 *  	if (DragonBonesArmature * armature = dynamic_cast<DragonBonesArmature *>(slot->get_display())) {...} 性能会不会更好？
-			 */
-			if (raw_slot->getDisplayList().size() == 0) {
-				continue;
-			}
-			if (raw_slot->getDisplayIndex() < 0) {
-				// displayIndex < 0 是 DragonBones 编辑器的 "None"（无显示对象），跳过它。
-				continue;
-			}
-			auto raw_display = raw_slot->getDisplayList()[raw_slot->getDisplayIndex()];
-			if (raw_display.second == dragonBones::DisplayType::Armature) {
-				dragonBones::Armature *armature_view = static_cast<dragonBones::Armature *>(raw_display.first);
-				DragonBonesArmature *display = static_cast<DragonBonesArmature *>(armature_view->getDisplay());
+			// 本项目用 Slot_GD 实现 dragonBones::Slot，其唯一创建点是 DragonBonesFactory::_buildSlot。
+			Display *display = static_cast<Slot_GD *>(raw_slot)->get_display();
+			if (display != nullptr && display->get_type() == Display::ARMATURE_DISPLAY) {
+				DragonBonesArmature *child_armature = static_cast<DragonBonesArmature *>(display);
 				if constexpr (return_bool) {
-					if (p_action(display)) {
+					if (p_action(child_armature)) {
 						return true;
 					}
 				} else {
-					p_action(display);
+					p_action(child_armature);
 				}
 			}
 		}

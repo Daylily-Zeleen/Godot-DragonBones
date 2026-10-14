@@ -192,7 +192,7 @@ DragonBonesEventObject::DragonBonesEventObject(const dragonBones::EventObject *p
 	}
 
 	if (p_origin->armature) {
-		armature = static_cast<DragonBonesArmature *>(p_origin->armature->getDisplay());
+		armature = static_cast<DragonBonesArmature *>(p_origin->armature->getProxy());
 	}
 	if (p_origin->bone) {
 		bone = to_gd_str(p_origin->bone->getName());
