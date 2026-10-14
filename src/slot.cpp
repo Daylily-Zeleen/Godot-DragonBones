@@ -484,14 +484,10 @@ String DragonBonesSlot::get_slot_name() {
 }
 
 DragonBonesArmature *DragonBonesSlot::get_child_armature() {
-	if (!slot || slot->getDisplayList().size() == 0)
-		return nullptr;
-
-	std::pair<void *, DisplayType> display = slot->getDisplayList()[slot->getDisplayIndex()];
-	if (display.second == DisplayType::Armature) {
-		Armature *armature = static_cast<Armature *>(display.first);
-		DragonBonesArmature *converted = static_cast<DragonBonesArmature *>(armature->getDisplay());
-		return converted;
+	if (Display *display = slot->get_display()) {
+		if (display->get_type() == Display::ARMATURE_DISPLAY) {
+			return static_cast<DragonBonesArmature *>(display);
+		}
 	}
 	return nullptr;
 }
