@@ -348,7 +348,7 @@ void DragonBonesArmature::play(const String &p_animation_name, int p_loop_count)
 	if (has_animation(p_animation_name)) {
 		getAnimation()->play(to_std_str(p_animation_name), p_loop_count);
 	}
-	// TODO: 是否需要在没有动画时停止一切动画
+	// TODO: 是否需要在没有动画时停止一切动画?
 }
 
 void DragonBonesArmature::play_from_time(const String &p_animation_name, float p_time, int p_loop_count) {

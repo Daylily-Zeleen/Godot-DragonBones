@@ -43,8 +43,6 @@
 #include <godot_cpp/variant/callable.hpp>
 
 namespace godot {
-// TODO 实现运行时用的 ResourceFormatLoader
-
 class DragonBonesExportPlugin : public EditorExportPlugin {
 	GDCLASS(DragonBonesExportPlugin, EditorExportPlugin)
 

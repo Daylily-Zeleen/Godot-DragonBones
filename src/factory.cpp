@@ -200,7 +200,7 @@ void DragonBonesFactory::_buildBones(const BuildArmaturePackage &dataPackage, Ar
 	}
 
 	for (const auto &pair : dataPackage.armature->constraints) {
-		// TODO more constraint type.
+		/** NOTE: 龙骨的 c++ 库只支持 二骨 IK 这一约束 */
 		const auto constraint = BaseObject::borrowObject<IKConstraint>();
 		constraint->init(pair.second, armature);
 		armature->_addConstraint(constraint);
