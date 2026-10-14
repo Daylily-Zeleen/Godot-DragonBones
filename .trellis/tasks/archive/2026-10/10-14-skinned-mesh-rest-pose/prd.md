@@ -14,16 +14,20 @@
   `auto weightFloatOffset = intArray[weightData->offset + (unsigned)BinaryOffset::WeightFloatOffset];`
   中 `intArray` 的类型是 `const int16_t *`（`thirdparty/dragonBones/model/DragonBonesData.h:120`），
   而解析器写入该偏移时用的是 `_floatArray.size()`（`thirdparty/dragonBones/parser/JSONDataParser.cpp:647,656`）——
-  **偏移按 16 位存放，超过 32767 即被截断为负数**。
-- `auto` 推导为 `int16_t`，随后的 `if (weightFloatOffset < 0) weightFloatOffset += 65536;` 回绕在 16 位变量内被再次截断，
-  **回绕完全失效**；再经 `(std::size_t)` 强转得到天文数字偏移 → 越界读堆内存 → 顶点被算成全 0（部件聚集原点）
-  或 ~1e5 的爆炸值（离奇拉扯）。堆布局抖动导致表现非确定性。
+  **偏移按无符号 16 位存放，超过 32767 即被读成负数**。
+- 该行原为 `int weightFloatOffset`（32 位，回绕有效），由 `7549e92`「一些可读性优化」改成 `auto`，
+  `auto` 从缓冲区推导出 `int16_t`；随后的 `if (weightFloatOffset < 0) weightFloatOffset += 65536;`
+  回绕在 16 位变量内被再次截断，**回绕完全失效**；再经 `(std::size_t)` 强转得到天文数字偏移 →
+  越界读堆内存，读出什么值就把顶点算成什么值。
+- 同一 bug 类还有第二处：`hasFFD` 分支的 `int vertexOffset` 曾写成
+  `(std::size_t)intArray[...MeshFloatOffset]`，该转换让 `if (vertexOffset < 0)` 恒为假，回绕同样失效。
+- 现象（同一越界读的两种取值，非两类独立缺陷）：读出 0 或极小值 → 顶点塌到各骨骼关节位置附近，
+  视觉上像部件缩成一团；读出大值 → 爆炸式拉伸。堆布局抖动导致表现非确定性。
 - idle 数据集实测：37 个蒙皮槽位中 **`WeightFloatOffset` 溢出 3 个**（`arm_L`=35288、`front_hair`=33112、`headwear`=37966）；
-  另有 **`MeshFloatOffset` 溢出 2 个**（`arm_L`=33832、`headwear`=37118），
-  但 `src/slot.cpp:172` / `:318` 的 `int vertexOffset` 本身是 32 位，回绕有效，故未触发。
-- 修复：`int32_t weightFloatOffset = intArray[...];`（先提升为 32 位再回绕）。
+  另有 **`MeshFloatOffset` 溢出 2 个**（`arm_L`=33832、`headwear`=37118）。
+- 修复：两处均改为 `int32_t` 并在 32 位宽度下回绕。
 - 验证：`[DBG]` 探针 `iV` 由 `-30763` 变为正确的 `34773`；8 次运行的顶点输出逐字节一致；
-  窗口渲染 5 次 `md5=c8cacb7af8a5` 稳定（修复前 6 次中 2 次出现 `zero_bbox=2`）。
+  窗口渲染多次 `md5=c8cacb7af8a5` 稳定。
 
 ### 缺陷 A 与 B（结论已推翻，两处改动均已丢弃）
 经 A/B 构建实测 + 离线数据对照，此前对 `src/factory.cpp::_buildSlot` 与 `src/armature.cpp::force_update`
@@ -55,8 +59,8 @@
 数据 `aabb` = x∈[-107.483, 1283.509]、y∈[-1732.027, 14.597]。
 
 ### 缺陷 C / D 归因
-- **缺陷 C（部件聚集原点）** 与 **缺陷 D（离奇拉扯）** 是同一根因（int16 偏移溢出）的两种取值后果，
-  随堆布局改变表现为「读成全 0」或「读成巨值」。修复后两者一并消失。
+- **缺陷 C（部件缩成一团）** 与 **缺陷 D（爆炸拉伸）** 是同一根因（int16 偏移溢出后的越界读）的两种取值后果：
+  读出 0 或极小值 → 顶点塌到各骨骼关节位置附近；读出大值 → 爆炸式拉伸。随堆布局改变而不同。修复后两者一并消失。
 - 缺陷 D 的剩余观察：idle 动画态两帧 md5 不同（属正常逐帧变化，非缺陷）。
 
 ### 已确认非问题（数据侧）
@@ -70,7 +74,7 @@
 
 ## Requirements
 
-- **R1**：`[none]` 状态下所有部件处于 rest pose 正确位置（无聚集原点、无错位）。
+- **R1**：`[none]` 状态下所有部件处于 rest pose 正确位置（无错位、无塌缩）。
 - **R2**：播放/切换/停止动画后姿态正确，无拉伸、无碎片。
 - **R3**：Dragon（无蒙皮）、Sheep（8 蒙皮网格）、idle（37 蒙皮网格）三套 demo 资源在 `[none]` 与动画两态下均正确。
 - **R4**：4.3-stable 与 4.8.dev 两版引擎行为一致。
@@ -78,17 +82,18 @@
 
 ## Fix
 
-**`src/slot.cpp` 单点改动**（`_updateMesh` 的 `weightData != nullptr` 分支）：
+**`src/slot.cpp` 两处改动**（`_updateMesh` 内）：
 
 ```cpp
-// 注意：intArray 是 int16_t*，而权重浮点偏移按无符号 16 位存放，
-// 超过 32767 会被读成负数。必须先提升为 int32_t 再回绕，否则
-// (size_t) 强转会得到巨大偏移，越界读到堆垃圾（表现为部件聚集原点或爆炸式拉伸）。
+// intArray 是 int16_t*，偏移按无符号 16 位存放：>32767 读成负数，
+// 且必须用 32 位接收，否则 +=65536 回绕失效，强转后越界读出垃圾数据。
 int32_t weightFloatOffset = intArray[weightData->offset + (unsigned)BinaryOffset::WeightFloatOffset];
 if (weightFloatOffset < 0) {
     weightFloatOffset += 65536;
 }
 ```
+
+`hasFFD` 分支的 `vertexOffset` 同样改为 `int32_t`，去掉会让 `if (vertexOffset < 0)` 恒为假的 `(std::size_t)` 中间转换。
 
 `src/factory.cpp` 与 `src/armature.cpp` 保持 HEAD 原状。
 
@@ -112,6 +117,6 @@ if (weightFloatOffset < 0) {
 
 - 构建：`scons platform=windows target=template_debug debug_symbols=yes -j8`，无警告/错误。
 - 冒烟：`godot --path demo --headless --quit-after 250` × 3 轮，`rc=0`、错误输出 0 条。
-- 确定性：修复前 6 次窗口渲染中 2 次出现 `zero_bbox=2`；修复后 5 次 `md5=c8cacb7af8a5` 完全一致。
+- 确定性：修复后多次窗口渲染 `md5` 完全一致（修复前存在时隐时现的塌缩/拉伸）。
 - 几何裁决：见上文表格，F0 与数据 `aabb` 四边吻合（最大偏差 0.578），F3 全部不吻合。
-- 视觉复核：窗口渲染截图可辨认完整人形（头发/脸/眼/嘴/衣服/手臂/手/奶瓶），无部件聚集原点或尖刺拉伸。
+- 视觉复核：窗口渲染截图可辨认完整人形（头发/脸/眼/嘴/衣服/手臂/手/奶瓶），无部件塌缩或尖刺拉伸。

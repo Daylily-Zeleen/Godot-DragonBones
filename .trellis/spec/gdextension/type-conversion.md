@@ -105,23 +105,25 @@ if (weightFloatOffset < 0) {
 	weightFloatOffset += 65536;
 }
 ```
-— `src/slot.cpp:279` (fixed), the wrap at `:282`.
+— `src/slot.cpp:278`, the wrap at `:281`.
 
-> **Warning**: the failure is **non-deterministic** — the bogus index reads whatever the heap happens to hold. Symptom is either "part collapsed onto the armature origin" (garbage reads as 0) or "explosive stretching" (garbage reads as ~1e5). Do not dismiss a mesh-rendering bug just because a rerun looks fine.
+> **Warning**: the failure is **non-deterministic** — the bogus index reads whatever the heap happens to hold. The garbage then feeds the weight math, so vertices land wherever that garbage points; observed results ranged from parts collapsing toward their bones' joint positions to explosive stretching. Do not dismiss a mesh-rendering bug just because a rerun looks fine.
 
 ### Every wrap site must be ≥ 32-bit
 
-Audit these whenever a buffer layout changes. All current sites are correct — the list is the contract, not a to-do:
+Audit these whenever a buffer layout changes. All current sites are correct:
 
 | Site | Variable | Width |
 |------|----------|-------|
 | `src/slot.cpp:172` | `int vertexOffset` | 32 — OK |
-| `src/slot.cpp:279` | `int32_t weightFloatOffset` | 32 — **regression fixed** |
-| `src/slot.cpp:318` | `int vertexOffset` | 32 — OK |
+| `src/slot.cpp:278` | `int32_t weightFloatOffset` | 32 — **regression fixed** |
+| `src/slot.cpp:318` | `int32_t vertexOffset` | 32 — **regression fixed** |
 | `thirdparty/dragonBones/animation/TimelineState.cpp:624,648` | `int colorOffset` | 32 — OK |
 | `thirdparty/dragonBones/animation/TimelineState.cpp:851` | `unsigned vertexOffset` | 32 — OK |
 
 `int16_t`-valued fields that need **no** wrap are counts and indices, not offsets (`MeshVertexCount`, `MeshTriangleCount`, per-vertex `boneCount`, `boneIndex`, `MeshVertexIndices`) — their ranges are bounded by the mesh itself.
+
+> **Note**: the `slot.cpp` regression came from `7549e92` ("一些可读性优化"), which rewrote `int weightFloatOffset` as `auto weightFloatOffset`; `auto` deduces `int16_t` from the buffer. Prefer an explicit width over `auto` for anything read out of these buffers.
 
 ### When it triggers
 
