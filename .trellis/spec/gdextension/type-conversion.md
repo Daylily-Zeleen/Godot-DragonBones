@@ -125,17 +125,41 @@ Audit these whenever a buffer layout changes. All current sites are correct:
 
 > **Note**: the `slot.cpp` regression came from `7549e92` ("一些可读性优化"), which rewrote `int weightFloatOffset` as `auto weightFloatOffset`; `auto` deduces `int16_t` from the buffer. Prefer an explicit width over `auto` for anything read out of these buffers.
 
+### Load-time guard
+
+The wrap above only recovers offsets up to **65535**. Beyond that the true value is gone: `85878` is stored as `20342`, and `20342` is itself a legitimate offset — so scanning a buffer **cannot** distinguish a truncated value from a valid one. The judgment therefore has to be made from the source data, not from the packed buffers.
+
+`src/packed_offset_check.cpp` recomputes the offsets from the skeleton JSON before the data is accepted. It runs in **debug builds only** (`#ifdef DEBUG_ENABLED`, `src/factory.cpp:309`): `DragonBonesFactory::load_data` calls `check_packed_offsets()` and fails the load with `ERR_INVALID_DATA` when a peak crosses `PACKED_OFFSET_LIMIT`:
+
+```
+DragonBones data "<path>" exceeds the packed-offset limit (65535):
+floatArray peak 87778 (limit 65535) at "headwear";
+intArray peak 70115 (limit 65535) at "eyelash_up_c2_2".
+Parts would be distorted if loaded; split the asset or reduce vertex count.
+```
+
+The check lives in **our** layer and is a pure read of the skeleton file — the vendored runtime is not modified, and no runtime intermediate state is needed. Three properties are load-bearing:
+
+- **Peak offset, not buffer total.** One large mesh can push `floatArray` past 65535 while its own `MeshFloatOffset` is still 0 — narrow mode does not misread that, so flagging it would reject valid assets.
+- **Recompute from the source, not from the buffers.** A truncated value in a buffer is indistinguishable from a valid one (see above).
+- **Same accumulation order as the parser.** Offsets are `.size()` snapshots taken in parse order, so `check_packed_offsets` must mirror it exactly: per armature, all `skin` (slot → display) first, then all `animation`.
+
+Release builds skip the check — a truncated offset then renders as stretched parts rather than a diagnosable failure, so never treat a release-mode rendering complaint as "the data is fine" just because debug accepted it. Covered so far: `floatArray` (`MeshFloatOffset` / `WeightFloatOffset`) and `intArray` (`colorOffset`). `.dbbin` is deliberately **not** covered — it never passes through the JSON packer, and its 16-bit offsets are written by the official exporter. `PACKED_OFFSET_LIMIT` (`src/packed_offset_check.h`) is the single definition point.
+
 ### When it triggers
 
-An offset exceeds 32767 once the shared `floatArray` crosses ~32 K floats — roughly 4 000 plain-mesh vertices, or ~3 400 skinned vertices. `demo/dragonbones_demo/assets/test/idle_ske.json` is past that line: 3 of its 37 skinned slots (`arm_L`=35288, `front_hair`=33112, `headwear`=37966) and 2 `MeshFloatOffset`s (`arm_L`=33832, `headwear`=37118) are over the limit. `Sheep_ske.json` (~1 600 floats) and `龙_ske.json` (~1 900) stay under it, which is why the bug stayed invisible on the smaller assets.
+An offset exceeds 32767 once the shared `floatArray` crosses ~32 K floats — roughly 4 000 plain-mesh vertices, or ~3 400 skinned vertices. Whether a data set is affected depends on how much geometry precedes each slot, not on the size of any single part.
 
-### Verifying a data set
+All six shipped demo assets are currently inside the limit (`test/idle_ske.json`: `floatArray` peak 41666, `intArray` peak 30571; `test2`: 38800 / 31859; `Sheep` and `龙` far smaller; `Dragon` uses no packed meshes). An earlier export of `test/idle_ske.json` was far past it and is what motivated the check; re-exporting brought it back under.
 
-Replay the parser's write order offline instead of guessing from file size — offsets are cumulative across every preceding slot in the same skin:
+This asymmetry matters: an offset above 32767 but at or below 65535 renders **correctly** thanks to the wrap, so the guard must stay silent for it — only values above 65535 are unrecoverable. Do not "tighten" the limit to 32767.
 
-- `JSONDataParser::_parseMesh` (`parser/JSONDataParser.cpp:609-620`) grows `_intArray` by `4 + 3 * triangleCount` per mesh, and `_floatArray` by `vertexCount * 2` (vertices) plus `vertexCount * 2` (uvs).
-- When `weights` is present, `_parseMesh` (`:639-716`) additionally grows `_intArray` by `1 + 1 + weightBoneCount + vertexCount + weightCount`, and `_floatArray` by `weightCount * 3`.
-- `MeshFloatOffset` / `WeightFloatOffset` are snapshots of the respective buffer size **at that moment**, so any later slot inherits every earlier slot's growth. Sum them in slot order and flag anything above 32767.
+To verify a data set, re-derive it independently (`.agent_tmp/sim_offsets2.py`, `.agent_tmp/sim_color.py`) and confirm the numbers match what the error message reports. The replay has to follow the parser's real growth order:
+
+- `_parseMesh` grows `_intArray` by `4 + 3 * triangleCount`, and `_floatArray` by `vertexCount * 2` (vertices) plus `vertexCount * 2` (uvs).
+- With `weights` present it additionally grows `_intArray` by `1 + 1 + weightBoneCount + vertexCount + weightCount`, and `_floatArray` by `weightCount * 3`.
+- `_parseSlotColorFrame` adds 8 per **explicit** colour block (one reusing the default block adds none).
+- `MeshFloatOffset` / `WeightFloatOffset` / `colorOffset` are snapshots of the respective buffer size **at that moment**, so every later slot inherits all earlier growth.
 
 ## Cached String Constants
 
@@ -159,3 +183,4 @@ Do **not** construct `StringName("literal")` inline in these paths — it defeat
 - [ ] Literal `StringName`s use `SNAME(...)`.
 - [ ] Supported Godot range declared in `.gdextension` still matches reality.
 - [ ] Every `intArray` / `frameIntArray` offset read is ≥ 32-bit before its `+= 65536` wrap — never `auto`.
+- [ ] A new offset class written into a packed buffer is also covered by `check_packed_offsets` (`src/packed_offset_check.cpp`, debug builds) — the `+65536` wrap cannot recover values above 65535, so the check must catch them at load time.

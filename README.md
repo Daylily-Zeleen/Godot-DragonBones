@@ -72,8 +72,12 @@ To run "demo" project, here have 3 way:
 
 Both DragonBones export modes are supported:
 
-- **Texture atlas** (default): `<name>_ske.json` + `<name>_tex.json` + `<name>_tex.png`.
-- **Images (scattered)**: `<name>_ske.json` + a `<name>_texture/` folder with one standalone PNG per part (no `*_tex.json`).
+* **Texture atlas** (default): `<name>_ske.json` + `<name>_tex.json` + `<name>_tex.png`.
+* **Images (scattered)**: `<name>_ske.json` + a `<name>_texture/` folder with one standalone PNG per part (no `*_tex.json`).
+
+## Packed offset limit check (debug builds only)
+
+Due to a limitation of the DragonBones C++ library itself, index offsets are 16 bits wide; exceeding that raises no error, but usually does not render correctly. This repository therefore adds a data validity check: debug builds verify at load time that no offset exceeds the 16-bit limit (`floatArray`, `intArray`), and refuse to load — naming the buffer, the peak and the part — when it does. Release builds skip the check.
 
 ## Export
 
