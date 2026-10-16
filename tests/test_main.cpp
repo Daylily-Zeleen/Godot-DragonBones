@@ -38,3 +38,4 @@
 
 #include "armature_draw_data_test.h"
 #include "initialized_buffer_test.h"
+#include "packed_offset_check_test.h"

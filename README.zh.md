@@ -71,8 +71,12 @@ godot --headless --path demo --gddb-run-tests
 
 支持 DragonBones 的两种导出模式：
 
-- **纹理集**（默认）：`<name>_ske.json` + `<name>_tex.json` + `<name>_tex.png`。
-- **散图（Images）**：`<name>_ske.json` + `<name>_texture/` 目录（每个部件一张独立 PNG，无 `*_tex.json`）。
+* **纹理集**（默认）：`<name>_ske.json` + `<name>_tex.json` + `<name>_tex.png`。
+* **散图（Images）**：`<name>_ske.json` + `<name>_texture/` 目录（每个部件一张独立 PNG，无 `*_tex.json`）。
+
+## 打包偏移上限检查（仅调试构建）
+
+由于龙骨c++库自身的限制，索引偏移值的位宽为 16 位，超出时不会报错，但通常不会得到正确的显示效果。因此该仓库增加了数据合法性检查：调试构建加载时检查偏移是否超过 16 位上限（`floatArray`、`intArray`），超出即拒绝加载并报出缓冲名、峰值、部件名。发布构建不检查。
 
 ## 说明
 

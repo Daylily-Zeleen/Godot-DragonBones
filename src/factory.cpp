@@ -37,6 +37,10 @@
 #include "slot.h"
 #include "texture_atlas_data.h"
 
+#ifdef DEBUG_ENABLED
+#include "packed_offset_check.h"
+#endif
+
 #include <dragonBones/animation/WorldClock.h>
 #include <dragonBones/core/DragonBones.h>
 
@@ -301,6 +305,15 @@ Error DragonBonesFactory::load_data(const GDDragonBonesData *p_data) {
 		ERR_PRINT(vformat("Parse failed: \"%s\"", ske_path));
 		return ERR_PARSE_ERROR;
 	}
+
+#ifdef DEBUG_ENABLED
+	// 偏移超过 65535 会被 runtime 静默截断，导致部件拉扯，故在此检查并拒绝加载。
+	const String overflowed = check_packed_offsets((const char *)raw_data.ptr());
+	ERR_FAIL_COND_V_MSG(!overflowed.is_empty(), ERR_INVALID_DATA,
+						vformat("DragonBones data \"%s\" exceeds the packed-offset limit (%d): %s. "
+								"Parts would be distorted if loaded; split the asset or reduce vertex count.",
+								ske_path, (int64_t)PACKED_OFFSET_LIMIT, overflowed));
+#endif // DEBUG_ENABLED
 
 	// ---- 散图图集（必须在骨架之后）----
 	// 散图要遍历该套骨架数据里的显示路径来收集纹理名，故必须在骨架加载后。

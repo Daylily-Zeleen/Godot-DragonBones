@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/gdextension/type-conversion.md", "reason": "校验改动后的偏移读取是否满足窄/宽两模式的契约，以及是否遗留 int16_t 读取点"}
+{"file": ".trellis/spec/gdextension/index.md", "reason": "质量门：编译、文档同步、指针所有权、条件宏白名单"}
+{"file": ".trellis/spec/gdextension/memory-and-lifetime.md", "reason": "校验 dbbin 展开缓冲的分配/释放配对，无泄漏与悬垂"}
+{"file": ".trellis/spec/build/build-systems.md", "reason": "校验 SCons/CMake 两轨开关一致、无重复符号"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨层检查清单：窄缓冲读取是其中明确列出的高危项"}
+{"file": ".trellis/spec/gdextension/error-handling.md", "reason": "校验 Stage 1 报错宏选型与错误码是否符合本层约定"}

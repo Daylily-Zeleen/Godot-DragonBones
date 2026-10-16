@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/gdextension/type-conversion.md", "reason": "打包缓冲位宽/偏移读取契约的唯一权威文档；本次改动直接改写其 § Narrow Runtime Buffers"}
+{"file": ".trellis/spec/gdextension/index.md", "reason": "本层开发前检查清单与质量门（编译、文档、指针所有权、允许的宏）"}
+{"file": ".trellis/spec/gdextension/memory-and-lifetime.md", "reason": "分配器边界：展开缓冲必须走 DRAGONBONES_NEW_ARR/DELETE_ARR，与 binary 同点释放"}
+{"file": ".trellis/spec/gdextension/quality-guidelines.md", "reason": "允许的条件宏只有 TOOLS_ENABLED/DEBUG_ENABLED/版本守卫；格式化与禁用模式"}
+{"file": ".trellis/spec/build/build-systems.md", "reason": "SCons 与 CMake 双轨构建；新增 wide_offsets 开关必须两边同进同出"}
+{"file": ".trellis/spec/guides/index.md", "reason": "§56 记载『thirdparty/ 不是我们重构的对象』，本次需补受控例外"}
+{"file": ".trellis/spec/gdextension/error-handling.md", "reason": "Stage 1 的失败语义：Error 返回、ERR_FAIL_COND_V_MSG 选型、返回 type-correct 默认值"}
